@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
-
 RATING_FIELDS: Final[tuple[str, ...]] = (
     "insideScoring",
     "threePointShooting",

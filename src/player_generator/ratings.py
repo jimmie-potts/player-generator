@@ -47,29 +47,47 @@ def _rate_one_season(frame: pd.DataFrame, config: dict[str, Any]) -> pd.DataFram
     result = frame.copy()
     skill_components: dict[str, dict[str, float]] = {
         "insideScoring": {
-            "adjustedTwoPointPercentage": 0.45,
-            "twoPointAttemptsPer36": 0.30,
-            "freeThrowAttemptsPer36": 0.25,
+            "adjustedTwoPointPercentage": 0.50,
+            "twoPointAttemptFrequency": 0.30,
+            "freeThrowRate": 0.20,
         },
         "threePointShooting": {
-            "adjustedThreePointPercentage": 0.65,
-            "threePointAttemptsPer36": 0.35,
+            "adjustedThreePointPercentage": 0.60,
+            "threePointAttemptFrequency": 0.40,
         },
         "freeThrowShooting": {"adjustedFreeThrowPercentage": 1.0},
-        "scoringVolume": {"pointsPer36": 0.70, "minutesPerGame": 0.30},
-        "playmaking": {"assistsPer36": 0.68, "assistTurnoverRatio": 0.32},
-        "ballSecurity": {"inverse:turnoverRateProxy": 0.65, "assistTurnoverRatio": 0.35},
-        "offensiveRebounding": {"offensiveReboundsPer36": 1.0},
-        "defensiveRebounding": {"defensiveReboundsPer36": 1.0},
+        "scoringVolume": {
+            "pointsPer100": 0.50,
+            "usagePercentage": 0.30,
+            "trueShootingPercentage": 0.20,
+        },
+        "playmaking": {
+            "assistsPer36": 0.25,
+            "assistPercentage": 0.30,
+            "assistRatio": 0.15,
+            "assistTurnoverRatio": 0.15,
+            "usagePercentage": 0.15,
+        },
+        "ballSecurity": {
+            "inverse:estimatedTurnoverPercentage": 0.40,
+            "assistTurnoverRatio": 0.30,
+            "inverse:turnoversPer100": 0.30,
+        },
+        "offensiveRebounding": {"offensiveReboundPercentage": 1.0},
+        "defensiveRebounding": {"defensiveReboundPercentage": 1.0},
         "perimeterDefense": {
-            "stealsPer36": 0.72,
-            "defensiveReboundsPer36": 0.13,
-            "plusMinusPer36": 0.15,
+            "stealsPer100": 0.45,
+            "inverse:estimatedDefensiveRating": 0.20,
+            "defensiveWinSharesPer36": 0.15,
+            "defensiveReboundPercentage": 0.10,
+            "playerImpactEstimate": 0.10,
         },
         "interiorDefense": {
-            "blocksPer36": 0.65,
-            "defensiveReboundsPer36": 0.25,
-            "plusMinusPer36": 0.10,
+            "blocksPer100": 0.35,
+            "defensiveReboundPercentage": 0.25,
+            "inverse:estimatedDefensiveRating": 0.20,
+            "defensiveWinSharesPer36": 0.10,
+            "playerImpactEstimate": 0.10,
         },
         "stamina": {"minutesPerGame": 0.80, "minutes": 0.20},
         "durability": {"availability": 1.0},
@@ -84,11 +102,12 @@ def _rate_one_season(frame: pd.DataFrame, config: dict[str, Any]) -> pd.DataFram
     impact_composite = _weighted_percentiles(
         result,
         {
-            "gameScorePer36": 0.58,
-            "minutesPerGame": 0.18,
+            "playerImpactEstimate": 0.35,
+            "estimatedNetRating": 0.20,
+            "pointsPer100": 0.15,
+            "minutesPerGame": 0.12,
             "trueShootingPercentage": 0.10,
-            "plusMinusPer36": 0.08,
-            "availability": 0.06,
+            "availability": 0.08,
         },
     )
     impact_percentile = stable_rank_percentile(impact_composite, higher_is_better=True)
@@ -116,10 +135,12 @@ def rate_player_seasons(player_seasons: pd.DataFrame, config: dict[str, Any]) ->
 
 
 def build_reference_snapshot(rated_seasons: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
-    comparison_season = str(config["reference"]["comparison_season"])
+    comparison_season = int(config["reference"]["comparison_season"])
+    minimum_games = int(config["reference"].get("minimum_games", 0))
     minimum_minutes = float(config["reference"]["minimum_minutes"])
     snapshot = rated_seasons[
         (rated_seasons["season_year"] == comparison_season)
+        & (rated_seasons["games"] >= minimum_games)
         & (rated_seasons["minutes"] >= minimum_minutes)
         & (rated_seasons["positionGroup"] != "unknown")
     ].copy()
@@ -133,24 +154,52 @@ def build_reference_snapshot(rated_seasons: pd.DataFrame, config: dict[str, Any]
         "teamAbbreviation",
         "positionGroup",
         "bioPosition",
+        "sourceAge",
         "heightInches",
         "weightPounds",
+        "college",
         "country",
         "draftYear",
+        "draftRound",
+        "draftNumber",
         "games",
         "minutes",
         "minutesPerGame",
+        "seasonWeight",
         "pointsPer36",
+        "pointsPer100",
         "assistsPer36",
+        "assistsPer100",
+        "turnoversPer100",
+        "usagePercentage",
+        "assistPercentage",
+        "assistRatio",
+        "assistTurnoverRatio",
+        "estimatedTurnoverPercentage",
         "offensiveReboundsPer36",
         "defensiveReboundsPer36",
+        "offensiveReboundPercentage",
+        "defensiveReboundPercentage",
         "stealsPer36",
         "blocksPer36",
+        "stealsPer100",
+        "blocksPer100",
         "turnoversPer36",
         "adjustedTwoPointPercentage",
         "adjustedThreePointPercentage",
         "adjustedFreeThrowPercentage",
+        "twoPointAttemptFrequency",
+        "threePointAttemptFrequency",
         "trueShootingPercentage",
+        "effectiveFieldGoalPercentage",
+        "offensiveRating",
+        "defensiveRating",
+        "netRating",
+        "estimatedOffensiveRating",
+        "estimatedDefensiveRating",
+        "estimatedNetRating",
+        "playerImpactEstimate",
+        "defensiveWinShares",
         "availability",
         "gameScorePer36",
         *RATING_FIELDS,

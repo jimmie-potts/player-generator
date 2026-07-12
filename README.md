@@ -13,14 +13,16 @@ Source IDs and NBA names         No source IDs or NBA names
 Ignored by Git by default        May be committed and shipped
 ```
 
-The included starter snapshot lets you generate and compare rosters immediately. Raw game logs are
-not bundled; a reproducible downloader can retrieve them when you want to rebuild the snapshot.
+Tracked fictional roster and report examples are available immediately. Named reference data is not
+committed; download the pinned source snapshot before rebuilding ratings or generating a new roster.
 
 ## What is included
 
-- A historical regular-season ingestion pipeline.
-- A named, non-anonymized 2019-20 through 2023-24 player-season reference table.
-- A named 2023-24 comparison snapshot with derived 25-99 player ratings.
+- A Parquet-based regular-season ingestion pipeline.
+- Named, non-anonymized player-season profiles for end-season years 2021 through 2026
+  (2020-21 through 2025-26).
+- A six-season, recency-weighted template pool and a latest-season comparison snapshot.
+- Direct per-game, per-36, per-100-possession and advanced-stat rating inputs.
 - A deterministic generator for 30 fictional teams and 450 fictional players.
 - Position, size, age, potential, archetype and development generation.
 - Distribution and identity checks comparing fictional output with the named reference population.
@@ -35,10 +37,8 @@ python3 -m venv .venv
 source .venv/bin/activate                 # Windows: .venv\Scripts\activate
 python -m pip install -e '.[dev]'
 
-# Uses the included processed reference snapshot; no network call.
-player-generator all
-
-# Run tests.
+# The tracked generated_data/ and reports/ examples are ready to inspect offline.
+# Run the test suite without downloading reference data.
 pytest
 ```
 
@@ -51,17 +51,10 @@ reports/comparison_report.json
 reports/comparison_table.csv
 ```
 
-Use a different deterministic seed with:
-
-```bash
-player-generator generate --seed 12345
-player-generator compare
-```
-
 ## Rebuild the named reference data
 
-The raw source files total roughly 68 MB and are omitted from the starter archive. To download and
-rebuild the local named reference snapshot:
+The pinned `playerstats.parquet` snapshot is about 2.43 MB and is not committed. Download it before
+building the local named reference tables or generating a new roster:
 
 ```bash
 player-generator download-reference
@@ -70,13 +63,16 @@ player-generator generate
 player-generator compare
 ```
 
-Or run everything and force a refreshed local reference snapshot:
+Use a different deterministic seed by replacing the `generate` command with
+`player-generator generate --seed 12345`.
+
+Or ensure the pinned input is present and rebuild all stages:
 
 ```bash
 player-generator all --refresh-reference
 ```
 
-Exact source URLs, expected SHA-256 hashes and provenance notes are stored in
+The exact commit-pinned URL, expected SHA-256 hash and provenance notes are stored in
 `reference_data/source_manifest.json`.
 
 ## Project layout
@@ -91,7 +87,7 @@ Exact source URLs, expected SHA-256 hashes and provenance notes are stored in
 │   ├── raw/                              # downloaded inputs; Git-ignored
 │   ├── processed/                        # named local outputs; Git-ignored
 │   │   ├── player_seasons_reference.csv
-│   │   ├── reference_players_2023_24.csv
+│   │   ├── reference_players.csv
 │   │   └── reference_distribution.json
 │   └── source_manifest.json
 ├── reports/
@@ -107,18 +103,18 @@ Exact source URLs, expected SHA-256 hashes and provenance notes are stored in
 ## Pipeline
 
 ```text
-Historical named box scores
+Pinned playerstats.parquet
           │
           ▼
-Named player-season totals and per-36 metrics
+Selected totals, per-36, per-100, advanced and bio fields
           │
           ▼
-Stabilized shooting percentages and 25-99 ratings
+Broad position inference + stabilized shooting + 25-99 ratings
           │
-          ├──────────────► reference_data/processed/
-          │                 local accuracy baseline
+          ├──────────────► latest-season comparison snapshot
+          │
           ▼
-Tier/position stratified template sampling
+Six-season weighted tier/position template sampling
           │
           ▼
 Rating mutation + independent names/ages/physicals
@@ -133,40 +129,41 @@ Distribution, correlation and identity comparison
                             reports/
 ```
 
-## Initial ratings
+## Ratings
 
-The starter model derives these ratings:
+The model derives these ratings:
 
 | Rating | Primary inputs |
 |---|---|
-| `insideScoring` | Stabilized 2P%, 2PA per 36, FTA per 36 |
-| `threePointShooting` | Stabilized 3P%, 3PA per 36 |
+| `insideScoring` | Stabilized 2P%, 2PA frequency, free-throw rate |
+| `threePointShooting` | Stabilized 3P%, 3PA frequency |
 | `freeThrowShooting` | Stabilized FT% |
-| `scoringVolume` | Points per 36, minutes per game |
-| `playmaking` | Assists per 36, assist/turnover ratio |
-| `ballSecurity` | Inverse turnover-rate proxy, assist/turnover ratio |
-| `offensiveRebounding` | Offensive rebounds per 36 |
-| `defensiveRebounding` | Defensive rebounds per 36 |
-| `perimeterDefense` | Steals, defensive rebounds and plus-minus proxies |
-| `interiorDefense` | Blocks, defensive rebounds and plus-minus proxies |
+| `scoringVolume` | Points per 100, usage, true shooting |
+| `playmaking` | Assists per 36, assist percentage/ratio, assist/turnover, usage |
+| `ballSecurity` | Inverse estimated turnover percentage and turnovers per 100, assist/turnover |
+| `offensiveRebounding` | Offensive rebound percentage |
+| `defensiveRebounding` | Defensive rebound percentage |
+| `perimeterDefense` | Steals per 100, estimated defensive rating, DWS, DREB%, PIE |
+| `interiorDefense` | Blocks per 100, DREB%, estimated defensive rating, DWS, PIE |
 | `stamina` | Minutes per game and season minutes |
 | `durability` | Games played relative to scheduled games |
-| `overall` | Game Score per 36, minutes, efficiency, plus-minus and availability |
+| `overall` | PIE, estimated net rating, points per 100, minutes, TS% and availability |
 
 Shooting percentages use empirical-Bayes-style stabilization: low-attempt players are pulled toward
 the season league average. Ratings are percentile mapped separately within each season, which keeps
 changes in league pace and shooting environment from overwhelming the scale.
 
-Defense is the least reliable part of this starter model. Steals, blocks, rebounds and plus-minus do
-not capture containment, rotations, screen navigation, matchup difficulty or deterrence. Treat the
-defensive fields as simulation placeholders until a better data source is added.
+The source does not provide position. Broad guard/wing/big groups are inferred from height and role
+metrics for template stratification; they are not authoritative NBA positions. Defense also remains
+noisy: ratings and defensive win shares include substantial team and context effects.
 
 ## Fictional generation
 
 The generator does not write a source-player crosswalk. For each synthetic player it:
 
 1. Chooses a talent tier and broad position from explicit league targets.
-2. Samples a compatible named reference template in memory.
+2. Samples a compatible named reference template from the six-season pool, weighted by both minutes
+   and configured season recency.
 3. Mutates every rating with configurable volatility.
 4. Generates a non-colliding fictional name.
 5. Generates age, height, weight, detailed position, archetype and development traits.
@@ -194,7 +191,7 @@ player.
 
 Most tuning lives in `config/default.yaml`:
 
-- Historical seasons and minimum minutes.
+- End-season years, recency weights and minimum minutes.
 - Shooting priors.
 - Percentile-to-rating anchor curves.
 - Per-attribute mutation volatility.
@@ -214,20 +211,19 @@ change formulas/config
 
 ## Data handling
 
-`reference_data/raw/` and refreshed files under `reference_data/processed/` are ignored by Git. The
-starter ZIP still contains a processed snapshot so it works out of the box. After extracting it into
-a normal repository, accidental changes or expanded reference data will not be staged unless you
-intentionally change `.gitignore`.
+`reference_data/raw/` and files under `reference_data/processed/` are ignored by Git. Do not commit
+or redistribute the downloaded Parquet file or derived named reference tables. The tracked fictional
+examples under `generated_data/` contain no source identities and remain usable offline.
 
 The game should load only `generated_data/default_roster.json`. Do not make the game runtime depend
 on the named reference directory.
 
 ## Sources and notices
 
-The source manifest currently points to:
+The primary input is `llimllib/nba_data`'s `data/playerstats.parquet`, pinned to commit
+`a7bc98d73324300bd28d77260f45c98c239d1e87`. No root license file was observed in that upstream
+repository when the snapshot was selected. `NocturneBear/NBA-Data-2010-2024` is retained only as a
+manual validation source; it is not downloaded by the normal pipeline. The previous Brescou
+dependency has been removed. ESPN analytics ingestion is deferred to a later phase.
 
-- `NocturneBear/NBA-Data-2010-2024` for regular-season player box scores.
-- `Brescou/NBA-dataset-stats-player-team` for optional physical and broad-position metadata.
-
-Both repositories declare MIT licenses. See `THIRD_PARTY_NOTICES.md` and the source manifest before
-redistributing any third-party data snapshot.
+See `THIRD_PARTY_NOTICES.md` and the source manifest before using any third-party data.

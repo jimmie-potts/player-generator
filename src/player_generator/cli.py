@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from player_generator.config import load_config
 from player_generator.pipeline import (
@@ -23,7 +23,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", default="config/default.yaml", help="Path to YAML config.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    download = subparsers.add_parser("download-reference", help="Download local source CSVs.")
+    download = subparsers.add_parser("download-reference", help="Download local source data.")
     download.add_argument("--force", action="store_true", help="Replace existing raw files.")
 
     subparsers.add_parser("build-reference", help="Build non-anonymized reference profiles.")

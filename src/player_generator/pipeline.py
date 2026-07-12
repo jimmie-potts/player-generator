@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import shutil
 import urllib.request
 from datetime import datetime, timezone
@@ -12,14 +11,13 @@ import pandas as pd
 from player_generator.comparison import compare_rosters
 from player_generator.config import resolve_path
 from player_generator.generator import generate_league
-from player_generator.ingest import aggregate_player_seasons, load_bio_index, load_box_scores
+from player_generator.ingest import load_player_stats
 from player_generator.ratings import build_reference_snapshot, rate_player_seasons
 from player_generator.schema import RATING_FIELDS
 from player_generator.util import read_json, sha256_file, write_json
 
-
 REFERENCE_SEASONS_FILE = "player_seasons_reference.csv"
-REFERENCE_SNAPSHOT_FILE = "reference_players_2023_24.csv"
+REFERENCE_SNAPSHOT_FILE = "reference_players.csv"
 REFERENCE_DISTRIBUTION_FILE = "reference_distribution.json"
 GENERATED_ROSTER_FILE = "default_roster.json"
 GENERATED_PLAYERS_FILE = "fictional_players.csv"
@@ -27,18 +25,13 @@ COMPARISON_REPORT_FILE = "comparison_report.json"
 COMPARISON_TABLE_FILE = "comparison_table.csv"
 
 
-def _raw_files_from_manifest(config: dict[str, Any]) -> tuple[list[Path], Path | None]:
+def _raw_player_stats_from_manifest(config: dict[str, Any]) -> Path:
     manifest = read_json(resolve_path(config, "source_manifest"))
     raw_dir = resolve_path(config, "reference_raw_dir")
-    box_scores: list[Path] = []
-    bio_path: Path | None = None
-    for source in manifest["sources"]:
-        target = raw_dir / source["filename"]
-        if source["kind"] == "box_scores":
-            box_scores.append(target)
-        elif source["kind"] == "player_bios":
-            bio_path = target
-    return box_scores, bio_path
+    sources = [source for source in manifest["sources"] if source["kind"] == "player_seasons"]
+    if len(sources) != 1:
+        raise ValueError("The source manifest must define exactly one player_seasons source.")
+    return raw_dir / sources[0]["filename"]
 
 
 def download_reference_data(config: dict[str, Any], force: bool = False) -> list[Path]:
@@ -76,20 +69,23 @@ def download_reference_data(config: dict[str, Any], force: bool = False) -> list
 
 
 def build_reference_data(config: dict[str, Any]) -> tuple[Path, Path]:
-    box_score_paths, bio_path = _raw_files_from_manifest(config)
-    missing = [path for path in box_score_paths if not path.exists()]
-    if missing:
-        names = ", ".join(path.name for path in missing)
+    player_stats_path = _raw_player_stats_from_manifest(config)
+    if not player_stats_path.exists():
         raise FileNotFoundError(
-            f"Missing raw reference files: {names}. Run the download-reference command first."
+            f"Missing raw reference file: {player_stats_path.name}. "
+            "Run the download-reference command first."
         )
 
-    games = load_box_scores(box_score_paths, set(config["reference"]["seasons"]))
-    bios = load_bio_index(bio_path)
-    player_seasons = aggregate_player_seasons(games, config, bios)
+    player_seasons = load_player_stats(
+        player_stats_path,
+        {int(year) for year in config["reference"]["seasons"]},
+        config,
+    )
+    minimum_games = int(config["reference"].get("minimum_games", 0))
     minimum_minutes = float(config["reference"]["minimum_minutes"])
     eligible = player_seasons[
-        (player_seasons["minutes"] >= minimum_minutes)
+        (player_seasons["games"] >= minimum_games)
+        & (player_seasons["minutes"] >= minimum_minutes)
         & (player_seasons["positionGroup"] != "unknown")
     ].copy()
     rated = rate_player_seasons(eligible, config)
@@ -127,12 +123,12 @@ def build_reference_data(config: dict[str, Any]) -> tuple[Path, Path]:
 
 def generate_roster(config: dict[str, Any], seed: int | None = None) -> tuple[Path, Path]:
     processed_dir = resolve_path(config, "reference_processed_dir")
-    snapshot_path = processed_dir / REFERENCE_SNAPSHOT_FILE
-    if not snapshot_path.exists():
+    seasons_path = processed_dir / REFERENCE_SEASONS_FILE
+    if not seasons_path.exists():
         raise FileNotFoundError(
-            f"Reference snapshot not found: {snapshot_path}. Build reference data first."
+            f"Reference player seasons not found: {seasons_path}. Build reference data first."
         )
-    reference = pd.read_csv(snapshot_path, low_memory=False)
+    reference = pd.read_csv(seasons_path, low_memory=False)
     league, players = generate_league(reference, config, seed=seed)
 
     generated_dir = resolve_path(config, "generated_dir")
@@ -148,7 +144,9 @@ def compare_generated_roster(config: dict[str, Any]) -> tuple[Path, Path]:
     reference_path = resolve_path(config, "reference_processed_dir") / REFERENCE_SNAPSHOT_FILE
     generated_path = resolve_path(config, "generated_dir") / GENERATED_PLAYERS_FILE
     if not reference_path.exists() or not generated_path.exists():
-        raise FileNotFoundError("Reference and generated player CSV files are required for comparison.")
+        raise FileNotFoundError(
+            "Reference and generated player CSV files are required for comparison."
+        )
 
     reference = pd.read_csv(reference_path, low_memory=False)
     generated = pd.read_csv(generated_path, low_memory=False)
@@ -164,8 +162,7 @@ def compare_generated_roster(config: dict[str, Any]) -> tuple[Path, Path]:
 
 
 def raw_reference_files_exist(config: dict[str, Any]) -> bool:
-    box_scores, _ = _raw_files_from_manifest(config)
-    return bool(box_scores) and all(path.exists() for path in box_scores)
+    return _raw_player_stats_from_manifest(config).exists()
 
 
 def reference_snapshot_exists(config: dict[str, Any]) -> bool:
