@@ -9,9 +9,9 @@ loading.
 ## Layout
 
 - `raw/playerstats.parquet`: pinned 2.43 MB upstream snapshot; downloaded locally and Git-ignored.
-- `processed/player_seasons_reference.json`: named, rated player-season pool for end-season years
+- `processed/player_seasons_reference.csv`: named, rated player-season pool for end-season years
   2021 through 2026. The generator samples this pool using configured recency weights.
-- `processed/reference_players.json`: latest-season named comparison snapshot.
+- `processed/reference_players.csv`: latest-season named comparison snapshot.
 - `processed/reference_distribution.json`: compact distribution summary.
 - `source_manifest.json`: pinned URL, checksum, size, provenance and license-status notes.
 

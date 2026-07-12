@@ -16,28 +16,13 @@ from player_generator.ratings import build_reference_snapshot, rate_player_seaso
 from player_generator.schema import RATING_FIELDS
 from player_generator.util import read_json, sha256_file, write_json
 
-REFERENCE_SEASONS_FILE = "player_seasons_reference.json"
-REFERENCE_SNAPSHOT_FILE = "reference_players.json"
+REFERENCE_SEASONS_FILE = "player_seasons_reference.csv"
+REFERENCE_SNAPSHOT_FILE = "reference_players.csv"
 REFERENCE_DISTRIBUTION_FILE = "reference_distribution.json"
 GENERATED_ROSTER_FILE = "default_roster.json"
 GENERATED_PLAYERS_FILE = "fictional_players.csv"
 COMPARISON_REPORT_FILE = "comparison_report.json"
 COMPARISON_TABLE_FILE = "comparison_table.csv"
-
-
-def _write_records_json(frame: pd.DataFrame, path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    frame.to_json(
-        path,
-        orient="records",
-        indent=2,
-        force_ascii=False,
-        double_precision=15,
-    )
-
-
-def _read_records_json(path: Path) -> pd.DataFrame:
-    return pd.read_json(path, orient="records", convert_dates=False)
 
 
 def _raw_player_stats_from_manifest(config: dict[str, Any]) -> Path:
@@ -110,8 +95,8 @@ def build_reference_data(config: dict[str, Any]) -> tuple[Path, Path]:
     processed_dir.mkdir(parents=True, exist_ok=True)
     seasons_path = processed_dir / REFERENCE_SEASONS_FILE
     snapshot_path = processed_dir / REFERENCE_SNAPSHOT_FILE
-    _write_records_json(rated, seasons_path)
-    _write_records_json(snapshot, snapshot_path)
+    rated.to_csv(seasons_path, index=False)
+    snapshot.to_csv(snapshot_path, index=False)
 
     rating_fields = [*RATING_FIELDS, "overall"]
     distribution = {
@@ -143,7 +128,7 @@ def generate_roster(config: dict[str, Any], seed: int | None = None) -> tuple[Pa
         raise FileNotFoundError(
             f"Reference player seasons not found: {seasons_path}. Build reference data first."
         )
-    reference = _read_records_json(seasons_path)
+    reference = pd.read_csv(seasons_path, low_memory=False)
     league, players = generate_league(reference, config, seed=seed)
 
     generated_dir = resolve_path(config, "generated_dir")
@@ -160,10 +145,10 @@ def compare_generated_roster(config: dict[str, Any]) -> tuple[Path, Path]:
     generated_path = resolve_path(config, "generated_dir") / GENERATED_PLAYERS_FILE
     if not reference_path.exists() or not generated_path.exists():
         raise FileNotFoundError(
-            "Reference player JSON and generated player CSV are required for comparison."
+            "Reference and generated player CSV files are required for comparison."
         )
 
-    reference = _read_records_json(reference_path)
+    reference = pd.read_csv(reference_path, low_memory=False)
     generated = pd.read_csv(generated_path, low_memory=False)
     report, table = compare_rosters(reference, generated)
 

@@ -86,8 +86,8 @@ The exact commit-pinned URL, expected SHA-256 hash and provenance notes are stor
 ├── reference_data/
 │   ├── raw/                              # downloaded inputs; Git-ignored
 │   ├── processed/                        # named local outputs; Git-ignored
-│   │   ├── player_seasons_reference.json
-│   │   ├── reference_players.json
+│   │   ├── player_seasons_reference.csv
+│   │   ├── reference_players.csv
 │   │   └── reference_distribution.json
 │   └── source_manifest.json
 ├── reports/
