@@ -1,166 +1,11 @@
 {
   "status": "pass",
-  "referencePlayerCount": 457,
+  "referencePlayerCount": 376,
   "generatedPlayerCount": 450,
   "ratings": {
     "insideScoring": {
       "reference": {
-        "mean": 66.801,
-        "std": 17.588,
-        "min": 26.0,
-        "max": 99.0,
-        "p10": 42.0,
-        "p25": 54.0,
-        "p50": 68.0,
-        "p75": 80.0,
-        "p90": 90.0,
-        "p95": 94.2,
-        "p99": 98.0
-      },
-      "generated": {
-        "mean": 66.284,
-        "std": 17.381,
-        "min": 25.0,
-        "max": 99.0,
-        "p10": 42.0,
-        "p25": 54.0,
-        "p50": 67.5,
-        "p75": 79.0,
-        "p90": 88.0,
-        "p95": 92.55,
-        "p99": 97.0
-      },
-      "meanDifference": -0.517,
-      "stdDifference": -0.207,
-      "quantileMAE": 0.879
-    },
-    "threePointShooting": {
-      "reference": {
-        "mean": 66.803,
-        "std": 17.58,
-        "min": 26.0,
-        "max": 99.0,
-        "p10": 42.0,
-        "p25": 54.0,
-        "p50": 68.0,
-        "p75": 80.0,
-        "p90": 90.0,
-        "p95": 94.2,
-        "p99": 98.0
-      },
-      "generated": {
-        "mean": 67.884,
-        "std": 18.091,
-        "min": 25.0,
-        "max": 99.0,
-        "p10": 42.0,
-        "p25": 54.0,
-        "p50": 71.5,
-        "p75": 82.0,
-        "p90": 90.1,
-        "p95": 94.0,
-        "p99": 99.0
-      },
-      "meanDifference": 1.081,
-      "stdDifference": 0.511,
-      "quantileMAE": 0.971
-    },
-    "freeThrowShooting": {
-      "reference": {
-        "mean": 66.799,
-        "std": 17.585,
-        "min": 26.0,
-        "max": 99.0,
-        "p10": 42.0,
-        "p25": 54.0,
-        "p50": 68.0,
-        "p75": 80.0,
-        "p90": 90.0,
-        "p95": 94.2,
-        "p99": 98.0
-      },
-      "generated": {
-        "mean": 68.013,
-        "std": 17.523,
-        "min": 27.0,
-        "max": 99.0,
-        "p10": 43.9,
-        "p25": 55.25,
-        "p50": 69.0,
-        "p75": 81.0,
-        "p90": 92.0,
-        "p95": 96.0,
-        "p99": 99.0
-      },
-      "meanDifference": 1.214,
-      "stdDifference": -0.062,
-      "quantileMAE": 1.421
-    },
-    "scoringVolume": {
-      "reference": {
-        "mean": 66.803,
-        "std": 17.586,
-        "min": 26.0,
-        "max": 99.0,
-        "p10": 42.0,
-        "p25": 54.0,
-        "p50": 68.0,
-        "p75": 80.0,
-        "p90": 90.0,
-        "p95": 94.2,
-        "p99": 98.0
-      },
-      "generated": {
-        "mean": 67.973,
-        "std": 16.961,
-        "min": 26.0,
-        "max": 99.0,
-        "p10": 44.0,
-        "p25": 56.0,
-        "p50": 69.0,
-        "p75": 81.0,
-        "p90": 90.0,
-        "p95": 95.0,
-        "p99": 99.0
-      },
-      "meanDifference": 1.17,
-      "stdDifference": -0.625,
-      "quantileMAE": 1.114
-    },
-    "playmaking": {
-      "reference": {
-        "mean": 66.799,
-        "std": 17.584,
-        "min": 26.0,
-        "max": 99.0,
-        "p10": 42.0,
-        "p25": 54.0,
-        "p50": 68.0,
-        "p75": 80.0,
-        "p90": 90.0,
-        "p95": 94.2,
-        "p99": 98.0
-      },
-      "generated": {
-        "mean": 67.044,
-        "std": 18.115,
-        "min": 25.0,
-        "max": 99.0,
-        "p10": 42.0,
-        "p25": 53.0,
-        "p50": 68.0,
-        "p75": 81.75,
-        "p90": 90.0,
-        "p95": 95.0,
-        "p99": 99.0
-      },
-      "meanDifference": 0.245,
-      "stdDifference": 0.531,
-      "quantileMAE": 0.65
-    },
-    "ballSecurity": {
-      "reference": {
-        "mean": 66.801,
+        "mean": 66.809,
         "std": 17.581,
         "min": 26.0,
         "max": 99.0,
@@ -169,92 +14,30 @@
         "p50": 68.0,
         "p75": 80.0,
         "p90": 90.0,
-        "p95": 94.2,
+        "p95": 94.25,
         "p99": 98.0
       },
       "generated": {
-        "mean": 66.282,
-        "std": 17.835,
-        "min": 25.0,
-        "max": 99.0,
-        "p10": 40.0,
-        "p25": 53.0,
-        "p50": 68.0,
-        "p75": 80.75,
-        "p90": 90.0,
-        "p95": 92.0,
-        "p99": 98.02
-      },
-      "meanDifference": -0.519,
-      "stdDifference": 0.254,
-      "quantileMAE": 0.853
-    },
-    "offensiveRebounding": {
-      "reference": {
-        "mean": 66.801,
-        "std": 17.581,
-        "min": 26.0,
-        "max": 99.0,
-        "p10": 42.0,
-        "p25": 54.0,
-        "p50": 68.0,
-        "p75": 80.0,
-        "p90": 90.0,
-        "p95": 94.2,
-        "p99": 98.0
-      },
-      "generated": {
-        "mean": 65.636,
-        "std": 17.93,
+        "mean": 64.502,
+        "std": 17.907,
         "min": 25.0,
         "max": 99.0,
         "p10": 41.0,
         "p25": 51.0,
-        "p50": 67.0,
-        "p75": 80.0,
-        "p90": 89.0,
-        "p95": 93.0,
-        "p99": 98.0
-      },
-      "meanDifference": -1.165,
-      "stdDifference": 0.349,
-      "quantileMAE": 1.029
-    },
-    "defensiveRebounding": {
-      "reference": {
-        "mean": 66.801,
-        "std": 17.581,
-        "min": 26.0,
-        "max": 99.0,
-        "p10": 42.0,
-        "p25": 54.0,
-        "p50": 68.0,
-        "p75": 80.0,
+        "p50": 63.0,
+        "p75": 78.0,
         "p90": 90.0,
-        "p95": 94.2,
-        "p99": 98.0
-      },
-      "generated": {
-        "mean": 66.024,
-        "std": 17.869,
-        "min": 25.0,
-        "max": 99.0,
-        "p10": 41.0,
-        "p25": 53.25,
-        "p50": 67.0,
-        "p75": 80.0,
-        "p90": 89.1,
         "p95": 94.0,
         "p99": 99.0
       },
-      "meanDifference": -0.777,
-      "stdDifference": 0.288,
-      "quantileMAE": 0.693
+      "meanDifference": -2.307,
+      "stdDifference": 0.326,
+      "quantileMAE": 1.75
     },
-    "perimeterDefense": {
+    "threePointShooting": {
       "reference": {
-        "mean": 66.801,
-        "std": 17.581,
+        "mean": 66.824,
+        "std": 17.575,
         "min": 26.0,
         "max": 99.0,
         "p10": 42.0,
@@ -262,29 +45,29 @@
         "p50": 68.0,
         "p75": 80.0,
         "p90": 90.0,
-        "p95": 94.2,
+        "p95": 94.25,
         "p99": 98.0
       },
       "generated": {
-        "mean": 66.958,
-        "std": 18.629,
+        "mean": 66.596,
+        "std": 17.763,
         "min": 25.0,
         "max": 99.0,
-        "p10": 41.0,
-        "p25": 53.0,
+        "p10": 42.9,
+        "p25": 52.25,
         "p50": 68.0,
         "p75": 81.0,
         "p90": 91.0,
-        "p95": 96.0,
+        "p95": 93.0,
         "p99": 99.0
       },
-      "meanDifference": 0.157,
-      "stdDifference": 1.048,
-      "quantileMAE": 0.971
+      "meanDifference": -0.228,
+      "stdDifference": 0.188,
+      "quantileMAE": 0.986
     },
-    "interiorDefense": {
+    "freeThrowShooting": {
       "reference": {
-        "mean": 66.799,
+        "mean": 66.814,
         "std": 17.58,
         "min": 26.0,
         "max": 99.0,
@@ -293,29 +76,246 @@
         "p50": 68.0,
         "p75": 80.0,
         "p90": 90.0,
-        "p95": 94.2,
+        "p95": 94.25,
         "p99": 98.0
       },
       "generated": {
-        "mean": 66.422,
-        "std": 18.407,
+        "mean": 67.991,
+        "std": 18.15,
+        "min": 25.0,
+        "max": 99.0,
+        "p10": 42.0,
+        "p25": 54.0,
+        "p50": 69.0,
+        "p75": 82.0,
+        "p90": 93.0,
+        "p95": 96.0,
+        "p99": 98.51
+      },
+      "meanDifference": 1.177,
+      "stdDifference": 0.57,
+      "quantileMAE": 1.18
+    },
+    "scoringVolume": {
+      "reference": {
+        "mean": 66.811,
+        "std": 17.581,
+        "min": 26.0,
+        "max": 99.0,
+        "p10": 42.0,
+        "p25": 54.0,
+        "p50": 68.0,
+        "p75": 80.0,
+        "p90": 90.0,
+        "p95": 94.25,
+        "p99": 98.0
+      },
+      "generated": {
+        "mean": 67.913,
+        "std": 17.729,
+        "min": 25.0,
+        "max": 99.0,
+        "p10": 42.0,
+        "p25": 54.0,
+        "p50": 70.0,
+        "p75": 82.0,
+        "p90": 90.0,
+        "p95": 94.0,
+        "p99": 99.0
+      },
+      "meanDifference": 1.102,
+      "stdDifference": 0.148,
+      "quantileMAE": 0.75
+    },
+    "playmaking": {
+      "reference": {
+        "mean": 66.814,
+        "std": 17.582,
+        "min": 26.0,
+        "max": 99.0,
+        "p10": 42.0,
+        "p25": 54.0,
+        "p50": 68.0,
+        "p75": 80.0,
+        "p90": 90.0,
+        "p95": 94.25,
+        "p99": 98.0
+      },
+      "generated": {
+        "mean": 69.467,
+        "std": 17.874,
+        "min": 25.0,
+        "max": 99.0,
+        "p10": 44.0,
+        "p25": 56.25,
+        "p50": 71.5,
+        "p75": 83.0,
+        "p90": 92.1,
+        "p95": 95.0,
+        "p99": 99.0
+      },
+      "meanDifference": 2.653,
+      "stdDifference": 0.292,
+      "quantileMAE": 2.086
+    },
+    "ballSecurity": {
+      "reference": {
+        "mean": 66.814,
+        "std": 17.577,
+        "min": 26.0,
+        "max": 99.0,
+        "p10": 42.0,
+        "p25": 54.0,
+        "p50": 68.0,
+        "p75": 80.0,
+        "p90": 90.0,
+        "p95": 94.25,
+        "p99": 98.0
+      },
+      "generated": {
+        "mean": 66.373,
+        "std": 17.871,
         "min": 25.0,
         "max": 99.0,
         "p10": 41.0,
         "p25": 53.0,
-        "p50": 66.0,
-        "p75": 81.75,
+        "p50": 68.0,
+        "p75": 79.0,
         "p90": 90.0,
-        "p95": 94.55,
+        "p95": 94.0,
         "p99": 99.0
       },
-      "meanDifference": -0.377,
-      "stdDifference": 0.827,
-      "quantileMAE": 1.014
+      "meanDifference": -0.441,
+      "stdDifference": 0.294,
+      "quantileMAE": 0.607
+    },
+    "offensiveRebounding": {
+      "reference": {
+        "mean": 66.795,
+        "std": 17.593,
+        "min": 26.0,
+        "max": 99.0,
+        "p10": 42.0,
+        "p25": 54.0,
+        "p50": 67.5,
+        "p75": 80.0,
+        "p90": 90.0,
+        "p95": 94.25,
+        "p99": 98.0
+      },
+      "generated": {
+        "mean": 63.807,
+        "std": 17.985,
+        "min": 25.0,
+        "max": 99.0,
+        "p10": 38.0,
+        "p25": 51.0,
+        "p50": 64.0,
+        "p75": 77.0,
+        "p90": 88.0,
+        "p95": 93.0,
+        "p99": 99.0
+      },
+      "meanDifference": -2.988,
+      "stdDifference": 0.392,
+      "quantileMAE": 2.536
+    },
+    "defensiveRebounding": {
+      "reference": {
+        "mean": 66.774,
+        "std": 17.572,
+        "min": 26.0,
+        "max": 99.0,
+        "p10": 42.0,
+        "p25": 54.0,
+        "p50": 68.0,
+        "p75": 80.0,
+        "p90": 90.0,
+        "p95": 94.0,
+        "p99": 98.0
+      },
+      "generated": {
+        "mean": 64.696,
+        "std": 17.813,
+        "min": 25.0,
+        "max": 99.0,
+        "p10": 39.9,
+        "p25": 52.0,
+        "p50": 65.0,
+        "p75": 78.0,
+        "p90": 88.0,
+        "p95": 93.0,
+        "p99": 98.0
+      },
+      "meanDifference": -2.078,
+      "stdDifference": 0.241,
+      "quantileMAE": 1.729
+    },
+    "perimeterDefense": {
+      "reference": {
+        "mean": 66.811,
+        "std": 17.581,
+        "min": 26.0,
+        "max": 99.0,
+        "p10": 42.0,
+        "p25": 54.0,
+        "p50": 68.0,
+        "p75": 80.0,
+        "p90": 90.0,
+        "p95": 94.25,
+        "p99": 98.0
+      },
+      "generated": {
+        "mean": 66.951,
+        "std": 18.301,
+        "min": 25.0,
+        "max": 99.0,
+        "p10": 42.0,
+        "p25": 53.0,
+        "p50": 67.0,
+        "p75": 82.0,
+        "p90": 91.1,
+        "p95": 97.0,
+        "p99": 99.0
+      },
+      "meanDifference": 0.14,
+      "stdDifference": 0.72,
+      "quantileMAE": 1.264
+    },
+    "interiorDefense": {
+      "reference": {
+        "mean": 66.811,
+        "std": 17.581,
+        "min": 26.0,
+        "max": 99.0,
+        "p10": 42.0,
+        "p25": 54.0,
+        "p50": 68.0,
+        "p75": 80.0,
+        "p90": 90.0,
+        "p95": 94.25,
+        "p99": 98.0
+      },
+      "generated": {
+        "mean": 65.111,
+        "std": 18.493,
+        "min": 25.0,
+        "max": 99.0,
+        "p10": 40.0,
+        "p25": 50.0,
+        "p50": 65.0,
+        "p75": 80.0,
+        "p90": 90.0,
+        "p95": 96.0,
+        "p99": 99.0
+      },
+      "meanDifference": -1.7,
+      "stdDifference": 0.912,
+      "quantileMAE": 1.679
     },
     "stamina": {
       "reference": {
-        "mean": 66.805,
+        "mean": 66.811,
         "std": 17.585,
         "min": 26.0,
         "max": 99.0,
@@ -324,61 +324,61 @@
         "p50": 68.0,
         "p75": 80.0,
         "p90": 90.0,
-        "p95": 94.2,
+        "p95": 94.25,
         "p99": 98.0
       },
       "generated": {
-        "mean": 69.522,
-        "std": 16.459,
+        "mean": 68.871,
+        "std": 17.847,
         "min": 25.0,
         "max": 99.0,
-        "p10": 46.0,
-        "p25": 58.25,
-        "p50": 71.0,
+        "p10": 43.9,
+        "p25": 56.0,
+        "p50": 70.0,
         "p75": 82.0,
-        "p90": 92.0,
-        "p95": 95.55,
+        "p90": 93.0,
+        "p95": 96.0,
         "p99": 99.0
       },
-      "meanDifference": 2.717,
-      "stdDifference": -1.126,
-      "quantileMAE": 2.514
+      "meanDifference": 2.06,
+      "stdDifference": 0.262,
+      "quantileMAE": 1.95
     },
     "durability": {
       "reference": {
-        "mean": 66.818,
-        "std": 17.512,
+        "mean": 66.859,
+        "std": 17.629,
         "min": 26.0,
         "max": 97.0,
         "p10": 42.0,
-        "p25": 54.0,
+        "p25": 54.75,
         "p50": 68.0,
-        "p75": 80.0,
-        "p90": 90.0,
+        "p75": 81.0,
+        "p90": 89.0,
         "p95": 94.0,
         "p99": 97.0
       },
       "generated": {
-        "mean": 68.771,
-        "std": 17.258,
+        "mean": 67.782,
+        "std": 17.095,
         "min": 25.0,
         "max": 99.0,
-        "p10": 45.0,
-        "p25": 57.0,
-        "p50": 71.0,
-        "p75": 82.0,
+        "p10": 44.0,
+        "p25": 56.0,
+        "p50": 68.0,
+        "p75": 80.75,
         "p90": 90.0,
-        "p95": 94.0,
+        "p95": 95.55,
         "p99": 99.0
       },
-      "meanDifference": 1.953,
-      "stdDifference": -0.254,
-      "quantileMAE": 1.857
+      "meanDifference": 0.923,
+      "stdDifference": -0.534,
+      "quantileMAE": 1.15
     },
     "overall": {
       "reference": {
-        "mean": 67.893,
-        "std": 10.314,
+        "mean": 67.912,
+        "std": 10.332,
         "min": 50.0,
         "max": 97.0,
         "p10": 55.0,
@@ -387,47 +387,47 @@
         "p75": 74.0,
         "p90": 82.0,
         "p95": 87.0,
-        "p99": 94.0
+        "p99": 94.25
       },
       "generated": {
-        "mean": 68.322,
-        "std": 9.99,
+        "mean": 68.269,
+        "std": 10.216,
         "min": 50.0,
-        "max": 96.0,
-        "p10": 56.9,
+        "max": 97.0,
+        "p10": 55.0,
         "p25": 61.0,
         "p50": 67.0,
         "p75": 75.0,
-        "p90": 83.0,
+        "p90": 82.0,
         "p95": 87.55,
-        "p99": 93.51
+        "p99": 95.0
       },
-      "meanDifference": 0.429,
-      "stdDifference": -0.324,
-      "quantileMAE": 0.849
+      "meanDifference": 0.357,
+      "stdDifference": -0.116,
+      "quantileMAE": 0.471
     }
   },
   "talentTiers": {
     "reference": {
       "superstar": {
-        "count": 13,
-        "share": 0.0284
+        "count": 11,
+        "share": 0.0293
       },
       "all_star": {
-        "count": 26,
-        "share": 0.0569
+        "count": 21,
+        "share": 0.0559
       },
       "starter": {
-        "count": 63,
-        "share": 0.1379
+        "count": 52,
+        "share": 0.1383
       },
       "rotation": {
-        "count": 119,
-        "share": 0.2604
+        "count": 98,
+        "share": 0.2606
       },
       "fringe": {
-        "count": 236,
-        "share": 0.5164
+        "count": 194,
+        "share": 0.516
       }
     },
     "generated": {
@@ -456,16 +456,16 @@
   "positionGroups": {
     "reference": {
       "guard": {
-        "count": 182,
-        "share": 0.3982
+        "count": 112,
+        "share": 0.2979
       },
       "wing": {
-        "count": 191,
-        "share": 0.4179
+        "count": 172,
+        "share": 0.4574
       },
       "big": {
-        "count": 84,
-        "share": 0.1838
+        "count": 92,
+        "share": 0.2447
       }
     },
     "generated": {
@@ -488,12 +488,12 @@
     "collidingNames": [],
     "exactFullRatingVectorMatches": 0,
     "nearestReferenceMeanAbsoluteRatingDistance": {
-      "mean": 3.027,
-      "median": 3.0,
-      "p10": 2.231,
-      "minimum": 1.308
+      "mean": 6.496,
+      "median": 7.154,
+      "p10": 2.846,
+      "minimum": 1.615
     }
   },
-  "correlationMeanAbsoluteDifference": 0.0444,
+  "correlationMeanAbsoluteDifference": 0.055,
   "warnings": []
 }

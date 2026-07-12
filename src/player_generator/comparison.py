@@ -7,7 +7,6 @@ import pandas as pd
 
 from player_generator.schema import RATING_FIELDS, TIER_ORDER
 
-
 COMPARISON_RATINGS = (*RATING_FIELDS, "overall")
 QUANTILES = (0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99)
 
@@ -72,7 +71,8 @@ def compare_rosters(
     missing_generated = [field for field in COMPARISON_RATINGS if field not in generated.columns]
     if missing_reference or missing_generated:
         raise ValueError(
-            f"Missing comparison fields. reference={missing_reference}, generated={missing_generated}"
+            "Missing comparison fields. "
+            f"reference={missing_reference}, generated={missing_generated}"
         )
 
     rows: list[dict[str, Any]] = []
@@ -134,7 +134,8 @@ def compare_rosters(
     correlation_distance = _correlation_distance(reference, generated)
     if correlation_distance > 0.18:
         warnings.append(
-            f"Rating correlation distance is {correlation_distance:.3f}; skill relationships may drift."
+            f"Rating correlation distance is {correlation_distance:.3f}; "
+            "skill relationships may drift."
         )
 
     report = {

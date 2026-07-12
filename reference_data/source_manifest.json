@@ -4,44 +4,23 @@
   "purpose": "Local, non-anonymized reference data for testing fictional roster distributions.",
   "sources": [
     {
-      "kind": "box_scores",
-      "filename": "regular_season_box_scores_part_1.csv",
-      "url": "https://github.com/NocturneBear/NBA-Data-2010-2024/raw/refs/heads/main/regular_season_box_scores_2010_2024_part_1.csv",
-      "sha256": "ca9636d08c577e3d752f69e32f90b173f4c3374c15f4dc8494b655049fdfc557",
-      "bytes": 22567190,
-      "upstreamRepository": "https://github.com/NocturneBear/NBA-Data-2010-2024",
-      "upstreamLicense": "MIT",
-      "notes": "Regular-season player game box scores; one of three row partitions."
-    },
+      "kind": "player_seasons",
+      "filename": "playerstats.parquet",
+      "url": "https://raw.githubusercontent.com/llimllib/nba_data/a7bc98d73324300bd28d77260f45c98c239d1e87/data/playerstats.parquet",
+      "sha256": "a645b5ae4b43a349a072df40536be3fb4f2751afd9ab3f3b24f99e3a56d00b89",
+      "bytes": 2433415,
+      "upstreamRepository": "https://github.com/llimllib/nba_data",
+      "upstreamCommit": "a7bc98d73324300bd28d77260f45c98c239d1e87",
+      "upstreamLicense": null,
+      "notes": "Regular-season player totals, rates, advanced statistics, shooting splits, and biographical fields. The upstream repository had no root license file when this snapshot was selected; do not redistribute the data file."
+    }
+  ],
+  "validationSources": [
     {
       "kind": "box_scores",
-      "filename": "regular_season_box_scores_part_2.csv",
-      "url": "https://github.com/NocturneBear/NBA-Data-2010-2024/raw/refs/heads/main/regular_season_box_scores_2010_2024_part_2.csv",
-      "sha256": "5643af8a9f15ce3540dced759375ca79e77c71644e23270136f23b7a57fc182d",
-      "bytes": 22717782,
       "upstreamRepository": "https://github.com/NocturneBear/NBA-Data-2010-2024",
       "upstreamLicense": "MIT",
-      "notes": "Regular-season player game box scores; one of three row partitions."
-    },
-    {
-      "kind": "box_scores",
-      "filename": "regular_season_box_scores_part_3.csv",
-      "url": "https://github.com/NocturneBear/NBA-Data-2010-2024/raw/refs/heads/main/regular_season_box_scores_2010_2024_part_3.csv",
-      "sha256": "65a01fee3df865a272e578cf4b365dce7dbc62eef2ce6f15f0844cf6694ef375",
-      "bytes": 22493295,
-      "upstreamRepository": "https://github.com/NocturneBear/NBA-Data-2010-2024",
-      "upstreamLicense": "MIT",
-      "notes": "Regular-season player game box scores; one of three row partitions."
-    },
-    {
-      "kind": "player_bios",
-      "filename": "player_index.csv",
-      "url": "https://github.com/Brescou/NBA-dataset-stats-player-team/raw/refs/heads/main/player/player_index.csv",
-      "sha256": "3965f009b006335904158b5871982aead7cbc170adc7f8bb53ddea4f15a3d667",
-      "bytes": 725604,
-      "upstreamRepository": "https://github.com/Brescou/NBA-dataset-stats-player-team",
-      "upstreamLicense": "MIT",
-      "notes": "Player index used only for optional position, height, weight, country and draft metadata."
+      "notes": "Temporary manual cross-check for traditional box-score distributions; not downloaded by the normal pipeline."
     }
   ]
 }

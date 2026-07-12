@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from player_generator.schema import TeamDefinition
 
-
 TEAMS: tuple[TeamDefinition, ...] = (
     TeamDefinition("team_01", "Aurora Junction", "Comets", "AJC", "East"),
     TeamDefinition("team_02", "Bayhaven", "Breakers", "BHB", "East"),

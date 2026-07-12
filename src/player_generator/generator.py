@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from datetime import date
 from typing import Any
 
@@ -51,7 +50,11 @@ def _sample_template(
         candidates = reference
 
     minute_weights = np.sqrt(pd.to_numeric(candidates["minutes"], errors="coerce").fillna(1.0))
-    probabilities = minute_weights.to_numpy(dtype=float)
+    if "seasonWeight" in candidates:
+        season_weights = pd.to_numeric(candidates["seasonWeight"], errors="coerce").fillna(1.0)
+    else:
+        season_weights = pd.Series(1.0, index=candidates.index)
+    probabilities = (minute_weights * season_weights).to_numpy(dtype=float)
     probabilities = probabilities / probabilities.sum()
     chosen_index = rng.choice(candidates.index.to_numpy(), p=probabilities)
     return reference.loc[chosen_index]
@@ -306,9 +309,12 @@ def generate_league(
     rng.shuffle(talent_labels)
     rng.shuffle(position_labels)
 
+    source_name_column = (
+        "sourcePlayerName" if "sourcePlayerName" in reference else "personName"
+    )
     forbidden_names = {
         str(value).strip().casefold()
-        for value in reference["sourcePlayerName"].dropna().astype(str)
+        for value in reference[source_name_column].dropna().astype(str)
     }
     used_names: set[str] = set()
     players: list[dict[str, Any]] = []

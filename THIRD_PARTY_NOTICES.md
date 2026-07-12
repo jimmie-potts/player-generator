@@ -1,23 +1,29 @@
 # Third-party notices
 
-The software in this repository is MIT licensed. The local reference snapshot was built from
-third-party datasets and is intentionally separated from the fictional game-facing output.
+The software in this repository is MIT licensed. That license does not grant rights to third-party
+data. Local named reference data is intentionally separated from fictional game-facing output.
 
-## NBA-Data-2010-2024
+## llimllib/nba_data
+
+- Repository: <https://github.com/llimllib/nba_data>
+- Pinned commit: `a7bc98d73324300bd28d77260f45c98c239d1e87`
+- Used file: `data/playerstats.parquet` (2,433,415 bytes)
+- Used fields: regular-season totals, per-game, per-36, per-100, advanced, shooting and bio fields
+- License status: no root license file was observed when this snapshot was selected
+- Local use only: rating calibration and fictional template generation
+
+Do not commit or redistribute the downloaded Parquet file or derived named reference tables. Users
+must obtain the pinned input themselves through the project downloader.
+
+## NBA-Data-2010-2024 validation source
 
 - Repository: <https://github.com/NocturneBear/NBA-Data-2010-2024>
 - Repository-declared license: MIT
-- Used fields: historical regular-season player box-score dimensions and totals
-- Local use: aggregate player-season profiles and calibration ratings
+- Use: optional manual cross-check of traditional box-score distributions
+- Normal pipeline: not downloaded or ingested
 
-## NBA-dataset-stats-player-team
+The previous `Brescou/NBA-dataset-stats-player-team` dependency has been removed. ESPN analytics
+files are not used in this phase.
 
-- Repository: <https://github.com/Brescou/NBA-dataset-stats-player-team>
-- Repository-declared license: MIT
-- Used file: `player/player_index.csv`
-- Local use: optional height, weight, broad position, country and draft metadata
-
-The source manifest records exact download URLs, expected SHA-256 values and file sizes.
-Repository licenses apply to the upstream repositories as published by their maintainers. Review
-upstream provenance and terms before redistributing data snapshots outside a personal research
-workflow.
+The source manifest records the exact pinned URL, SHA-256 hash and file size. Review upstream terms
+and provenance before using any third-party data.
