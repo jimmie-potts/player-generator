@@ -1,0 +1,95 @@
+project:
+  schema_version: 1
+  league_name: Continental Basketball Association
+  season_label: 2026-27
+
+paths:
+  reference_raw_dir: reference_data/raw
+  reference_processed_dir: reference_data/processed
+  generated_dir: generated_data
+  reports_dir: reports
+  source_manifest: reference_data/source_manifest.json
+
+reference:
+  seasons:
+    - 2019-20
+    - 2020-21
+    - 2021-22
+    - 2022-23
+    - 2023-24
+  comparison_season: 2023-24
+  minimum_minutes: 100
+  prior_attempts:
+    two_point: 150
+    three_point: 100
+    free_throw: 75
+  scheduled_games:
+    2019-20: 72
+    2020-21: 72
+    2021-22: 82
+    2022-23: 82
+    2023-24: 82
+
+ratings:
+  minimum: 25
+  maximum: 99
+  skill_percentile_anchors:
+    percentiles: [0.00, 0.05, 0.25, 0.50, 0.75, 0.90, 0.98, 1.00]
+    ratings:     [25,   38,   54,   68,   80,   90,   97,   99]
+  overall_percentile_anchors:
+    percentiles: [0.00, 0.05, 0.25, 0.50, 0.75, 0.90, 0.97, 0.99, 1.00]
+    ratings:     [50,   53,   60,   67,   74,   82,   89,   94,   97]
+  volatility:
+    insideScoring: 4.0
+    threePointShooting: 3.0
+    freeThrowShooting: 2.0
+    scoringVolume: 3.5
+    playmaking: 4.0
+    ballSecurity: 4.0
+    offensiveRebounding: 4.0
+    defensiveRebounding: 4.0
+    perimeterDefense: 6.0
+    interiorDefense: 6.0
+    stamina: 3.0
+    durability: 5.0
+
+league_generation:
+  seed: 20260712
+  team_count: 30
+  roster_size: 15
+  talent_targets:
+    superstar: 13
+    all_star: 26
+    starter: 62
+    rotation: 117
+    fringe: 232
+  position_targets:
+    guard: 180
+    wing: 180
+    big: 90
+  roster_position_targets:
+    guard: 6
+    wing: 6
+    big: 3
+  tier_bounds:
+    superstar: [90, 99]
+    all_star: [84, 89]
+    starter: [76, 83]
+    rotation: [68, 75]
+    fringe: [50, 67]
+  physical_profiles:
+    guard:
+      height_mean: 75
+      height_std: 2.0
+      weight_mean: 195
+      weight_std: 17
+    wing:
+      height_mean: 79
+      height_std: 1.8
+      weight_mean: 220
+      weight_std: 18
+    big:
+      height_mean: 82
+      height_std: 1.7
+      weight_mean: 246
+      weight_std: 22

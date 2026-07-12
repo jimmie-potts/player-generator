@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Named, non-anonymized reference data is intentionally local-only.
+# The starter archive includes a snapshot, but a normal Git repository will
+# not accidentally commit refreshed or expanded NBA-derived data.
+reference_data/raw/*
+!reference_data/raw/.gitkeep
+reference_data/processed/*
+!reference_data/processed/README.md
+!reference_data/processed/.gitkeep
+!reference_data/source_manifest.json
+
+# Generated files may be regenerated. Keep the starter examples unless you
+# choose to track new outputs.
+generated_data/*.tmp
+reports/*.tmp

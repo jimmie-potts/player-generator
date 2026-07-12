@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nba-gm-player-generator"
+version = "0.1.0"
+description = "Offline pipeline for deriving basketball player templates and generating fictional rosters."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "NBA GM contributors" }]
+dependencies = [
+  "numpy>=1.26,<3",
+  "pandas>=2.1,<3",
+  "PyYAML>=6.0,<7",
+  "Faker>=24,<41",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<9",
+  "ruff>=0.6,<1",
+  "mypy>=1.10,<2",
+]
+
+[project.scripts]
+player-generator = "player_generator.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

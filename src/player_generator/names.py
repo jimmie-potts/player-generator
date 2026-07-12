@@ -1,0 +1,37 @@
+from __future__ import annotations
+
+from player_generator.schema import TeamDefinition
+
+
+TEAMS: tuple[TeamDefinition, ...] = (
+    TeamDefinition("team_01", "Aurora Junction", "Comets", "AJC", "East"),
+    TeamDefinition("team_02", "Bayhaven", "Breakers", "BHB", "East"),
+    TeamDefinition("team_03", "Blackstone", "Forge", "BSF", "East"),
+    TeamDefinition("team_04", "Cobalt City", "Cyclones", "CCC", "East"),
+    TeamDefinition("team_05", "Copperfield", "Miners", "CFM", "East"),
+    TeamDefinition("team_06", "Crescent Bay", "Tritons", "CBT", "East"),
+    TeamDefinition("team_07", "Ember Falls", "Sparks", "EFS", "East"),
+    TeamDefinition("team_08", "Granite Harbor", "Anchors", "GHA", "East"),
+    TeamDefinition("team_09", "Highland Point", "Sentinels", "HPS", "East"),
+    TeamDefinition("team_10", "Ironwood", "Wolves", "IWW", "East"),
+    TeamDefinition("team_11", "Lakehurst", "Voyagers", "LHV", "East"),
+    TeamDefinition("team_12", "Maple Crossing", "Foxes", "MCF", "East"),
+    TeamDefinition("team_13", "Northgate", "Pilots", "NGP", "East"),
+    TeamDefinition("team_14", "Redwood Coast", "Guardians", "RCG", "East"),
+    TeamDefinition("team_15", "Silverbrook", "Arrows", "SBA", "East"),
+    TeamDefinition("team_16", "Ashland Reach", "Ravens", "ARR", "West"),
+    TeamDefinition("team_17", "Blue Mesa", "Scorpions", "BMS", "West"),
+    TeamDefinition("team_18", "Dry Creek", "Outriders", "DCO", "West"),
+    TeamDefinition("team_19", "Golden Prairie", "Bison", "GPB", "West"),
+    TeamDefinition("team_20", "Juniper Ridge", "Falcons", "JRF", "West"),
+    TeamDefinition("team_21", "Mesa Verde", "Vipers", "MVV", "West"),
+    TeamDefinition("team_22", "Obsidian Valley", "Stallions", "OVS", "West"),
+    TeamDefinition("team_23", "Pine Basin", "Timber", "PBT", "West"),
+    TeamDefinition("team_24", "Quartz River", "Otters", "QRO", "West"),
+    TeamDefinition("team_25", "Sagebrush", "Rattlers", "SBR", "West"),
+    TeamDefinition("team_26", "Summit Lake", "Eagles", "SLE", "West"),
+    TeamDefinition("team_27", "Thunder Plains", "Mustangs", "TPM", "West"),
+    TeamDefinition("team_28", "Violet Coast", "Tempest", "VCT", "West"),
+    TeamDefinition("team_29", "Westhaven", "Lynx", "WHL", "West"),
+    TeamDefinition("team_30", "Willow Bend", "Herons", "WBH", "West"),
+)

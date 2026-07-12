@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nba-gm/default-roster.schema.json",
+  "title": "NBA GM fictional roster",
+  "type": "object",
+  "required": ["schemaVersion", "generationSeed", "league", "teams", "players"],
+  "properties": {
+    "schemaVersion": {"type": "integer", "minimum": 1},
+    "generatedAt": {"type": "string", "format": "date"},
+    "generationSeed": {"type": "integer"},
+    "league": {
+      "type": "object",
+      "required": ["name", "season", "teamCount", "playerCount"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "season": {"type": "string", "minLength": 1},
+        "teamCount": {"type": "integer", "minimum": 1},
+        "playerCount": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "teams": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/team"}
+    },
+    "players": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/player"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "rating": {"type": "integer", "minimum": 25, "maximum": 99},
+    "ratings": {
+      "type": "object",
+      "required": [
+        "insideScoring", "threePointShooting", "freeThrowShooting", "scoringVolume",
+        "playmaking", "ballSecurity", "offensiveRebounding", "defensiveRebounding",
+        "perimeterDefense", "interiorDefense", "stamina", "durability", "overall",
+        "potential"
+      ],
+      "properties": {
+        "insideScoring": {"$ref": "#/$defs/rating"},
+        "threePointShooting": {"$ref": "#/$defs/rating"},
+        "freeThrowShooting": {"$ref": "#/$defs/rating"},
+        "scoringVolume": {"$ref": "#/$defs/rating"},
+        "playmaking": {"$ref": "#/$defs/rating"},
+        "ballSecurity": {"$ref": "#/$defs/rating"},
+        "offensiveRebounding": {"$ref": "#/$defs/rating"},
+        "defensiveRebounding": {"$ref": "#/$defs/rating"},
+        "perimeterDefense": {"$ref": "#/$defs/rating"},
+        "interiorDefense": {"$ref": "#/$defs/rating"},
+        "stamina": {"$ref": "#/$defs/rating"},
+        "durability": {"$ref": "#/$defs/rating"},
+        "overall": {"$ref": "#/$defs/rating"},
+        "potential": {"$ref": "#/$defs/rating"}
+      },
+      "additionalProperties": false
+    },
+    "player": {
+      "type": "object",
+      "required": [
+        "id", "firstName", "lastName", "displayName", "age", "primaryPosition",
+        "positionGroup", "heightInches", "weightPounds", "archetype", "talentTier",
+        "ratings", "development", "teamId", "jerseyNumber"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^player_[0-9]{6}$"},
+        "firstName": {"type": "string", "minLength": 1},
+        "lastName": {"type": "string", "minLength": 1},
+        "displayName": {"type": "string", "minLength": 3},
+        "age": {"type": "integer", "minimum": 18, "maximum": 45},
+        "primaryPosition": {"enum": ["PG", "SG", "SF", "PF", "C"]},
+        "secondaryPosition": {"type": ["string", "null"]},
+        "positionGroup": {"enum": ["guard", "wing", "big"]},
+        "heightInches": {"type": "integer", "minimum": 60, "maximum": 96},
+        "weightPounds": {"type": "integer", "minimum": 140, "maximum": 350},
+        "archetype": {"type": "string", "minLength": 1},
+        "talentTier": {"enum": ["superstar", "all_star", "starter", "rotation", "fringe"]},
+        "ratings": {"$ref": "#/$defs/ratings"},
+        "development": {"type": "object"},
+        "teamId": {"type": "string"},
+        "jerseyNumber": {"type": "integer", "minimum": 0, "maximum": 99}
+      },
+      "additionalProperties": false
+    },
+    "team": {
+      "type": "object",
+      "required": ["id", "city", "nickname", "name", "abbreviation", "conference", "roster"],
+      "properties": {
+        "id": {"type": "string"},
+        "city": {"type": "string"},
+        "nickname": {"type": "string"},
+        "name": {"type": "string"},
+        "abbreviation": {"type": "string", "minLength": 3, "maxLength": 3},
+        "conference": {"enum": ["East", "West"]},
+        "roster": {"type": "array", "items": {"type": "string"}},
+        "averageOverall": {"type": "number"}
+      },
+      "additionalProperties": false
+    }
+  }
+}
