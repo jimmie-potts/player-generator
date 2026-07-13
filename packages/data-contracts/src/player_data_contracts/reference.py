@@ -13,9 +13,13 @@ from player_data_contracts.csv_contract import (
 )
 from player_data_contracts.validation import ContractValidationError
 
-REFERENCE_CONTRACT_VERSION: Final = 1
+REFERENCE_CONTRACT_VERSION: Final = 2
+SUPPORTED_REFERENCE_CONTRACT_VERSIONS: Final = (1, 2)
 
-_REFERENCE_SCHEMA_NAME = "schemas/reference-v1.schema.json"
+_REFERENCE_SCHEMA_NAMES: Final = {
+    1: "schemas/reference-v1.schema.json",
+    2: "schemas/reference-v2.schema.json",
+}
 _CONTRACT_NAME = "Reference"
 
 
@@ -23,10 +27,14 @@ def load_reference_contract(
     version: int = REFERENCE_CONTRACT_VERSION,
 ) -> dict[str, Any]:
     """Load the machine-readable normalized reference CSV contract."""
-    if version != REFERENCE_CONTRACT_VERSION:
+    if (
+        isinstance(version, bool)
+        or not isinstance(version, int)
+        or version not in SUPPORTED_REFERENCE_CONTRACT_VERSIONS
+    ):
         raise ContractValidationError(f"Unsupported reference contract version: {version}")
 
-    resource = files("player_data_contracts").joinpath(_REFERENCE_SCHEMA_NAME)
+    resource = files("player_data_contracts").joinpath(_REFERENCE_SCHEMA_NAMES[version])
     try:
         with resource.open("r", encoding="utf-8") as handle:
             contract = json.load(handle)
@@ -41,9 +49,18 @@ def load_reference_contract(
     contract_files(
         contract,
         contract_name=_CONTRACT_NAME,
-        contract_version=REFERENCE_CONTRACT_VERSION,
+        contract_version=version,
     )
     return contract
+
+
+def _declared_contract_version(contract: Mapping[str, Any]) -> int:
+    version = contract.get("contractVersion")
+    if isinstance(version, bool) or not isinstance(version, int):
+        raise ContractValidationError(f"Unsupported reference contract version: {version!r}")
+    if version not in SUPPORTED_REFERENCE_CONTRACT_VERSIONS:
+        raise ContractValidationError(f"Unsupported reference contract version: {version}")
+    return version
 
 
 def validate_reference_tables(
@@ -53,11 +70,12 @@ def validate_reference_tables(
 ) -> None:
     """Validate in-memory rows for all normalized reference CSV tables."""
     active_contract = contract if contract is not None else load_reference_contract()
+    contract_version = _declared_contract_version(active_contract)
     validate_csv_tables(
         tables,
         contract=active_contract,
         contract_name=_CONTRACT_NAME,
-        contract_version=REFERENCE_CONTRACT_VERSION,
+        contract_version=contract_version,
     )
 
 
@@ -66,11 +84,12 @@ def validate_reference_package(
     *,
     contract: Mapping[str, Any] | None = None,
 ) -> None:
-    """Read and validate the six normalized CSVs in a reference package directory."""
+    """Read and validate normalized CSVs in a reference package directory."""
     active_contract = contract if contract is not None else load_reference_contract()
+    contract_version = _declared_contract_version(active_contract)
     validate_csv_package(
         package_dir,
         contract=active_contract,
         contract_name=_CONTRACT_NAME,
-        contract_version=REFERENCE_CONTRACT_VERSION,
+        contract_version=contract_version,
     )

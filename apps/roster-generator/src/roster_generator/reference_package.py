@@ -10,7 +10,7 @@ from typing import Any, Final
 import pandas as pd
 from player_attribute_engine import FormulaDocument
 from player_data_contracts import (
-    REFERENCE_CONTRACT_VERSION,
+    SUPPORTED_REFERENCE_CONTRACT_VERSIONS,
     ContractValidationError,
     load_reference_contract,
     load_roster_contract,
@@ -22,7 +22,6 @@ from player_data_contracts.package import content_hash
 AUDIT_FILENAME: Final = "audit.json"
 MANIFEST_FILENAME: Final = "manifest.json"
 MANIFEST_VERSION: Final = 1
-REFERENCE_PACKAGE_VERSION: Final = 1
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 
 
@@ -70,6 +69,12 @@ def _manifest_hash(value: object, field: str) -> str:
     return value
 
 
+def _manifest_text(value: object, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ReferencePackageError(f"Reference manifest field {field} must be a non-empty string.")
+    return value
+
+
 def _formula_contract_version(formula: object) -> int:
     if isinstance(formula, Mapping):
         value = formula.get("reference_contract_version", formula.get("referenceContractVersion"))
@@ -114,11 +119,23 @@ def _read_manifest(path: Path) -> dict[str, Any]:
     return manifest
 
 
+def _package_version(manifest: Mapping[str, Any]) -> int:
+    package_version = _manifest_integer(manifest.get("packageVersion"), "packageVersion")
+    if package_version not in SUPPORTED_REFERENCE_CONTRACT_VERSIONS:
+        supported = ", ".join(str(version) for version in SUPPORTED_REFERENCE_CONTRACT_VERSIONS)
+        raise ReferencePackageError(
+            "Reference manifest uses unsupported packageVersion "
+            f"{package_version}; supported versions are {supported}."
+        )
+    return package_version
+
+
 def _validate_manifest(
     directory: Path,
     manifest: Mapping[str, Any],
     csv_filenames: tuple[str, ...],
     formula: object,
+    package_version: int,
 ) -> tuple[Mapping[str, Any], str]:
     manifest_version = _manifest_integer(manifest.get("manifestVersion"), "manifestVersion")
     if manifest_version != MANIFEST_VERSION:
@@ -131,12 +148,8 @@ def _validate_manifest(
             "Reference manifest field packageType must equal 'reference'; "
             f"found {manifest.get('packageType')!r}."
         )
-    package_version = _manifest_integer(manifest.get("packageVersion"), "packageVersion")
-    if package_version != REFERENCE_PACKAGE_VERSION:
-        raise ReferencePackageError(
-            "Reference manifest uses unsupported packageVersion "
-            f"{package_version}; supported version is {REFERENCE_PACKAGE_VERSION}."
-        )
+    if _package_version(manifest) != package_version:
+        raise ReferencePackageError("Reference manifest packageVersion changed while validating.")
 
     expected_data_files = (*csv_filenames, AUDIT_FILENAME)
     file_entries = _manifest_mapping(manifest.get("files"), "files")
@@ -186,18 +199,21 @@ def _validate_manifest(
         )
     for filename in csv_filenames:
         version = _manifest_integer(contract_versions[filename], f"contractVersions.{filename}")
-        if version != REFERENCE_CONTRACT_VERSION:
+        if version != package_version:
             raise ReferencePackageError(
                 f"Reference file {filename} uses unsupported contract version {version}; "
-                f"supported version is {REFERENCE_CONTRACT_VERSION}."
+                f"package version {package_version} requires contract version {package_version}."
             )
 
     formula_version = _formula_contract_version(formula)
-    if formula_version != REFERENCE_CONTRACT_VERSION:
+    if (
+        formula_version not in SUPPORTED_REFERENCE_CONTRACT_VERSIONS
+        or formula_version > package_version
+    ):
         raise ReferencePackageError(
             "Formula reference contract version is incompatible with the reference package: "
             f"formula requires {formula_version}, package provides "
-            f"{REFERENCE_CONTRACT_VERSION}."
+            f"{package_version}."
         )
     roster_contract = load_roster_contract()
     expected_formula_outputs = tuple(
@@ -210,6 +226,10 @@ def _validate_manifest(
             "Formula output_fields are incompatible with roster contract version 1: "
             f"expected {expected_formula_outputs!r}, found {actual_formula_outputs!r}."
         )
+
+    if package_version >= 2:
+        _manifest_text(manifest.get("formulaVersion"), "formulaVersion")
+        _manifest_hash(manifest.get("formulaDocumentHash"), "formulaDocumentHash")
 
     for filename in expected_data_files:
         entry = _manifest_mapping(file_entries[filename], f"files.{filename}")
@@ -296,6 +316,27 @@ def _read_typed_tables(
     return tables
 
 
+def _validate_attribute_formula_version(
+    tables: Mapping[str, pd.DataFrame],
+    manifest: Mapping[str, Any],
+    package_version: int,
+) -> None:
+    if package_version < 2:
+        return
+    expected = _manifest_text(manifest.get("formulaVersion"), "formulaVersion")
+    values = {
+        str(value)
+        for value in tables["player_attributes.csv"]["formulaVersion"]
+        if not pd.isna(value)
+    }
+    if values != {expected}:
+        found = ", ".join(sorted(values)) if values else "<none>"
+        raise ReferencePackageError(
+            "Reference player_attributes.csv formulaVersion values must all match the "
+            f"manifest formulaVersion {expected!r}; found {found}."
+        )
+
+
 def _joined_frame(tables: Mapping[str, pd.DataFrame]) -> pd.DataFrame:
     keys = ["playerSeasonId", "playerId", "season"]
     seasons = tables["player_seasons.csv"]
@@ -337,16 +378,17 @@ def load_reference_package(
     path: str | Path,
     formula: FormulaDocument | Mapping[str, object] | object,
 ) -> LoadedReferencePackage:
-    """Load, validate, and join a published version 1 reference package."""
+    """Load, validate, and join a supported published reference package."""
     directory = Path(path).expanduser().resolve()
     if not directory.is_dir():
         raise ReferencePackageError(f"Reference package directory does not exist: {directory}")
 
     manifest = _read_manifest(directory)
-    contract = load_reference_contract(REFERENCE_CONTRACT_VERSION)
+    package_version = _package_version(manifest)
+    contract = load_reference_contract(package_version)
     csv_filenames = tuple(str(filename) for filename in contract["files"])
     file_entries, declared_content_hash = _validate_manifest(
-        directory, manifest, csv_filenames, formula
+        directory, manifest, csv_filenames, formula, package_version
     )
     data_filenames = (*csv_filenames, AUDIT_FILENAME)
     initial_hashes = _verified_hashes(directory, data_filenames, file_entries)
@@ -365,6 +407,7 @@ def load_reference_package(
         ) from error
 
     tables = _read_typed_tables(directory, contract, file_entries)
+    _validate_attribute_formula_version(tables, manifest, package_version)
     audit_count = _audit_row_count(directory / AUDIT_FILENAME)
     expected_audit_count = _manifest_integer(
         _manifest_mapping(file_entries[AUDIT_FILENAME], "files.audit.json").get("rowCount"),

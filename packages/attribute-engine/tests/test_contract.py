@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+import player_attribute_engine.contract as contract_module
 import pytest
 from player_attribute_engine.contract import (
     FormulaContractError,
@@ -128,6 +129,24 @@ def test_parse_formula_document_returns_typed_normalized_contract() -> None:
         pytest.approx(2 / 3),
         pytest.approx(1 / 3),
     ]
+
+
+def test_formula_metrics_use_the_declared_v1_reference_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    loaded_versions: list[int] = []
+    real_load = contract_module.load_reference_contract
+
+    def tracking_load(version: int) -> dict[str, Any]:
+        loaded_versions.append(version)
+        return real_load(version)
+
+    monkeypatch.setattr(contract_module, "load_reference_contract", tracking_load)
+
+    parsed = parse_formula_document(_document())
+
+    assert parsed.reference_contract_version == 1
+    assert loaded_versions == [1]
 
 
 @pytest.mark.parametrize("version", [0, 2, -1])

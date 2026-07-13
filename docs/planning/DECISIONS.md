@@ -162,3 +162,15 @@ changes one; do not rewrite history without recording the replacement.
 - **Reason:** The reference adapter maps per-100 rates, assist ratio, estimated turnover percentage,
   and rebound percentage as distinct upstream metrics. Preserving their domain definitions avoids
   silently collapsing separate statistics while still making derived roster values reproducible.
+
+## D-020: Versioned reference player attributes
+
+- **Status:** accepted
+- **Decision:** Reference package version 2 adds `player_attributes.csv` at the aggregate
+  player-season grain. Every season is evaluated independently through the shared declarative
+  engine, and the manifest records the formula version and exact document hash. Version 1 remains
+  readable, while new publication defaults to version 2.
+- **Reason:** Reference ratings are season-relative derived data. Publishing them with the inputs,
+  cohort keys, formula provenance, and package integrity metadata makes the results inspectable and
+  reproducible without weakening formula ownership or copying reference identities into roster
+  output.

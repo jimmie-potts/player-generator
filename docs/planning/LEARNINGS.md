@@ -166,6 +166,21 @@ its completion notes.
 - Parse and hash a custom formula from the same immutable byte snapshot. Reading the path again
   after generation can make the manifest describe bytes that were not used for evaluation.
 
+### 2026-07-13 — US-015
+
+- Adding a deterministic derived CSV to a package with an exact-file-set contract requires a new
+  package and contract version even when every existing input header remains unchanged. Preserve
+  the older schema explicitly when downstream readers still need to consume prior packages.
+- Season-relative ratings must evaluate each complete season cohort before attaching
+  `playerSeasonId` to the ordered results. Verify evaluator row identity before enrichment so a
+  reordered result cannot silently assign one player's ratings to another player-season.
+- A reference package's formula metadata describes its published calibration snapshot, not a
+  mandatory formula for later roster generation. Validate and hash the published attributes, but
+  recompute roster selection and output when the consumer requests a different formula document.
+- Historical source seasons can predate a formula's explicit schedule. Preserve their contracted
+  attribute rows with empty calculations instead of broad-catching evaluator failures or silently
+  inventing schedule policy; other evaluation errors must still fail publication.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:
