@@ -32,6 +32,24 @@ section, replace the placeholder with:
 Update the parent epic status after its last story is complete. Documentation and contract changes
 are part of the story, not optional cleanup.
 
+## Pull-request handoff
+
+A completed story, epic, or other logical unit is ready for publication without a separate user
+prompt unless the user explicitly requests local-only work or says not to publish it.
+
+1. Confirm the branch contains only the intended logical unit and all required validation passes.
+2. Commit the intended files and push the working branch.
+3. Open a pull request against the repository's default branch, or the user-specified base, with a
+   clear summary, motivation, impact, and validation results.
+4. Open the pull request ready for review. If the publishing path creates a draft, mark it ready
+   before reporting the handoff complete.
+5. Add the pull-request link to each applicable story's completion notes.
+
+This handoff is non-blocking for local completion and story status. If authentication, network,
+permissions, or another external dependency prevents publication, preserve the validated commits,
+record and report the exact blocker, and retry once it clears. Do not revert a completed story to
+`in_progress` solely because the remote handoff is temporarily unavailable.
+
 ## Definition of done
 
 - Acceptance criteria are demonstrably satisfied.
@@ -40,3 +58,5 @@ are part of the story, not optional cleanup.
 - No local reference data or unlicensed upstream data is newly tracked.
 - Current-state documentation matches the implementation.
 - Completion notes and applicable learning or decision records are present.
+- The logical unit has a ready-for-review pull request, or its external publication blocker and
+  validated branch are explicitly documented for retry.

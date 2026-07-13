@@ -45,7 +45,7 @@ domain vocabulary regardless of provenance.
 ## Completion notes
 
 - **Completed:** 2026-07-12
-- **Branch:** `agent/implement-us-001-us-002`; commit and PR pending local handoff.
+- **Branch:** `agent/implement-us-001-us-002`; [PR #3](https://github.com/jimmie-potts/player-generator/pull/3).
 - **Delivered:** Neutral app/package metadata and CLI help; `roster_data/default_roster.json` and
   `roster_data/players.csv`; neutral roster schema title and generator messages; roster-oriented
   comparison JSON keys and CSV headers; and updated README, notices, data documentation, and

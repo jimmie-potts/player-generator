@@ -51,6 +51,7 @@ explained and calibrated.
 ## Completion notes
 
 - **Completed:** 2026-07-13 in commit `a6fdd3b`.
+- **Pull request:** [#5](https://github.com/jimmie-potts/player-generator/pull/5).
 - **Review hardening:** shared-engine edge cases found during the final epic review were fixed in
   commits `c37bb63` and `f3d319b`; the active calibration and named outcomes remained unchanged.
 - **Delivered:** the exact version `1.0.0` output schema, 13 initial attribute formulas, shooting

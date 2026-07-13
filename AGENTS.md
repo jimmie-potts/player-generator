@@ -59,6 +59,22 @@ Use the workflow in
   [docs/planning/LEARNINGS.md](docs/planning/LEARNINGS.md).
 - An epic is complete only after all of its required stories are complete.
 
+## Git and pull-request handoff
+
+- Treat completion of a story, epic, or other logical unit of work as authorization to commit its
+  intended files, push the working branch, and open a pull request without waiting for another
+  user prompt, unless the user explicitly requests local-only work or says not to publish it.
+- Open pull requests ready for review, not as drafts. If a publishing tool creates a draft, mark it
+  ready before reporting the handoff complete.
+- Pull-request handoff is non-blocking for the local implementation and story status. If GitHub
+  authentication, network access, permissions, or another external condition prevents publication,
+  preserve the validated commits, report the exact blocker, and retry when it clears; do not undo
+  completed work or silently stop at a local commit.
+- Use the repository's default branch as the base unless the user specifies another target. Give
+  the pull request a concise title and a body covering scope, motivation, impact, and validation.
+- Link the ready pull request from applicable story completion notes. Never include unrelated
+  working-tree changes merely to complete a handoff.
+
 ## Data and licensing
 
 - Keep raw Parquet and transformed named reference tables local and untracked.

@@ -65,6 +65,7 @@ previews use exactly the same calculations.
 ## Completion notes
 
 - **Completed:** 2026-07-13 in commit `201c3f7`.
+- **Pull request:** [#5](https://github.com/jimmie-potts/player-generator/pull/5).
 - **Review hardening:** commit `c37bb63` added overflow-safe weight normalization, immutable input
   alias reads, canonical schedules with shared explanation lookup, strict numeric input types, and
   load-time validation of the shooting-season dependency. Commit `f3d319b` preserved homogeneous
