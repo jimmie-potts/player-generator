@@ -21,14 +21,16 @@ supporting application over the shared contracts and calculation engine.
 The batch-data foundation is implemented, while the interactive phases remain planned:
 
 - Reference data can register and normalize local NBA and ESPN Parquet inputs and atomically publish
-  a validated version 1 CSV package. The pinned download and wide build remain standalone legacy
-  commands.
+  a validated version 2 CSV package with season-relative attributes. The pinned download and wide
+  build remain standalone legacy commands.
 - Roster generation validates that published package, selects deterministic templates, applies
   controlled statistical mutation, and atomically publishes a normalized player-only CSV package.
 - Player attributes use the validated declarative formula document and shared Python evaluator.
 - The workbench currently renders a static application shell without data or formula behavior.
 
 See the [version 2 planning index](docs/planning/README.md) for the remaining epics and story status.
+For a presentation-oriented system walkthrough, see the
+[current and projected technical architecture](docs/presentations/PLAYER_GENERATOR_TECHNICAL_OVERVIEW.md).
 
 ## Setup
 
