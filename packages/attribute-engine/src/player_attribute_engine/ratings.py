@@ -5,7 +5,7 @@ from typing import Any
 import pandas as pd
 
 from player_attribute_engine.contract import FormulaDocument
-from player_attribute_engine.evaluator import evaluate_player_attributes
+from player_attribute_engine.evaluator import _evaluate_prepared_player_attributes
 from player_attribute_engine.formula import load_formula
 from player_attribute_engine.metrics import prepare_formula_metrics
 
@@ -94,7 +94,7 @@ def rate_player_seasons(
         prepared = prepare_formula_metrics(cohort, formula.metrics)
         prepared["_legacyRowIndex"] = positions
         prepared_rows.append(prepared)
-        batch = evaluate_player_attributes(cohort, formula)
+        batch = _evaluate_prepared_player_attributes(prepared, formula)
         for offset, position in enumerate(positions):
             evaluated_rows[position] = batch.rows[offset]
             explanations[position] = batch.explanations[offset]

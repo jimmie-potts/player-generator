@@ -5,7 +5,7 @@ export function App() {
       <h1>Formula Workbench</h1>
       <p>
         The application boundary is ready. Formula inspection and session-only previews will be
-        implemented after the shared formula API is available.
+        implemented after the formula preview API is available.
       </p>
     </main>
   );

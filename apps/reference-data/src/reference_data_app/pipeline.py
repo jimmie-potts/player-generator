@@ -106,7 +106,3 @@ def build_reference_data(config: dict[str, Any]) -> tuple[Path, Path]:
     }
     write_json(processed_dir / REFERENCE_DISTRIBUTION_FILE, distribution)
     return seasons_path, snapshot_path
-
-
-def raw_reference_files_exist(config: dict[str, Any]) -> bool:
-    return _raw_player_stats_from_manifest(config).exists()

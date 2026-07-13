@@ -322,8 +322,7 @@ def canonicalize_rows(
 ) -> CanonicalBundle:
     if not rows:
         raise CanonicalNormalizationError("No normalized source rows were supplied")
-    rows_by_identity: dict[IdentityKey, list[NormalizedSourceRow]] = defaultdict(list)
-    for row in sorted(
+    ordered_rows = sorted(
         rows,
         key=lambda item: (
             item.source_type,
@@ -331,7 +330,9 @@ def canonicalize_rows(
             item.season if item.season is not None else -1,
             item.source_id,
         ),
-    ):
+    )
+    rows_by_identity: dict[IdentityKey, list[NormalizedSourceRow]] = defaultdict(list)
+    for row in ordered_rows:
         rows_by_identity[(row.source_type, row.source_player_id)].append(row)
 
     groups, reconciliation_audit = _reconcile(rows_by_identity, configuration)
@@ -363,15 +364,7 @@ def canonicalize_rows(
     player_advanced_stats: list[dict[str, Any]] = []
     source_contexts: list[dict[str, Any]] = []
     seen_seasons: set[tuple[str, int]] = set()
-    for row in sorted(
-        rows,
-        key=lambda item: (
-            item.source_type,
-            item.source_player_id,
-            item.season if item.season is not None else -1,
-            item.source_id,
-        ),
-    ):
+    for row in ordered_rows:
         if row.season_fields is None:
             continue
         player_id = identity_to_player[(row.source_type, row.source_player_id)]

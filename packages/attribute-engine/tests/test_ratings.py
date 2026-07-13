@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import pandas as pd
+import player_attribute_engine.ratings as ratings_module
 import pytest
 from player_attribute_engine.ratings import rate_player_seasons
 
@@ -129,6 +130,27 @@ def test_legacy_adapter_groups_seasons_and_keeps_only_complete_templates(
     assert list(rated["personName"]) == ["Shared", "Shared"]
     assert rated["perimeterDefense"].notna().all()
     assert "Incomplete" not in set(rated["personName"])
+
+
+def test_legacy_adapter_prepares_formula_metrics_once_per_season(
+    monkeypatch: pytest.MonkeyPatch,
+    reference_config: dict,
+) -> None:
+    original = ratings_module.prepare_formula_metrics
+    calls: list[int] = []
+
+    def counting_prepare(frame: pd.DataFrame, metrics: object) -> pd.DataFrame:
+        calls.append(len(frame))
+        return original(frame, metrics)
+
+    monkeypatch.setattr(ratings_module, "prepare_formula_metrics", counting_prepare)
+
+    rate_player_seasons(
+        pd.DataFrame([_rating_row("One"), _rating_row("Two")]),
+        reference_config,
+    )
+
+    assert calls == [2]
 
 
 def test_legacy_adapter_empty_result_keeps_the_rating_schema(

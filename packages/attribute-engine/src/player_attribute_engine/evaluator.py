@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -8,6 +7,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from player_attribute_engine.contract import normalize_component_weights
 from player_attribute_engine.metrics import (
     MetricPreparationError,
     prepare_formula_metrics,
@@ -26,6 +26,7 @@ class EvaluationBatch:
 
     @property
     def results(self) -> list[dict[str, Any]]:
+        """Retain the original read-only name for callers migrating to ``rows``."""
         return self.rows
 
 
@@ -270,6 +271,16 @@ def evaluate_player_attributes(frame: pd.DataFrame, formula: object) -> Evaluati
     except MetricPreparationError as error:
         raise EvaluationError(str(error)) from error
 
+    return _evaluate_prepared_player_attributes(prepared, formula)
+
+
+def _evaluate_prepared_player_attributes(
+    prepared: pd.DataFrame,
+    formula: object,
+) -> EvaluationBatch:
+    """Evaluate a cohort whose formula metrics have already been materialized."""
+    metrics = _value(formula, "metrics")
+
     output_fields = tuple(str(field) for field in _value(formula, "output_fields"))
     formula_version = str(_value(formula, "formula_version"))
     attributes = tuple(_value(formula, "attributes"))
@@ -310,20 +321,11 @@ def evaluate_player_attributes(frame: pd.DataFrame, formula: object) -> Evaluati
             str(_value(component, "metric")): float(_value(component, "weight"))
             for component in components
         }
-        if not weights or any(
-            not math.isfinite(weight) or weight < 0 for weight in weights.values()
-        ):
-            raise EvaluationError(f"Attribute {name!r} has invalid component weights")
-        maximum_weight = max(weights.values())
-        if maximum_weight <= 0:
-            raise EvaluationError(f"Attribute {name!r} component weights have no positive sum")
-        scaled_weights = {
-            metric: weight / maximum_weight for metric, weight in weights.items()
-        }
-        scaled_total = sum(scaled_weights.values())
-        normalized_weights = {
-            metric: weight / scaled_total for metric, weight in scaled_weights.items()
-        }
+        try:
+            normalized_values = normalize_component_weights(tuple(weights.values()))
+        except ValueError as error:
+            raise EvaluationError(f"Attribute {name!r} component {error}") from error
+        normalized_weights = dict(zip(weights, normalized_values, strict=True))
         component_percentiles = {
             metric: pd.Series(np.nan, index=prepared.index, dtype=float)
             for metric in weights

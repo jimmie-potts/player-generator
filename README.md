@@ -113,9 +113,9 @@ npm run workbench:test
 npm run workbench:build
 ```
 
-The current React shell establishes the independently runnable frontend boundary. Formula
-inspection, temporary editing, player search, and API integration remain part of EPIC-05 and
-EPIC-06.
+The current React shell establishes the independently runnable frontend boundary. The formula
+preview API remains planned in EPIC-05. Formula inspection, temporary editing, player search, and
+API integration remain planned in EPIC-06.
 
 ## Rating model
 
