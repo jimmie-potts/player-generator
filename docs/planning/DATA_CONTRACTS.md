@@ -115,11 +115,13 @@ playerId,season,estimatedOffensiveRating,offensiveRating,estimatedDefensiveRatin
 ```
 
 Net ratings, shooting percentages, assist/turnover ratio, and defensive win shares per 36 are
-derived from their published operands. `assistRatio` and `estimatedTurnoverPercentage` share the
-play-ending denominator `fieldGoalsAttempted + 0.44 * freeThrowsAttempted + assists + turnovers`.
-Rebound percentage remains a separately mapped, bounded source metric rather than an arithmetic
-mean of the offensive and defensive values. Other available advanced values receive bounded
-controlled mutation.
+derived from their published operands. Effective field-goal and true-shooting rates allow the
+mathematically valid range 0–1.5 rather than treating them as ordinary proportions.
+`assistTurnoverRatio` uses `assists / max(turnovers, 1)` so a zero-turnover line remains finite.
+`assistRatio` and `estimatedTurnoverPercentage` share the play-ending denominator
+`fieldGoalsAttempted + 0.44 * freeThrowsAttempted + assists + turnovers`. Rebound percentage
+remains a separately mapped, bounded source metric rather than an arithmetic mean of the offensive
+and defensive values. Other available advanced values receive bounded controlled mutation.
 
 Version 1 `player_attributes.csv` header:
 

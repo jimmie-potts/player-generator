@@ -64,8 +64,10 @@ statistics, and attributes can be loaded independently.
   per-36, and per-100 values are recomputed to eight decimals. D-018 supplies one published
   possession basis. Net ratings, eFG, true shooting, assist-to-turnover ratio, assist ratio,
   estimated turnover percentage, and defensive win shares per 36 are recomputed from published
-  operands. Assist ratio and estimated turnover percentage use the shared play-ending denominator
-  in D-019; rebound percentage remains an independently mapped and bounded source metric.
+  operands. Effective field-goal and true-shooting rates permit valid values through `1.5`.
+  Assist-to-turnover uses `assists / max(turnovers, 1)` under D-021; assist ratio and estimated
+  turnover percentage use the shared play-ending denominator in D-019. Rebound percentage remains
+  an independently mapped and bounded source metric.
   Validation uses relative tolerance `1e-8` and absolute tolerance `1e-7` for serialized derived
   values.
 - **Deviations:** Under D-003's clean version 2 break, the former combined league/team JSON, team
@@ -81,3 +83,7 @@ statistics, and attributes can be loaded independently.
   workbench behavior remain out of scope.
 - **Learning:** Mutating a few primitive totals and deriving every dependent value produces a
   smaller, auditable generation surface than independently perturbing rates or ratings.
+- **Review follow-up:** Contract and semantic regressions cover shooting efficiencies above `1.0`,
+  and zero-turnover generated lines retain finite assist-to-turnover values and complete
+  attributes. The focused generator/contract/publication suites passed 60 tests; the full Python
+  suite passed 308 tests.

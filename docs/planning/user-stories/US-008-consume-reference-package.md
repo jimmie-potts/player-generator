@@ -58,3 +58,7 @@ does not depend on raw sources or adapter internals.
   reference identities or any crosswalk.
 - **Learning:** Validate the full published package, then recheck its hashes after typed reads so a
   mutable package path cannot change between manifest validation and sampling.
+- **Review follow-up:** The consumer now rejects every unexpected package entry, including extra
+  directories or symlinks, and validates that a selected formula's direct inputs are available in
+  the generated roster attribute frame before any package rows are read or sampled. The focused
+  reference-selection suite passed 35 tests; the full Python suite passed 308 tests.

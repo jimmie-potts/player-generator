@@ -99,6 +99,34 @@ def _formula_output_fields(formula: object) -> tuple[str, ...]:
     return tuple(str(field) for field in value)
 
 
+def _formula_input_fields(formula: object) -> frozenset[str]:
+    if isinstance(formula, Mapping):
+        metrics = formula.get("metrics")
+    else:
+        metrics = getattr(formula, "metrics", None)
+    if not isinstance(metrics, Mapping):
+        raise ReferencePackageError(
+            "Formula is missing a valid metrics compatibility declaration."
+        )
+
+    fields: set[str] = set()
+    for name, metric in metrics.items():
+        if isinstance(metric, Mapping):
+            kind = metric.get("kind")
+            field = metric.get("field")
+        else:
+            kind = getattr(metric, "kind", None)
+            field = getattr(metric, "field", None)
+        if kind != "input":
+            continue
+        if not isinstance(field, str) or not field:
+            raise ReferencePackageError(
+                f"Formula input metric {name!r} is missing a valid field declaration."
+            )
+        fields.add(field)
+    return frozenset(fields)
+
+
 def _read_manifest(path: Path) -> dict[str, Any]:
     manifest_path = path / MANIFEST_FILENAME
     if not manifest_path.is_file():
@@ -167,7 +195,7 @@ def _validate_manifest(
             + "."
         )
 
-    actual_files = {entry.name for entry in directory.iterdir() if entry.is_file()}
+    actual_files = {entry.name for entry in directory.iterdir()}
     expected_files = {*expected_data_files, MANIFEST_FILENAME}
     missing_files = sorted(expected_files - actual_files)
     unexpected_files = sorted(actual_files - expected_files)
@@ -225,6 +253,18 @@ def _validate_manifest(
         raise ReferencePackageError(
             "Formula output_fields are incompatible with roster contract version 1: "
             f"expected {expected_formula_outputs!r}, found {actual_formula_outputs!r}."
+        )
+    evaluation_inputs = {
+        str(column["name"])
+        for filename in ("player_stats.csv", "player_advanced_stats.csv")
+        for column in roster_contract["files"][filename]["columns"]
+    }
+    missing_formula_inputs = sorted(_formula_input_fields(formula) - evaluation_inputs)
+    if missing_formula_inputs:
+        raise ReferencePackageError(
+            "Formula input fields are unavailable in the roster contract version 1 "
+            "attribute-evaluation frame: "
+            f"{', '.join(missing_formula_inputs)}."
         )
 
     if package_version >= 2:

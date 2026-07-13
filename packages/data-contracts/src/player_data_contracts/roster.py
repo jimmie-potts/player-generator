@@ -368,14 +368,15 @@ def _validate_advanced_row(
         denominator=true_shooting_denominator,
         formula="points / (2 * (fieldGoalsAttempted + 0.44 * freeThrowsAttempted))",
     )
+    turnovers = _number(stats, "turnovers")
     _validate_derived(
         row,
         file_name=file_name,
         row_index=row_index,
         field="assistTurnoverRatio",
         numerator=_number(stats, "assists"),
-        denominator=_number(stats, "turnovers"),
-        formula="assists / turnovers",
+        denominator=None if turnovers is None else max(turnovers, 1),
+        formula="assists / max(turnovers, 1)",
     )
     play_ending_denominator = (
         _number(stats, "fieldGoalsAttempted")

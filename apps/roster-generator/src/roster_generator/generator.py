@@ -475,7 +475,7 @@ def _mutate_advanced(
         "assistPercentage": _mutate_fraction(
             template, "assistPercentage", settings.advanced_fraction_sigma, rng
         ),
-        "assistTurnoverRatio": _ratio(assists, turnovers),
+        "assistTurnoverRatio": _ratio(assists, max(float(turnovers), 1.0)),
         "assistRatio": _ratio(assists, play_ending_denominator, 100.0),
         "offensiveReboundPercentage": offensive_rebound_percentage,
         "defensiveReboundPercentage": defensive_rebound_percentage,

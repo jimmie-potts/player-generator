@@ -323,6 +323,18 @@ def test_packaged_contract_version_drift_is_rejected(
             1.1,
             "must be at most 1",
         ),
+        (
+            "player_advanced_stats.csv",
+            "effectiveFieldGoalPercentage",
+            1.50000001,
+            "must be at most 1.5",
+        ),
+        (
+            "player_advanced_stats.csv",
+            "trueShootingPercentage",
+            1.50000001,
+            "must be at most 1.5",
+        ),
     ],
 )
 def test_scalar_patterns_ranges_and_enums_are_enforced(
@@ -400,7 +412,7 @@ def test_traditional_stat_invariants_are_enforced(field: str, value: object, mes
         ("netRating", 6, "offensiveRating - defensiveRating"),
         ("effectiveFieldGoalPercentage", 0.4, r"fieldGoalsMade \+ 0.5"),
         ("trueShootingPercentage", 0.5, r"fieldGoalsAttempted \+ 0.44"),
-        ("assistTurnoverRatio", 2, "assists / turnovers"),
+        ("assistTurnoverRatio", 2, r"assists / max\(turnovers, 1\)"),
         ("assistRatio", 19, r"fieldGoalsAttempted \+ 0.44"),
         ("estimatedTurnoverPercentage", 5, r"fieldGoalsAttempted \+ 0.44"),
         ("defensiveWinSharesPer36", 0.2, r"defensiveWinShares / minutes \* 36"),
@@ -411,6 +423,78 @@ def test_advanced_stat_invariants_are_enforced(field: str, value: object, messag
     tables["player_advanced_stats.csv"][0][field] = value
 
     with pytest.raises(ContractValidationError, match=message):
+        validate_roster_tables(tables)
+
+
+def test_shooting_efficiencies_above_one_are_valid_through_one_point_five() -> None:
+    tables = _valid_tables()
+    stats = tables["player_stats.csv"][0]
+    stats.update(
+        {
+            "fieldGoalsMade": 100,
+            "fieldGoalsAttempted": 100,
+            "twoPointersMade": 0,
+            "twoPointersAttempted": 0,
+            "threePointersMade": 100,
+            "threePointersAttempted": 100,
+            "freeThrowsMade": 0,
+            "freeThrowsAttempted": 0,
+            "points": 300,
+            "fieldGoalPercentage": 1,
+            "twoPointPercentage": None,
+            "threePointPercentage": 1,
+            "freeThrowPercentage": None,
+            "pointsPerGame": 30,
+            "threePointAttemptsPer36": 12,
+            "freeThrowAttemptsPer36": 0,
+            "pointsPer36": 36,
+            "pointsPer100": 50,
+            "twoPointAttemptFrequency": 0,
+            "threePointAttemptFrequency": 1,
+        }
+    )
+    advanced = tables["player_advanced_stats.csv"][0]
+    play_ending_denominator = 100 + 120 + 40
+    advanced.update(
+        {
+            "assistRatio": 120 / play_ending_denominator * 100,
+            "estimatedTurnoverPercentage": 40 / play_ending_denominator * 100,
+            "effectiveFieldGoalPercentage": 1.5,
+            "trueShootingPercentage": 1.5,
+        }
+    )
+
+    validate_roster_tables(tables)
+
+
+def test_zero_turnovers_require_finite_assist_turnover_ratio() -> None:
+    tables = _valid_tables()
+    stats = tables["player_stats.csv"][0]
+    stats.update(
+        {
+            "turnovers": 0,
+            "turnoversPerGame": 0,
+            "turnoversPer36": 0,
+            "turnoversPer100": 0,
+        }
+    )
+    advanced = tables["player_advanced_stats.csv"][0]
+    play_ending_denominator = 350 + 0.44 * 100 + 120
+    advanced.update(
+        {
+            "assistTurnoverRatio": 120,
+            "assistRatio": 120 / play_ending_denominator * 100,
+            "estimatedTurnoverPercentage": 0,
+        }
+    )
+
+    validate_roster_tables(tables)
+
+    advanced["assistTurnoverRatio"] = 0
+    with pytest.raises(
+        ContractValidationError,
+        match=r"assists / max\(turnovers, 1\)",
+    ):
         validate_roster_tables(tables)
 
 

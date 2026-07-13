@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import yaml
-from player_attribute_engine import formula_content_hash, load_formula
+from player_attribute_engine import FormulaDocument, formula_content_hash, load_formula
 from player_data_contracts import REFERENCE_CONTRACT_VERSION, load_reference_contract
 from player_data_contracts.io import sha256_file
 from player_data_contracts.package import content_hash
@@ -344,6 +344,15 @@ def test_load_reference_package_rejects_missing_files(
         load_reference_package(reference_package, load_formula())
 
 
+def test_load_reference_package_rejects_unexpected_directories(
+    reference_package: Path,
+) -> None:
+    (reference_package / "raw").mkdir()
+
+    with pytest.raises(ReferencePackageError, match="unexpected raw"):
+        load_reference_package(reference_package, load_formula())
+
+
 def test_load_reference_package_rejects_file_hash_mismatch(reference_package: Path) -> None:
     with (reference_package / "players.csv").open("a", encoding="utf-8") as handle:
         handle.write("\n")
@@ -445,6 +454,45 @@ def test_load_reference_package_rejects_incompatible_formula_outputs(
 
     with pytest.raises(ReferencePackageError, match="output_fields are incompatible"):
         load_reference_package(reference_package, formula)
+
+
+def _formula_requiring_starts() -> FormulaDocument:
+    formula = load_formula()
+    metrics = dict(formula.metrics)
+    metrics["games"] = replace(metrics["games"], field="starts")
+    return replace(formula, metrics=metrics)
+
+
+def test_load_reference_package_rejects_unavailable_typed_formula_inputs_before_reads(
+    reference_package: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "roster_generator.reference_package._read_typed_tables",
+        lambda *_args, **_kwargs: pytest.fail("typed reads must not start"),
+    )
+
+    with pytest.raises(ReferencePackageError, match=r"attribute-evaluation frame: starts\."):
+        load_reference_package(reference_package, _formula_requiring_starts())
+
+
+def test_load_reference_package_rejects_unavailable_mapping_formula_inputs(
+    reference_package: Path,
+) -> None:
+    formula = _formula_requiring_starts()
+    mapping_formula = {
+        "referenceContractVersion": formula.reference_contract_version,
+        "outputFields": formula.output_fields,
+        "metrics": {
+            name: {"kind": metric.kind, "field": metric.field}
+            if metric.kind == "input"
+            else {"kind": metric.kind}
+            for name, metric in formula.metrics.items()
+        },
+    }
+
+    with pytest.raises(ReferencePackageError, match=r"attribute-evaluation frame: starts\."):
+        load_reference_package(reference_package, mapping_formula)
 
 
 def test_load_reference_package_names_orphan_relationship(reference_package: Path) -> None:

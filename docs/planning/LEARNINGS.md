@@ -144,6 +144,11 @@ its completion notes.
 - Formula completeness does not prove that a row has the primitive shooting, event, and
   total/per-100 inputs required for controlled mutation. Apply generation-viability checks before
   weighted sampling so unsupported templates cannot fail only for particular seeds.
+- An exact package boundary must compare every directory entry, not only regular files; otherwise
+  an unmanifested source-data directory can bypass the file-set check.
+- Formula compatibility must cover the inputs available to every evaluation stage. A formula can
+  be valid against reference data and still be unusable after roster mutation if it requires a
+  season or provenance field that is absent from the generated evaluation frame.
 
 ### 2026-07-13 — US-009
 
@@ -163,6 +168,12 @@ its completion notes.
 - Similar metric names do not imply interchangeable formulas. Assist ratio and estimated turnover
   percentage use a play-ending denominator rather than the roster possession total, while rebound
   percentage remains distinct from its offensive and defensive components.
+- Derived shooting efficiencies are not ordinary 0–1 proportions: a made three on one attempt
+  yields `1.5` effective field-goal percentage. Contract bounds must reflect the arithmetic that
+  semantic validation recomputes.
+- A zero-turnover assist ratio cannot be published as infinity, but leaving it empty makes an
+  otherwise valid generated player formula-ineligible. Use the explicit finite denominator floor
+  `max(turnovers, 1)` in both generation and semantic validation.
 - Parse and hash a custom formula from the same immutable byte snapshot. Reading the path again
   after generation can make the manifest describe bytes that were not used for evaluation.
 

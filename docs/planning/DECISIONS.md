@@ -174,3 +174,14 @@ changes one; do not rewrite history without recording the replacement.
   cohort keys, formula provenance, and package integrity metadata makes the results inspectable and
   reproducible without weakening formula ownership or copying reference identities into roster
   output.
+
+## D-021: Finite turnover-free ratios and shooting-efficiency bounds
+
+- **Status:** accepted
+- **Decision:** Derive roster `assistTurnoverRatio` as `AST / max(TOV, 1)` so zero-turnover lines
+  remain finite and formula-eligible. Permit roster effective field-goal and true-shooting rates in
+  the mathematically valid range 0–1.5.
+- **Reason:** Leaving a zero-turnover ratio empty makes otherwise valid generated attributes fail,
+  while infinity cannot be represented by the finite-number contract. A one-turnover denominator
+  floor preserves the benefit of a turnover-free line. A made three on one attempt yields `1.5`
+  effective field-goal and true-shooting rates, so a 0–1 proportion bound rejects valid arithmetic.

@@ -209,6 +209,40 @@ def test_missing_raw_event_counts_are_inferred_from_published_rates(
     validate_roster_tables(generated.tables)
 
 
+def test_zero_turnovers_generate_and_publish_complete_attributes(
+    tmp_path: Path,
+    roster_config: dict,
+) -> None:
+    package = _package(tmp_path)
+    for field in ("turnovers", "turnoversPer36", "turnoversPer100"):
+        package.frame[field] = 0
+    formula = load_formula()
+
+    generated = generate_roster_tables(
+        package, formula, _config(roster_config), seed=10
+    )
+
+    for stats, advanced, attributes in zip(
+        generated.tables["player_stats.csv"],
+        generated.tables["player_advanced_stats.csv"],
+        generated.tables["player_attributes.csv"],
+        strict=True,
+    ):
+        assert stats["turnovers"] == 0
+        assert advanced["assistTurnoverRatio"] == stats["assists"]
+        assert all(attributes[field] is not None for field in formula.output_fields)
+    validate_roster_tables(generated.tables)
+
+    output = publish_roster_package(
+        generated,
+        package,
+        tmp_path / "zero-turnover-roster-v1",
+        formula_version=formula.formula_version,
+        formula_hash=formula_content_hash(),
+    )
+    assert (output / "player_attributes.csv").is_file()
+
+
 def test_zero_shooting_attempts_remain_valid_after_mutation(
     tmp_path: Path,
     roster_config: dict,
