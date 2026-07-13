@@ -1,6 +1,6 @@
 # US-004: Normalize sources into a canonical model
 
-- **Status:** ready
+- **Status:** in_progress
 - **Epic:** [EPIC-02](../epics/EPIC-02-reference-data.md)
 - **Dependencies:** US-003
 
@@ -36,7 +36,28 @@ applications do not depend on upstream schemas.
 
 ## Implementation notes
 
-Append dated notes here while the story is active.
+### 2026-07-13
+
+- Started after US-003 completed in commit `1324e9b`; normalization consumes only validated local
+  registry entries and source-owned adapters.
+- Selected deterministic opaque internal IDs, conservative exact-name reconciliation, reviewed
+  source-ID overrides, and configured field precedence. Fuzzy or probabilistic matching remains
+  outside this story.
+- Preserved the aggregate season grain: canonical team identity is populated only when the NBA
+  source explicitly reports a single-team aggregate, while all source team labels remain audit
+  context.
+- Added source-owned mappings for player bio, aggregate season context, traditional statistics, and
+  advanced statistics. ESPN version 1 maps only optional fields whose names declare their meaning
+  and units; ambiguous `height` and `weight` fields remain unavailable.
+- Reconciliation treats source IDs as namespaced, collapses repeated IDs across seasons, applies
+  reviewed overrides before conservative normalized exact-name matching, and gives ambiguous or
+  unmatched identities separate stable players with explicit audit outcomes.
+- Canonical players and player-seasons use deterministic opaque UUID-derived IDs. Per-field source
+  precedence and latest-season tie-breaking are configured, nulls fall through to the next source,
+  and every distinct non-null conflict records its candidates, chosen value, and rule.
+- Focused validation covered 28 adapter and canonical cases; the full reference-data suite passed
+  46 tests. A local ignored 6,908-row NBA source normalized into 1,693 players and matching sets of
+  6,908 season, traditional-stat, and advanced-stat rows without changing or copying the input.
 
 ## Completion notes
 

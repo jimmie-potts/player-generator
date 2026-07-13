@@ -28,6 +28,22 @@ reference:
     2025: 82
     2026: 82
 
+normalization:
+  fieldPrecedence:
+    displayName: [nba_playerstats, espn_player_details]
+    firstName: [espn_player_details, nba_playerstats]
+    lastName: [espn_player_details, nba_playerstats]
+    birthDate: [espn_player_details, nba_playerstats]
+    heightInches: [nba_playerstats, espn_player_details]
+    weightPounds: [nba_playerstats, espn_player_details]
+    country: [nba_playerstats, espn_player_details]
+    college: [nba_playerstats, espn_player_details]
+    draftYear: [nba_playerstats, espn_player_details]
+    draftRound: [nba_playerstats, espn_player_details]
+    draftNumber: [nba_playerstats, espn_player_details]
+  # Each entry must set reviewed: true and identify an existing source identity and target.
+  reviewedManualOverrides: []
+
 ratings:
   minimum: 25
   maximum: 99
