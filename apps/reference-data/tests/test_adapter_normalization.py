@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -236,6 +237,92 @@ def test_optional_nulls_and_espn_aliases_are_conservative(tmp_path: Path) -> Non
     assert espn.traditional_stats is None
     assert espn.advanced_stats is None
     assert espn.source_context == {}
+
+
+@pytest.mark.parametrize(
+    "birth_date",
+    [date(2000, 1, 2), pd.Timestamp("2000-01-02T12:34:56")],
+)
+def test_espn_native_birth_dates_normalize_to_iso_dates(
+    tmp_path: Path,
+    birth_date: object,
+) -> None:
+    source_path = _write_parquet(
+        tmp_path / "espn.parquet",
+        [
+            {
+                "id": "espn-1",
+                "displayName": "Dated Player",
+                "birthDate": birth_date,
+            }
+        ],
+    )
+
+    player = normalize_source(source_path, "espn-source", "espn_player_details", 1)[0]
+
+    assert player.player_fields["birthDate"] == "2000-01-02"
+
+
+def test_blank_optional_numeric_text_normalizes_to_null(tmp_path: Path) -> None:
+    nba_path = _write_parquet(
+        tmp_path / "nba.parquet",
+        [
+            _nba_row(
+                player_weight="   ",
+                draft_year="",
+                draft_round="\t",
+                draft_number="  ",
+            )
+        ],
+    )
+    espn_path = _write_parquet(
+        tmp_path / "espn.parquet",
+        [
+            {
+                "id": "espn-1",
+                "displayName": "Undrafted Player",
+                "draftYear": "",
+                "draftRound": " ",
+                "draftNumber": "\t",
+            }
+        ],
+    )
+
+    nba = normalize_source(nba_path, "nba-source", "nba_playerstats", 1)[0]
+    espn = normalize_source(espn_path, "espn-source", "espn_player_details", 1)[0]
+
+    assert nba.player_fields["weightPounds"] is None
+    assert nba.player_fields["draftYear"] is None
+    assert nba.player_fields["draftRound"] is None
+    assert nba.player_fields["draftNumber"] is None
+    assert espn.player_fields["draftYear"] is None
+    assert espn.player_fields["draftRound"] is None
+    assert espn.player_fields["draftNumber"] is None
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("player_id", ""),
+        ("player_id", "  "),
+        ("year", ""),
+        ("year", "\t"),
+    ],
+)
+def test_blank_required_numeric_text_is_still_rejected(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    source_path = _write_parquet(
+        tmp_path / f"blank-{field}.parquet",
+        [_nba_row(**{field: value})],
+    )
+
+    with pytest.raises(AdapterValidationError) as error:
+        normalize_source(source_path, "nba-source", "nba_playerstats", 1)
+
+    assert f"field {field!r} is required" in str(error.value)
 
 
 def test_duplicate_source_player_season_keys_are_rejected(tmp_path: Path) -> None:

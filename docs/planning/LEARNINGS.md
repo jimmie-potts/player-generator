@@ -68,6 +68,12 @@ its completion notes.
   one while preserving every distinct candidate in the conflict audit.
 - Adapters should map only fields whose units and meaning are explicit. Ignoring ambiguous ESPN
   height and weight columns avoids silently converting an unknown upstream contract.
+- Parquet logical date and timestamp columns can surface as Python dates or pandas timestamps.
+  Date-valued adapter fields need field-specific normalization to `YYYY-MM-DD` instead of generic
+  scalar serialization that retains a time component.
+- Optional numeric source fields can encode missing values as blank text. Treat blanks as null only
+  where the adapter already permits numeric text, and keep required-field wrappers responsible for
+  rejecting the resulting missing player IDs or seasons.
 - Opaque player IDs anchored to a primary namespaced identity remain stable when a supplemental
   source is later reconciled, while opaque player-season IDs make aggregate grain executable.
 

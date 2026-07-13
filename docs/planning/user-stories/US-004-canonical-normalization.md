@@ -58,6 +58,9 @@ applications do not depend on upstream schemas.
 - Focused validation covered 28 adapter and canonical cases; the full reference-data suite passed
   46 tests. A local ignored 6,908-row NBA source normalized into 1,693 players and matching sets of
   6,908 season, traditional-stat, and advanced-stat rows without changing or copying the input.
+- PR review hardened scalar normalization: native Parquet date and timestamp birth dates now emit
+  canonical `YYYY-MM-DD` values, and blank numeric text in supported numeric-text fields becomes
+  null while required player ID and season wrappers still reject missing values.
 
 ## Completion notes
 

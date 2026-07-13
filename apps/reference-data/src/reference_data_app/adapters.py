@@ -4,6 +4,7 @@ import hashlib
 import math
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date, datetime
 from numbers import Integral, Real
 from pathlib import Path
 from typing import Any
@@ -326,6 +327,31 @@ def _optional_text(value: object, field: str, context: str) -> str | None:
     return stripped or None
 
 
+def _optional_date(value: object, field: str, context: str) -> str | None:
+    normalized = _normalize_scalar(value)
+    if normalized is None:
+        return None
+    if isinstance(value, pd.Timestamp):
+        return value.date().isoformat()
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if not isinstance(normalized, str):
+        raise AdapterValidationError(
+            f"{context}: field {field!r} must be an ISO 8601 date or null"
+        )
+    stripped = normalized.strip()
+    if not stripped:
+        return None
+    try:
+        return date.fromisoformat(stripped).isoformat()
+    except ValueError as error:
+        raise AdapterValidationError(
+            f"{context}: field {field!r} must be an ISO 8601 date or null"
+        ) from error
+
+
 def _numeric(
     value: object,
     field: str,
@@ -339,7 +365,7 @@ def _numeric(
         return None
     if allow_numeric_text and isinstance(normalized, str):
         text = normalized.strip()
-        if text.casefold() == "undrafted":
+        if not text or text.casefold() == "undrafted":
             return None
         try:
             normalized = float(text)
@@ -491,8 +517,8 @@ def _espn_optional_player_fields(
     converters: dict[str, Callable[[object, str, str], object]] = {
         "firstName": _optional_text,
         "lastName": _optional_text,
-        "birthDate": _optional_text,
-        "dateOfBirth": _optional_text,
+        "birthDate": _optional_date,
+        "dateOfBirth": _optional_date,
         "country": _optional_text,
         "college": _optional_text,
     }
