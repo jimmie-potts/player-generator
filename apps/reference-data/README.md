@@ -1,7 +1,7 @@
 # Reference-data application
 
-This Python application owns local source registration, the current Parquet ingestion path,
-canonical player-season projection, reference rating calculation, and processed reference outputs.
+This Python application owns local source registration, source-specific adapters, reconciliation,
+canonical normalization, the legacy rating path, and processed reference outputs.
 
 ```bash
 reference-data --help
@@ -20,6 +20,8 @@ license metadata in `reference_data/registry/sources.json`.
 Its configuration boundary is `config/default.yaml` within this application. Raw, registered, and
 processed named data remain local and untracked. The remote download and wide CSV outputs are
 transitional legacy behavior retained until the roster generator consumes the normalized package.
+The canonical model already produces validated relational tables and audit records in memory;
+versioned normalized CSV publication is US-005.
 
 The application may import `player_data_contracts` and `player_attribute_engine`. It must never
 import `roster_generator`.

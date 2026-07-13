@@ -18,11 +18,12 @@ packages/
 Reference data and roster generation are the two data subprojects. The formula workbench is a
 supporting application over the shared contracts and calculation engine.
 
-The architecture boundary and local source registration are implemented, but later behavior remains
-planned:
+The architecture boundary, local source registration, and canonical normalization are implemented,
+but later behavior remains planned:
 
-- Reference data can register local NBA and ESPN Parquet inputs, while its current build still uses
-  the legacy pinned remote Parquet download and wide processed CSVs.
+- Reference data can register and normalize local NBA and ESPN Parquet inputs, while normalized CSV
+  publication remains planned. Its current public build still uses the legacy pinned download and
+  wide processed CSVs.
 - Roster generation still produces a combined roster JSON and flat player CSV.
 - Rating formulas retain their current Python definitions.
 - The workbench currently renders a static application shell without data or formula behavior.
@@ -148,8 +149,8 @@ These rules are enforced by automated import-boundary and entrypoint tests.
 
 The primary current build input is `llimllib/nba_data`'s `data/playerstats.parquet`, pinned to commit
 `a7bc98d73324300bd28d77260f45c98c239d1e87`. No root license file was observed in that upstream
-repository when the snapshot was selected. ESPN player-detail files can be registered locally, but
-their canonical normalization is not part of US-003.
+repository when the snapshot was selected. ESPN player-detail files can be registered locally and
+reconciled through the canonical model without exposing their source IDs to roster data.
 
 Review [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md),
 [Data boundaries](docs/DATA_BOUNDARIES.md), and the

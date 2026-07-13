@@ -56,6 +56,21 @@ its completion notes.
 - A conservative adapter may require only observed stable fields and leave other source-specific
   values unavailable rather than treating a guessed upstream schema as a supported contract.
 
+### 2026-07-13 — US-004
+
+- Source IDs must remain namespaced by source type; equal-looking values from different providers
+  are not identity evidence. Reviewed overrides and unique normalized exact names are separate,
+  auditable reconciliation rules.
+- `team_count` is unavailable in older NBA rows. Canonical team identity is safe only when that
+  field explicitly equals one; last-team and aggregate source labels remain audit context.
+- Repeated seasons can disagree on bio values such as height or weight. Declared source precedence
+  still needs a deterministic within-source rule, and latest season followed by source ID provides
+  one while preserving every distinct candidate in the conflict audit.
+- Adapters should map only fields whose units and meaning are explicit. Ignoring ambiguous ESPN
+  height and weight columns avoids silently converting an unknown upstream contract.
+- Opaque player IDs anchored to a primary namespaced identity remain stable when a supplemental
+  source is later reconciled, while opaque player-season IDs make aggregate grain executable.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:

@@ -1,6 +1,6 @@
 # US-004: Normalize sources into a canonical model
 
-- **Status:** in_progress
+- **Status:** complete
 - **Epic:** [EPIC-02](../epics/EPIC-02-reference-data.md)
 - **Dependencies:** US-003
 
@@ -61,5 +61,28 @@ applications do not depend on upstream schemas.
 
 ## Completion notes
 
-Pending. Record reconciliation outcomes, precedence rules, unresolved source gaps, and validation
-evidence before changing status to `complete`.
+- **Completed:** 2026-07-13
+- **Branch and implementation commit:** `agent/implement-us-003-us-005`; `9777cf4`.
+- **Delivered:** Version 1 NBA and ESPN canonical mappings; deterministic opaque `playerId` and
+  `playerSeasonId` values; exact namespaced source-ID grouping; reviewed manual overrides;
+  conservative exact-name reconciliation; configured per-field precedence; conflict,
+  reconciliation, and team-context audits; and fail-closed canonical key, type, finite-number, and
+  relationship validation.
+- **Reconciliation outcomes:** Repeated source IDs across seasons share one player. A supplemental
+  identity joins an NBA anchor only through a reviewed override or one normalized exact-name match.
+  Ambiguous and unmatched identities remain separate and are reported. Multiple source IDs of the
+  same source type cannot silently map to one player.
+- **Precedence:** NBA values lead for display name, physical, origin, college, and draft fields;
+  ESPN leads for first name, last name, and birth date. Null values fall through, and equal values
+  are not conflicts. Within one source type, the latest season wins deterministically.
+- **Source gaps:** NBA supplies no starts, birth date, or reliable first/last-name split. ESPN v1 has
+  no season statistics and only maps optional fields with explicit canonical names and units. Team
+  identity remains empty whenever `team_count` is not exactly one.
+- **Validation:** `.venv/bin/python -m pytest apps/reference-data/tests -q` passed 46 tests;
+  `.venv/bin/python -m ruff check apps/reference-data tests/test_architecture.py` and
+  `git diff --check` passed. A local 6,908-row ignored NBA source produced 1,693 players and exactly
+  6,908 rows in each aggregate season table.
+- **Follow-up:** US-005 gives these tables public version 1 contracts, serializes their audit, and
+  publishes them atomically. US-008 remains responsible for roster-package consumption.
+- **Learning:** A missing aggregate team count cannot prove single-team grain, so older records keep
+  canonical team identity empty while retaining source labels only in audit context.
