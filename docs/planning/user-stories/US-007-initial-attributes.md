@@ -51,6 +51,8 @@ explained and calibrated.
 ## Completion notes
 
 - **Completed:** 2026-07-13 in commit `a6fdd3b`.
+- **Review hardening:** shared-engine edge cases found during the final epic review were fixed in
+  commit `c37bb63`; the active calibration and named outcomes remained unchanged.
 - **Delivered:** the exact version `1.0.0` output schema, 13 initial attribute formulas, shooting
   priors, season cohort, 20-game/500-minute eligibility, skill and overall anchors, impact
   percentile, and tier ranges are documented and locked by automated contract tests. Snapshot
@@ -68,7 +70,7 @@ explained and calibrated.
 - **Deviation:** the active version `1.0.0` resource was added with US-006 because a real formula
   was required to integrate the evaluator. US-007 separately reviewed and locked its calibration;
   no later attribute or consumer was pulled forward.
-- **Validation:** `.venv/bin/python -m pytest` (`186 passed`), `.venv/bin/python -m ruff check .`,
+- **Validation:** `.venv/bin/python -m pytest` (`194 passed`), `.venv/bin/python -m ruff check .`,
   `git diff --check`, `sha256sum -c FILE_MANIFEST.sha256`, and `reference-data build` passed.
 - **Follow-ups:** unsupported play-style, physical, foul, and tendency attributes remain absent.
   US-008 may now consume a published reference package through this formula version.

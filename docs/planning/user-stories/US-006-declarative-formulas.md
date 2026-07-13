@@ -65,6 +65,9 @@ previews use exactly the same calculations.
 ## Completion notes
 
 - **Completed:** 2026-07-13 in commit `201c3f7`.
+- **Review hardening:** commit `c37bb63` added overflow-safe weight normalization, immutable input
+  alias reads, canonical schedules with shared explanation lookup, strict numeric input types, and
+  load-time validation of the shooting-season dependency.
 - **Delivered:** packaged formula contract version 1 and active formula version `1.0.0`; typed
   semantic validation; a public, application-independent evaluator returning ordered rows and
   reconstructable JSON explanations; and migration of the current reference-data batch seam to
@@ -76,10 +79,10 @@ previews use exactly the same calculations.
 - **Deviation:** the preview API does not exist until US-010. Per
   [D-017](../DECISIONS.md#d-017-shared-evaluator-consumer-sequencing), this story exported the
   evaluator that US-010 must import instead of implementing the later API early.
-- **Validation:** `.venv/bin/python -m pytest` (`172 passed`), `.venv/bin/python -m ruff check .`,
-  `git diff --check`, `sha256sum -c FILE_MANIFEST.sha256`, and the current `reference-data build`
-  against ignored local inputs all passed. The formula schema and active formula resources were
-  also confirmed in a built wheel.
+- **Validation:** `.venv/bin/python -m pytest` (`194 passed` after final review) and
+  `.venv/bin/python -m ruff check .` passed, as did `git diff --check`,
+  `sha256sum -c FILE_MANIFEST.sha256`, and the current `reference-data build` against ignored local
+  inputs. The formula schema and active formula resources were also confirmed in a built wheel.
 - **Follow-ups:** US-007 locks the initial attribute calibration and representative regressions;
   US-008 replaces the current wide-table batch seam; US-010 imports this evaluator for previews.
 - **Learnings:** structural schema validation and semantic graph validation are complementary;

@@ -69,8 +69,8 @@ effef6794d0db3ccbe131f02c82231acd52c392dfdd4f12993ead8366de39c2d  docs/planning/
 a9abeb215c6c781208e5c9b9794be0345b9f80793ce48d8fef045021a19e5588  docs/planning/user-stories/US-003-local-parquet-inputs.md
 8979375a12679214eced192a03d3bc38ebbf61bac940782bcad210ae8cba8226  docs/planning/user-stories/US-004-canonical-normalization.md
 e0a01ea7faadb73361701ca3822080d95f1cfd88a93b57cf87dd624b5ee1b0a3  docs/planning/user-stories/US-005-reference-csv-package.md
-054478870f00a0f311bf0687f1761bdee8d2fb4ae6f04286000365c597e91326  docs/planning/user-stories/US-006-declarative-formulas.md
-6e3722984975d83f01623b3f8d3be7824b3e00b04cf6419b5a299f77d7336cc5  docs/planning/user-stories/US-007-initial-attributes.md
+af27f0a111521ede5a534e214ba8bf7a5abb891a32e7cd83fc106c2ba5c36ae8  docs/planning/user-stories/US-006-declarative-formulas.md
+c0076551f6deb080842830865654ee1bbff3c6fd4ac2d1ec672b7186d9c3566d  docs/planning/user-stories/US-007-initial-attributes.md
 0e7e44637215a4672a7a29975a1d7798eae3fa67fd7e814fc3d578d9a844281a  docs/planning/user-stories/US-008-consume-reference-package.md
 8f8650edb19dadf94a1768ff76d580d9bc436fdfbcb20f71509393f7555be18d  docs/planning/user-stories/US-009-generate-roster-package.md
 d55b2d02893364bb716375e0cb4d64839d06683024360347acacc083f45d4208  docs/planning/user-stories/US-010-formula-preview-api.md
