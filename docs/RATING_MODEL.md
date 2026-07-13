@@ -1,4 +1,4 @@
-# Starter rating model
+# Current version 1 rating model
 
 The model is intentionally transparent and easy to replace.
 
@@ -38,8 +38,13 @@ reaches the top of the configured scale even when no player is first in every co
 - Broad position groups are inferred, not authoritative source positions.
 - Defensive rating, defensive win shares and PIE remain noisy individual-defense signals with team
   and context effects.
-- Potential, detailed positions and development traits are synthetic game-design variables.
+- Potential, detailed positions and development traits are generated game-design variables.
 - ESPN play-style analytics are intentionally deferred.
 
 Every formula and anchor is centralized in `ratings.py` and `config/default.yaml` so the simulator
 can drive later tuning.
+
+Version 2 will move formula definitions into a shared declarative contract used by roster generation
+and the preview API. See the [proposed formulas](planning/ATTRIBUTE_FORMULAS.md) and
+[attribute epic](planning/epics/EPIC-03-attributes.md). Those documents describe planned behavior,
+not the current implementation.

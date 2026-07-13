@@ -1,7 +1,7 @@
 # Third-party notices
 
 The software in this repository is MIT licensed. That license does not grant rights to third-party
-data. Local named reference data is intentionally separated from fictional game-facing output.
+data. Local named reference data is intentionally separated from roster output.
 
 ## llimllib/nba_data
 
@@ -10,7 +10,7 @@ data. Local named reference data is intentionally separated from fictional game-
 - Used file: `data/playerstats.parquet` (2,433,415 bytes)
 - Used fields: regular-season totals, per-game, per-36, per-100, advanced, shooting and bio fields
 - License status: no root license file was observed when this snapshot was selected
-- Local use only: rating calibration and fictional template generation
+- Local use only: rating calibration and roster generation
 
 Do not commit or redistribute the downloaded Parquet file or derived named reference tables. Users
 must obtain the pinned input themselves through the project downloader.
@@ -23,7 +23,8 @@ must obtain the pinned input themselves through the project downloader.
 - Normal pipeline: not downloaded or ingested
 
 The previous `Brescou/NBA-dataset-stats-player-team` dependency has been removed. ESPN analytics
-files are not used in this phase.
+files are not used by the current implementation. They are planned as a separate local-file adapter
+in version 2.
 
 The source manifest records the exact pinned URL, SHA-256 hash and file size. Review upstream terms
 and provenance before using any third-party data.
