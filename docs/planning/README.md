@@ -53,7 +53,7 @@ team or coach generation.
 | US-012 | [Preview formula adjustments](user-stories/US-012-preview-adjustments.md) | EPIC-06 | ready |
 | US-013 | [Compare representative players](user-stories/US-013-compare-players.md) | EPIC-06 | ready |
 | US-014 | [Define coach and team contracts](user-stories/US-014-coach-team-contracts.md) | EPIC-07 | ready |
-| US-015 | [Publish reference player attributes](user-stories/US-015-reference-player-attributes.md) | EPIC-03 | in_progress |
+| US-015 | [Publish reference player attributes](user-stories/US-015-reference-player-attributes.md) | EPIC-03 | complete |
 
 ## Planning records
 
