@@ -124,13 +124,13 @@ def test_load_player_stats_maps_advanced_metrics_and_coerces_weight(
         "playerImpactEstimate": 0.167,
         "defensiveWinShares": 3.8,
         "estimatedTurnoverPercentage": 8.7,
-        "freeThrowRate": 0.25,
-        "twoPointAttemptFrequency": 0.63,
+            "twoPointAttemptFrequency": 0.63,
         "threePointAttemptFrequency": 0.37,
         "weightPounds": 212.0,
     }
     for column, value in expected.items():
         assert player[column] == pytest.approx(value)
+    assert "freeThrowRate" not in player.index
 
 
 def test_load_player_stats_derives_position_groups_without_source_position(

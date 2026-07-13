@@ -25,7 +25,7 @@ behavior remains planned:
   a validated version 1 CSV package. The pinned download and wide build remain legacy commands for
   the roster generator's current transitional input.
 - Roster generation still produces a combined roster JSON and flat player CSV.
-- Rating formulas retain their current Python definitions.
+- Player attributes use the validated declarative formula document and shared Python evaluator.
 - The workbench currently renders a static application shell without data or formula behavior.
 
 See the [version 2 planning index](docs/planning/README.md) for the remaining epics and story status.
@@ -124,13 +124,14 @@ volume, playmaking, ball security, offensive and defensive rebounding, perimeter
 defense, stamina, durability, overall, impact percentile, and talent tier.
 
 Metrics are converted to season-relative percentiles before weighted composition and interpolation
-onto configured rating curves. Shooting percentages are stabilized toward the season average to
-reduce small-sample effects. Defense remains an estimate because the available measures contain
-substantial team and context effects.
+onto formula-declared rating curves. Shooting percentages are stabilized toward the season average
+with versioned priors. Nulls, eligibility, ties, inverse direction, anchors, schedules, output scale,
+and talent tiers are all explicit in formula version `1.0.0`. Defense remains an estimate because
+the available measures contain substantial team and context effects.
 
-Current calculations live in `packages/attribute-engine/`. The proposed declarative formula
-contract is documented in
-[Proposed player attribute formulas](docs/planning/ATTRIBUTE_FORMULAS.md).
+The active document and calculations live in `packages/attribute-engine/`; the structural formula
+schema lives in `packages/data-contracts/`. See the [current rating model](docs/RATING_MODEL.md) and
+[player attribute formulas](docs/planning/ATTRIBUTE_FORMULAS.md).
 
 ## Architecture rules
 

@@ -74,14 +74,8 @@ def build_reference_data(config: dict[str, Any]) -> tuple[Path, Path]:
         {int(year) for year in config["reference"]["seasons"]},
         config,
     )
-    minimum_games = int(config["reference"].get("minimum_games", 0))
-    minimum_minutes = float(config["reference"]["minimum_minutes"])
-    eligible = player_seasons[
-        (player_seasons["games"] >= minimum_games)
-        & (player_seasons["minutes"] >= minimum_minutes)
-        & (player_seasons["positionGroup"] != "unknown")
-    ].copy()
-    rated = rate_player_seasons(eligible, config)
+    formula_population = player_seasons[player_seasons["positionGroup"] != "unknown"].copy()
+    rated = rate_player_seasons(formula_population, config)
     snapshot = build_reference_snapshot(rated, config)
 
     processed_dir = resolve_path(config, "reference_processed_dir")

@@ -11,12 +11,8 @@ def build_reference_snapshot(
     config: dict[str, Any],
 ) -> pd.DataFrame:
     comparison_season = int(config["reference"]["comparison_season"])
-    minimum_games = int(config["reference"].get("minimum_games", 0))
-    minimum_minutes = float(config["reference"]["minimum_minutes"])
     snapshot = rated_seasons[
         (rated_seasons["season_year"] == comparison_season)
-        & (rated_seasons["games"] >= minimum_games)
-        & (rated_seasons["minutes"] >= minimum_minutes)
         & (rated_seasons["positionGroup"] != "unknown")
     ].copy()
     snapshot["sourcePlayerId"] = snapshot["personId"].astype("Int64")

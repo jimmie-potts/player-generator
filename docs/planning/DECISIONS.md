@@ -130,3 +130,13 @@ changes one; do not rewrite history without recording the replacement.
   formula-workbench application.
 - **Reason:** npm is available without another package-manager bootstrap, and a committed lockfile
   makes the independently runnable frontend reproducible in CI.
+
+## D-017: Shared evaluator consumer sequencing
+
+- **Status:** accepted
+- **Decision:** EPIC-03 publishes the application-independent formula evaluator and migrates the
+  current batch compatibility path to it. The preview API remains a US-010 deliverable and must
+  import that evaluator when implemented; EPIC-03 does not pull the API forward solely to create a
+  second consumer.
+- **Reason:** This satisfies the single-evaluator architecture without violating the dependency
+  order or expanding declarative-formula work into the later API epic.

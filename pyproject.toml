@@ -40,6 +40,7 @@ namespaces = false
 
 [tool.setuptools.package-data]
 player_data_contracts = ["schemas/*.json"]
+player_attribute_engine = ["formulas/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["apps", "packages", "tests"]

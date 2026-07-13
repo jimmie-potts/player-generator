@@ -1,6 +1,6 @@
 # US-006: Define declarative formulas
 
-- **Status:** ready
+- **Status:** in_progress
 - **Epic:** [EPIC-03](../epics/EPIC-03-attributes.md)
 - **Dependencies:** US-005
 
@@ -35,7 +35,30 @@ previews use exactly the same calculations.
 
 ## Implementation notes
 
-Append dated notes here while the story is active.
+### 2026-07-13
+
+- Started after US-005 and EPIC-02 were completed and merged in PR #4.
+- The formula contract and evaluator are owned by `packages/attribute-engine`; the current
+  reference-data wide-table build may call that shared engine, but migration of the roster
+  generator to normalized reference packages remains US-008 work and the preview API remains
+  US-010 work.
+- Declarative formulas are restricted to a supported schema and metric vocabulary. They do not
+  permit Python expressions or arbitrary code execution.
+- Formula schema version 1 is a packaged data contract. The attribute engine adds semantic
+  validation for metric dependencies, weights, directions, named eligibility/cohort/scale
+  references, anchors, output fields, and talent-tier coverage before evaluation.
+- Formula version `1.0.0` moves the weights, 20-game/500-minute eligibility, season schedules,
+  shooting priors, percentile anchors, and tier ranges out of application YAML. Only input,
+  ratio, stabilized-percentage, and scheduled-ratio metrics are supported.
+- The current reference-data wide build now delegates to the shared evaluator. Stabilized shooting
+  league averages are derived from the full season before formula eligibility filters rows, which
+  preserves the implemented baseline while making the order explicit.
+- Explanations are JSON-serializable and include the cohort, eligibility outcome, raw component
+  values, percentiles, normalized weights, contributions, composite, composite percentile, and
+  rating. The future preview API can consume the same result without another evaluator.
+- [D-017](../DECISIONS.md#d-017-shared-evaluator-consumer-sequencing) records that US-010 must
+  import this evaluator when it introduces the preview API; implementing that later API in this
+  story would violate the planned delivery order.
 
 ## Completion notes
 
