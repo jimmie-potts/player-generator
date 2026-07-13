@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "createdAt": "2026-07-12",
-  "purpose": "Local, non-anonymized reference data for testing fictional roster distributions.",
+  "purpose": "Local, non-anonymized reference data for testing roster distributions.",
   "sources": [
     {
       "kind": "player_seasons",

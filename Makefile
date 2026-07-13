@@ -1,29 +1,44 @@
 PYTHON ?= python3
-CONFIG ?= config/default.yaml
+REFERENCE_CONFIG ?= apps/reference-data/config/default.yaml
+ROSTER_CONFIG ?= apps/roster-generator/config/default.yaml
 
-.PHONY: install download reference generate compare all test clean
+.PHONY: install reference-download reference-build roster-generate roster-compare all \
+	workbench workbench-build test test-python test-web clean
 
 install:
 	$(PYTHON) -m pip install -e '.[dev]'
+	npm install
 
-download:
-	$(PYTHON) -m player_generator --config $(CONFIG) download-reference
+reference-download:
+	$(PYTHON) -m reference_data_app --config $(REFERENCE_CONFIG) download
 
-reference:
-	$(PYTHON) -m player_generator --config $(CONFIG) build-reference
+reference-build:
+	$(PYTHON) -m reference_data_app --config $(REFERENCE_CONFIG) build
 
-generate:
-	$(PYTHON) -m player_generator --config $(CONFIG) generate
+roster-generate:
+	$(PYTHON) -m roster_generator --config $(ROSTER_CONFIG) generate
 
-compare:
-	$(PYTHON) -m player_generator --config $(CONFIG) compare
+roster-compare:
+	$(PYTHON) -m roster_generator --config $(ROSTER_CONFIG) compare
 
-all:
-	$(PYTHON) -m player_generator --config $(CONFIG) all
+all: reference-download reference-build roster-generate roster-compare
 
-test:
+workbench:
+	npm run workbench:dev
+
+workbench-build:
+	npm run workbench:build
+
+test: test-python test-web
+
+test-python:
 	$(PYTHON) -m pytest
+	$(PYTHON) -m ruff check .
+
+test-web:
+	npm run workbench:test
+	npm run workbench:build
 
 clean:
-	rm -f generated_data/default_roster.json generated_data/fictional_players.csv
+	rm -f roster_data/default_roster.json roster_data/players.csv
 	rm -f reports/comparison_report.json reports/comparison_table.csv

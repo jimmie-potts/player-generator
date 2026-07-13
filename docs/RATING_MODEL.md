@@ -41,8 +41,8 @@ reaches the top of the configured scale even when no player is first in every co
 - Potential, detailed positions and development traits are generated game-design variables.
 - ESPN play-style analytics are intentionally deferred.
 
-Every formula and anchor is centralized in `ratings.py` and `config/default.yaml` so the simulator
-can drive later tuning.
+Every current formula is owned by `packages/attribute-engine/`; its anchors and eligibility settings
+are supplied by `apps/reference-data/config/default.yaml`.
 
 Version 2 will move formula definitions into a shared declarative contract used by roster generation
 and the preview API. See the [proposed formulas](planning/ATTRIBUTE_FORMULAS.md) and

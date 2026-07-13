@@ -1,135 +1,150 @@
 # NBA GM Player Generator
 
-This repository currently contains a Python prototype for transforming historical basketball data
-into local reference profiles, deriving player ratings, and generating roster data for an NBA-style
-GM simulation.
+This monorepo contains independently runnable applications for building basketball reference data,
+generating roster data, and developing an interactive formula workbench.
 
-## Project status
+## Current architecture
 
-The implemented version 1 pipeline remains runnable today. A version 2 redesign has been approved
-and documented, but its new applications, contracts, commands, and frontend have not been
-implemented.
+```text
+apps/
+  reference-data/       Python reference-data CLI, configuration, source ingestion, and tests
+  roster-generator/     Python roster CLI, configuration, generation, comparison, and tests
+  formula-workbench/    React and TypeScript application shell
+packages/
+  data-contracts/       Shared versioned schemas, identifiers, and validation
+  attribute-engine/     Shared percentile and player-rating calculations
+```
 
-- [Version 2 plan and delivery order](docs/planning/README.md)
-- [Epics](docs/planning/README.md#delivery-order)
-- [Decisions](docs/planning/DECISIONS.md)
-- [Learnings](docs/planning/LEARNINGS.md)
+Reference data and roster generation are the two data subprojects. The formula workbench is a
+supporting application over the shared contracts and calculation engine.
 
-Version 2 will organize the repository around two data subprojects:
+The architecture boundary is implemented, but later behavior remains planned:
 
-1. A reference-data builder that accepts local Parquet from multiple sources and publishes a
-   normalized CSV package.
-2. A roster generator that consumes the reference package and publishes player-only CSVs separated
-   into bio, traditional statistics, advanced statistics, and calculated attributes.
+- Reference data still uses the current pinned remote Parquet download and wide processed CSVs.
+- Roster generation still produces a combined roster JSON and flat player CSV.
+- Rating formulas retain their current Python definitions.
+- The workbench currently renders a static application shell without data or formula behavior.
 
-A supporting React workbench and Python API will show formula inputs and allow session-only previews
-of weight, direction, and rating-anchor changes against top, searched, and pinned players.
+See the [version 2 planning index](docs/planning/README.md) for the remaining epics and story status.
 
-## Current implementation
+## Setup
 
-The current prototype includes:
-
-- A Parquet adapter for a pinned `llimllib/nba_data` player-season snapshot.
-- Named reference profiles for end-season years 2021 through 2026.
-- Traditional, per-36, per-100, shooting, advanced, and physical inputs.
-- Recency-weighted template sampling and deterministic roster generation.
-- Explainable 25–99 player ratings, overall, impact percentile, and talent tier.
-- Population comparison reports and automated Python tests.
-
-The current package is intentionally a prototype. Ingestion, formulas, generation, comparison, and
-CLI orchestration still live together under `src/player_generator/`. The planned version 2
-boundaries in the planning documents should not be treated as current runtime interfaces.
-
-## Quick start for version 1
-
-Python 3.10 or newer is required.
+Python 3.10+, Node.js 22.12.0+, and npm are required.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate                 # Windows: .venv\Scripts\activate
 python -m pip install -e '.[dev]'
-python -m pytest
+npm install
 ```
 
-The tracked sample roster and comparison reports can be inspected without downloading source data.
-
-To rebuild the local reference profiles and roster output:
+Run the complete test suite:
 
 ```bash
-player-generator download-reference
-player-generator build-reference
-player-generator generate
-player-generator compare
+make test
 ```
 
-Use `player-generator generate --seed 12345` to override the deterministic seed, or run all
-available stages with `player-generator all --refresh-reference`.
+Or run each boundary independently:
 
-These are current version 1 commands. They will be replaced as part of the clean version 2 break.
+```bash
+python -m pytest
+python -m ruff check .
+npm run workbench:test
+npm run workbench:build
+```
 
-## Current layout
+Run the current data pipeline from a clean checkout with:
+
+```bash
+make all
+```
+
+This downloads or verifies the pinned reference source, builds the processed reference data,
+generates the roster, and writes the comparison reports.
+
+## Applications
+
+### Reference data
+
+```bash
+reference-data --help
+reference-data download
+reference-data build
+```
+
+The current download is pinned by `reference_data/source_manifest.json`. Raw and processed named
+data remain local and ignored by Git. Local multi-source registration and normalized reference CSVs
+are planned in EPIC-02.
+
+### Roster generator
+
+```bash
+roster-generator --help
+roster-generator generate
+roster-generator compare
+```
+
+The generator reads `reference_data/processed/player_seasons_reference.csv`; it does not import or
+invoke the reference-data application. Current outputs are:
 
 ```text
-config/default.yaml
-reference_data/                  Local raw and processed named reference data
-generated_data/                  Current roster output location
-reports/                         Population comparison reports
-schemas/                         Current combined roster JSON schema
-src/player_generator/            Current Python package
-tests/                           Current test suite
-docs/planning/                    Approved version 2 design and user stories
+roster_data/default_roster.json
+roster_data/players.csv
+reports/comparison_report.json
+reports/comparison_table.csv
 ```
 
-See [Data boundaries](docs/DATA_BOUNDARIES.md) for provenance rules and
-[Starter rating model](docs/RATING_MODEL.md) for the implemented formulas.
+The normalized player-only roster package is planned in EPIC-04.
 
-## Planned version 2 layout
+### Formula workbench
 
-The target is a monorepo with independently runnable applications and shared packages:
-
-```text
-apps/
-  reference-data/
-  roster-generator/
-  formula-workbench/
-packages/
-  data-contracts/
-  attribute-engine/
+```bash
+npm run workbench:dev
+npm run workbench:test
+npm run workbench:build
 ```
 
-Reference data and roster generation are the two data subprojects. The formula workbench is a
-supporting application over the shared contracts and calculation engine. See the
-[version 2 planning index](docs/planning/README.md) rather than assuming these directories exist.
+The current React shell establishes the independently runnable frontend boundary. Formula
+inspection, temporary editing, player search, and API integration remain part of EPIC-05 and
+EPIC-06.
 
 ## Rating model
 
-The current model derives inside scoring, three-point shooting, free-throw shooting, scoring volume,
-playmaking, ball security, offensive and defensive rebounding, perimeter and interior defense,
-stamina, durability, overall, impact percentile, and talent tier.
+The implemented model derives inside scoring, three-point shooting, free-throw shooting, scoring
+volume, playmaking, ball security, offensive and defensive rebounding, perimeter and interior
+defense, stamina, durability, overall, impact percentile, and talent tier.
 
 Metrics are converted to season-relative percentiles before weighted composition and interpolation
 onto configured rating curves. Shooting percentages are stabilized toward the season average to
-reduce small-sample effects. Defense remains a noisy estimate because the available measures contain
+reduce small-sample effects. Defense remains an estimate because the available measures contain
 substantial team and context effects.
 
-Version 2 will move the formulas into a declarative shared contract. The proposed schema and
-baseline calculations are documented in
+Current calculations live in `packages/attribute-engine/`. The proposed declarative formula
+contract is documented in
 [Proposed player attribute formulas](docs/planning/ATTRIBUTE_FORMULAS.md).
+
+## Architecture rules
+
+- `reference_data_app` may use shared contracts and the attribute engine, but cannot import
+  `roster_generator`.
+- `roster_generator` consumes processed reference files and cannot import `reference_data_app`.
+- `player_attribute_engine` is the authoritative Python calculation owner.
+- The React workbench must call the future Python API rather than reimplement calculations.
+- Source names, source IDs, and reconciliation mappings remain reference-only.
+
+These rules are enforced by automated import-boundary and entrypoint tests.
 
 ## Data handling
 
-Reference and roster data use the same player-domain vocabulary but remain different provenance
-zones:
-
-- Named source data, source IDs, and reconciliation mappings remain local reference data.
+- Raw Parquet and derived named reference tables must remain local and untracked.
 - Roster output must not contain source IDs, source names, or a source-to-roster crosswalk.
-- Raw Parquet and derived named reference tables must not be committed or redistributed without
-  established rights.
-- Missing source fields are not invented simply to fill a planned schema.
+- Missing source fields are not invented merely to fill a planned schema.
+- The repository MIT license covers project software, not third-party data.
 
 The primary current input is `llimllib/nba_data`'s `data/playerstats.parquet`, pinned to commit
 `a7bc98d73324300bd28d77260f45c98c239d1e87`. No root license file was observed in that upstream
 repository when the snapshot was selected. ESPN ingestion is planned but not currently implemented.
 
-Review [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the
+Review [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md),
+[Data boundaries](docs/DATA_BOUNDARIES.md), and the
 [source manifest](reference_data/source_manifest.json) before using third-party data.

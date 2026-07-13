@@ -106,3 +106,27 @@ changes one; do not rewrite history without recording the replacement.
   generated independently.
 - **Reason:** Naming consistency and provenance control solve different problems and both are
   required.
+
+## D-014: One Python distribution with multiple source roots
+
+- **Status:** accepted
+- **Decision:** Install the two Python applications and two shared Python packages through one root
+  setuptools distribution while keeping their source in separate app and package directories.
+- **Reason:** A single clean-install command and shared dependency set simplify contribution without
+  weakening the import boundaries enforced by tests.
+
+## D-015: Application-owned configuration
+
+- **Status:** accepted
+- **Decision:** Give reference-data and roster-generator separate YAML configuration files containing
+  only the settings each current application needs.
+- **Reason:** Separate configuration prevents application ownership from being coupled through the
+  former root pipeline config while declarative formula configuration remains future work.
+
+## D-016: npm workspace for the workbench
+
+- **Status:** accepted
+- **Decision:** Use a root npm workspace with Node.js 22, Vite, React, TypeScript, and Vitest for the
+  formula-workbench application.
+- **Reason:** npm is available without another package-manager bootstrap, and a committed lockfile
+  makes the independently runnable frontend reproducible in CI.

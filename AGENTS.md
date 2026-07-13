@@ -5,18 +5,18 @@ working-tree changes intact.
 
 ## Current state and planned state
 
-The implemented project is currently one Python package under `src/player_generator/`. Its CLI,
-configuration, source manifest, and current output paths remain authoritative until version 2
-stories are implemented.
+The implemented monorepo has two Python data applications under `apps/reference-data/` and
+`apps/roster-generator/`, a React shell under `apps/formula-workbench/`, and shared Python packages
+under `packages/data-contracts/` and `packages/attribute-engine/`.
 
-The approved redesign is documented in [docs/planning/README.md](docs/planning/README.md). It plans
-two data subprojects—reference-data building and roster generation—plus a supporting React
-workbench and Python preview API. Planning documents are specifications, not evidence that proposed
-paths, commands, contracts, or applications already exist.
+The remaining redesign is documented in [docs/planning/README.md](docs/planning/README.md). Planning
+documents describe future behavior unless their stories are marked complete. In particular, the
+reference builder still uses the current pinned download and wide tables, the roster generator still
+emits its current combined outputs, formulas remain Python-defined, and the workbench has no formula
+or data behavior yet.
 
-Until the user explicitly starts an implementation story, redesign work is documentation-only. Do
-not edit runtime code, configuration, schemas, generated outputs, or pipeline behavior merely to
-make them resemble the plan.
+Do not implement a later story until the user explicitly starts it. Avoid changing runtime code,
+configuration, schemas, outputs, or pipeline behavior merely to resemble an unstarted plan.
 
 ## Domain language
 
@@ -28,7 +28,7 @@ make them resemble the plan.
 - Neutral terminology does not remove the provenance boundary: source identity and source IDs stay
   in reference data and never appear in roster packages.
 
-## Planned architecture boundaries
+## Architecture boundaries
 
 - The reference-data application owns local source registration, adapters, reconciliation,
   canonical normalization, provenance, and reference CSV publication.
@@ -37,7 +37,7 @@ make them resemble the plan.
 - `data-contracts` owns versioned schemas, keys, types, and relationship validation.
 - `attribute-engine` is the only formula evaluator used by batch generation and the preview API.
 - The workbench calls the preview API and must not reimplement rating calculations in TypeScript.
-- The first version 2 roster package is player-only. Coach and team contracts are future design
+- The planned normalized roster package is player-only. Coach and team contracts are future design
   targets, not permission to populate those files.
 
 ## User stories, decisions, and learnings
@@ -88,6 +88,7 @@ Set up the current implementation with:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
+npm install
 ```
 
 For current Python changes, run:
@@ -95,10 +96,12 @@ For current Python changes, run:
 ```bash
 python -m pytest
 python -m ruff check .
+npm run workbench:test
+npm run workbench:build
 ```
 
-`python -m pytest` is the check currently enforced by CI. Mypy is installed as a development
-dependency but is not yet an enforced repository check.
+Python tests, Ruff, workbench tests, and the workbench build are enforced by CI. Mypy is installed as
+a development dependency but is not yet an enforced repository check.
 
 For documentation-only changes, run at minimum:
 
@@ -107,8 +110,8 @@ git diff --check
 ```
 
 Also inspect Markdown links and verify that current paths are not presented as planned paths or the
-reverse. Pipeline commands require local ignored source data and may rewrite tracked example
-outputs; run them only when the active story requires it, then inspect the diff.
+reverse. Reference and roster pipeline commands may rewrite tracked example outputs; run them only
+when the active story requires it, then inspect the diff.
 
 ## Generated files and integrity metadata
 

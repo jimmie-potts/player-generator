@@ -24,9 +24,7 @@ Rules:
 
 ## Roster-output zone
 
-Current path: `generated_data/`
-
-Planned version 2 path: `roster_data/`
+Path: `roster_data/`
 
 Allowed contents:
 
@@ -47,8 +45,9 @@ Current path: `reports/`
 Reports compare populations rather than identities. They may contain aggregated reference values,
 but must not contain direct mappings between named reference players and roster players.
 
-## Version 2 package boundary
+## Application boundary
 
-The planned reference-data builder will publish a local, normalized reference package. The roster
-generator may consume only that package and its versioned manifest; it must not read raw Parquet or
-import source adapters. See the [version 2 plan](planning/README.md).
+The reference-data application currently publishes local processed tables. The roster generator
+consumes those files without importing the reference pipeline or reading raw Parquet. US-005 and
+US-008 will replace this transitional seam with a normalized package and versioned manifest. See the
+[version 2 plan](planning/README.md).

@@ -1,6 +1,6 @@
 # EPIC-01: Repository structure and terminology
 
-- **Status:** ready
+- **Status:** complete
 - **Outcome:** Separate the version 2 responsibilities and adopt reference/roster domain language.
 - **Dependencies:** none
 

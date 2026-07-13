@@ -1,0 +1,15 @@
+{
+  "name": "player-generator-workspace",
+  "private": true,
+  "workspaces": [
+    "apps/formula-workbench"
+  ],
+  "scripts": {
+    "workbench:dev": "npm run dev --workspace @player-generator/formula-workbench",
+    "workbench:build": "npm run build --workspace @player-generator/formula-workbench",
+    "workbench:test": "npm run test --workspace @player-generator/formula-workbench"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
