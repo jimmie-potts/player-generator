@@ -1,8 +1,8 @@
 # Version 2 redesign
 
-This directory is the implementation plan for separating reference-data construction, roster
-generation, and formula exploration. It describes a planned clean break from the current Python
-pipeline; it does not describe work that has already been implemented.
+This directory tracks implementation of the separation between reference-data construction, roster
+generation, and formula exploration. Stories marked complete describe delivered behavior; other
+stories remain planned and are not current interfaces.
 
 ## Planned architecture
 
@@ -41,9 +41,9 @@ team or coach generation.
 |---|---|---|---|
 | US-001 | [Establish the monorepo boundaries](user-stories/US-001-monorepo-boundaries.md) | EPIC-01 | complete |
 | US-002 | [Adopt neutral domain terminology](user-stories/US-002-neutral-terminology.md) | EPIC-01 | complete |
-| US-003 | [Register local Parquet inputs](user-stories/US-003-local-parquet-inputs.md) | EPIC-02 | ready |
-| US-004 | [Normalize sources into a canonical model](user-stories/US-004-canonical-normalization.md) | EPIC-02 | ready |
-| US-005 | [Publish normalized reference CSVs](user-stories/US-005-reference-csv-package.md) | EPIC-02 | ready |
+| US-003 | [Register local Parquet inputs](user-stories/US-003-local-parquet-inputs.md) | EPIC-02 | complete |
+| US-004 | [Normalize sources into a canonical model](user-stories/US-004-canonical-normalization.md) | EPIC-02 | complete |
+| US-005 | [Publish normalized reference CSVs](user-stories/US-005-reference-csv-package.md) | EPIC-02 | complete |
 | US-006 | [Define declarative formulas](user-stories/US-006-declarative-formulas.md) | EPIC-03 | ready |
 | US-007 | [Calculate the initial attribute set](user-stories/US-007-initial-attributes.md) | EPIC-03 | ready |
 | US-008 | [Consume a published reference package](user-stories/US-008-consume-reference-package.md) | EPIC-04 | ready |
@@ -59,13 +59,13 @@ team or coach generation.
 - [User story workflow](USER_STORY_WORKFLOW.md)
 - [Decisions](DECISIONS.md)
 - [Learnings](LEARNINGS.md)
-- [Proposed data contracts](DATA_CONTRACTS.md)
+- [Data contracts](DATA_CONTRACTS.md)
 - [Proposed attribute formulas](ATTRIBUTE_FORMULAS.md)
 
 ## Current-state warning
 
-EPIC-01 establishes the application and shared-package boundaries, but later behavior remains
-planned. The reference-data application still implements the pinned remote download and wide
-processed tables. The roster generator still emits the combined roster JSON and flat player CSV.
-Normalized packages, declarative formulas, the preview API, and interactive workbench behavior do
-not exist until their stories are completed.
+EPIC-01 and EPIC-02 establish the application boundaries and normalized reference-package builder.
+The reference-data application also retains its pinned download and wide processed build as a
+current legacy seam until US-008 migrates the roster generator. The roster generator still emits
+the combined roster JSON and flat player CSV. Declarative formulas, normalized roster packages, the
+preview API, and interactive workbench behavior do not exist until their stories are completed.

@@ -45,6 +45,54 @@ its completion notes.
 - Generated examples and reports should be rebuilt from their owning applications after interface
   renames rather than edited by hand.
 
+### 2026-07-13 — US-003
+
+- Parquet metadata does not identify the application adapter schema version; local registration
+  must pair each file with an explicit source type and adapter version.
+- Idempotent registration must preserve its first processing timestamp as well as its content hash,
+  otherwise unchanged inputs would make later package provenance non-deterministic.
+- Registration can remain safe for named third-party data by storing only an ignored local path and
+  provenance record; the application never needs to copy source bytes into its workspace.
+- A conservative adapter may require only observed stable fields and leave other source-specific
+  values unavailable rather than treating a guessed upstream schema as a supported contract.
+
+### 2026-07-13 — US-004
+
+- Source IDs must remain namespaced by source type; equal-looking values from different providers
+  are not identity evidence. Reviewed overrides and unique normalized exact names are separate,
+  auditable reconciliation rules.
+- `team_count` is unavailable in older NBA rows. Canonical team identity is safe only when that
+  field explicitly equals one; last-team and aggregate source labels remain audit context.
+- Repeated seasons can disagree on bio values such as height or weight. Declared source precedence
+  still needs a deterministic within-source rule, and latest season followed by source ID provides
+  one while preserving every distinct candidate in the conflict audit.
+- Adapters should map only fields whose units and meaning are explicit. Ignoring ambiguous ESPN
+  height and weight columns avoids silently converting an unknown upstream contract.
+- Parquet logical date and timestamp columns can surface as Python dates or pandas timestamps.
+  Date-valued adapter fields need field-specific normalization to `YYYY-MM-DD` instead of generic
+  scalar serialization that retains a time component.
+- Optional numeric source fields can encode missing values as blank text. Treat blanks as null only
+  where the adapter already permits numeric text, and keep required-field wrappers responsible for
+  rejecting the resulting missing player IDs or seasons.
+- Opaque player IDs anchored to a primary namespaced identity remain stable when a supplemental
+  source is later reconciled, while opaque player-season IDs make aggregate grain executable.
+
+### 2026-07-13 — US-005
+
+- A machine-readable CSV contract must govern ordered headers as well as field types and keys;
+  validating row mappings alone cannot detect a consumer-visible header reorder.
+- Validate the serialized staging directory before publication. This catches encoding, empty-cell,
+  numeric-format, and header errors that in-memory canonical validation cannot observe.
+- A deterministic package content hash can cover contract CSVs and audit while excluding the
+  manifest's `createdAt`; persisted registration timestamps keep provenance stable between builds.
+- Directory-level publication needs a same-parent staging directory and backup restoration so a
+  failed final rename cannot leave a partial package or destroy the last valid one.
+- A registry path is mutable even when its stored provenance is deterministic. Publication must
+  revalidate registered hashes and row counts before consuming a file and recheck after reading;
+  atomic output replacement alone cannot prevent stale input metadata from reaching a package.
+- Real source files may encode unavailable optional text as whitespace. Normalize it to null before
+  CSV writing so the contract produces an empty cell rather than invalid non-empty text.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:

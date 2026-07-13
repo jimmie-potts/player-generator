@@ -10,10 +10,11 @@ The implemented monorepo has two Python data applications under `apps/reference-
 under `packages/data-contracts/` and `packages/attribute-engine/`.
 
 The remaining redesign is documented in [docs/planning/README.md](docs/planning/README.md). Planning
-documents describe future behavior unless their stories are marked complete. In particular, the
-reference builder still uses the current pinned download and wide tables, the roster generator still
-emits its current combined outputs, formulas remain Python-defined, and the workbench has no formula
-or data behavior yet.
+documents describe future behavior unless their stories are marked complete. The reference builder
+now supports registered local inputs, canonical normalization, and version 1 CSV publication; its
+pinned download and wide tables remain a current legacy seam for the roster generator. The roster
+generator still emits its current combined outputs, formulas remain Python-defined, and the
+workbench has no formula or data behavior yet.
 
 Do not implement a later story until the user explicitly starts it. Avoid changing runtime code,
 configuration, schemas, outputs, or pipeline behavior merely to resemble an unstarted plan.
@@ -72,8 +73,7 @@ Use the workflow in
 ## Contracts and determinism
 
 - Govern every CSV header, key, type, null rule, enum, and relationship with a versioned contract.
-- Use camelCase CSV headers, UTF-8, ISO 8601 dates, and stable internal IDs in planned version 2
-  interfaces.
+- Use camelCase CSV headers, UTF-8, ISO 8601 dates, and stable internal IDs in version 2 interfaces.
 - Formula weights must be finite and nonnegative and normalize to 1. Ratings use the configured
   25–99 scale.
 - Identical input files, contracts, formulas, configuration, and seed must produce identical data

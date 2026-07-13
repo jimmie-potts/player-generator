@@ -1,8 +1,9 @@
-# Proposed version 2 data contracts
+# Version 2 data contracts
 
-These are planned interfaces. They are not emitted by the current implementation. All CSVs use
-camelCase headers, UTF-8 encoding, one header row, and stable IDs. Missing optional source values
-remain empty rather than being inferred without an approved rule.
+Reference contract version 1 is implemented by US-005. The roster, coach, and team sections remain
+planned interfaces for their later stories. All CSVs use camelCase headers, UTF-8 encoding, one
+header row, LF line endings, and stable IDs. Missing optional source values remain empty rather than
+being inferred without an approved rule.
 
 ## Reference package
 
@@ -31,9 +32,35 @@ playerSeasonId,playerId,season,teamId,teamAbbreviation,age,games,starts,wins,los
 when the row represents one team; multi-team labels are source context and must not be converted into
 a canonical team ID. Team-stint publication is deferred from contract version 1.
 
-The exact statistical metric columns must be selected from the canonical model during US-005 and
-versioned with the contract. Source columns that cannot be mapped without changing meaning remain
-source-adapter concerns rather than being copied through verbatim.
+Version 1 `player_stats.csv` header:
+
+```text
+playerSeasonId,playerId,season,fieldGoalsMade,fieldGoalsAttempted,threePointersMade,threePointersAttempted,freeThrowsMade,freeThrowsAttempted,reboundsOffensive,reboundsDefensive,reboundsTotal,assists,turnovers,steals,blocks,foulsPersonal,points,plusMinusPoints,twoPointersMade,twoPointersAttempted,twoPointPercentage,minutesPerGame,threePointAttemptsPer36,freeThrowAttemptsPer36,offensiveReboundsPer36,defensiveReboundsPer36,assistsPer36,turnoversPer36,stealsPer36,blocksPer36,pointsPer36,plusMinusPer36,pointsPer100,assistsPer100,turnoversPer100,stealsPer100,blocksPer100,twoPointAttemptFrequency,threePointAttemptFrequency
+```
+
+Version 1 `player_advanced_stats.csv` header:
+
+```text
+playerSeasonId,playerId,season,estimatedOffensiveRating,offensiveRating,estimatedDefensiveRating,defensiveRating,estimatedNetRating,netRating,assistPercentage,assistTurnoverRatio,assistRatio,offensiveReboundPercentage,defensiveReboundPercentage,reboundPercentage,estimatedTurnoverPercentage,effectiveFieldGoalPercentage,trueShootingPercentage,usagePercentage,playerImpactEstimate,defensiveWinShares,defensiveWinSharesPer36
+```
+
+Version 1 provenance headers:
+
+```text
+player_source_ids.csv: playerId,sourceType,sourcePlayerId
+sources.csv: sourceId,sourceType,originalFilename,sha256,adapterVersion,upstreamVersion,rowCount,processedAt,licenseStatus
+```
+
+The packaged `reference-v1.schema.json` resource is the machine-readable authority for ordered
+headers, scalar types, required and nullable fields, unique keys, and relationships. The three
+season-grain tables must contain exactly the same `(playerSeasonId, playerId, season)` key set.
+Source columns that cannot be mapped without changing meaning remain adapter concerns rather than
+being copied through verbatim.
+
+Each published reference package also contains `audit.json` and `manifest.json`. The manifest
+records contract versions, input hashes and adapter versions, file row counts and hashes, and one
+content hash over the six CSVs plus the deterministic audit. `createdAt` is explicitly excluded from
+that content hash.
 
 ## Roster package
 
