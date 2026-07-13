@@ -37,7 +37,7 @@ def _numeric(series: pd.Series, field: str) -> pd.Series:
             f"Formula input {field!r} must contain finite numeric values or null; "
             f"invalid rows: {rows}"
         )
-    numeric = pd.to_numeric(series, errors="coerce").astype(float)
+    numeric = pd.to_numeric(series, errors="coerce").astype(float).mask(series.isna(), np.nan)
     invalid = series.notna() & (numeric.isna() | ~np.isfinite(numeric))
     if invalid.any():
         rows = ", ".join(str(index) for index in series.index[invalid][:5])

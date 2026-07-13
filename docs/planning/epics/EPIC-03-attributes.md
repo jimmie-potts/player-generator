@@ -6,8 +6,8 @@
 
 ## Why
 
-Formula definitions currently live in Python and cannot be safely inspected or adjusted by a web
-client. Batch generation and interactive previews need the same evaluator.
+Before this epic, formula definitions lived in Python and could not be safely inspected or adjusted
+by a web client. Batch generation and interactive previews need the same evaluator.
 
 ## Stories
 

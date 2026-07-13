@@ -377,6 +377,18 @@ def test_invalid_numeric_inputs_fail_before_evaluation(value: object) -> None:
         )
 
 
+def test_temporal_null_input_remains_null() -> None:
+    frame = pd.DataFrame([_row("missing", impact=pd.NaT)])
+    assert str(frame["impact"].dtype).startswith("datetime64")
+
+    batch = evaluate_player_attributes(frame, _formula())
+
+    assert batch.rows[0]["overall"] is None
+    assert batch.explanations[0]["attributes"]["overall"]["ineligibilityReasons"] == [
+        {"kind": "missingMetric", "metric": "impact"}
+    ]
+
+
 def test_active_formula_document_evaluates_every_declared_attribute() -> None:
     formula = load_formula()
     base = {
