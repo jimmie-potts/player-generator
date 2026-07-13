@@ -54,3 +54,55 @@ def validate_roster_payload(payload: dict[str, Any]) -> None:
             "Roster contract v1 has invalid league fields: "
             f"{', '.join(invalid_league_fields)}"
         )
+
+    players = payload["players"]
+    teams = payload["teams"]
+    if league["playerCount"] != len(players):
+        raise ContractValidationError(
+            "Roster contract v1 playerCount does not match players: "
+            f"{league['playerCount']} != {len(players)}"
+        )
+    if league["teamCount"] != len(teams):
+        raise ContractValidationError(
+            "Roster contract v1 teamCount does not match teams: "
+            f"{league['teamCount']} != {len(teams)}"
+        )
+
+    invalid_player_ids = [
+        index
+        for index, player in enumerate(players)
+        if not isinstance(player, dict) or not isinstance(player.get("id"), str)
+    ]
+    if invalid_player_ids:
+        raise ContractValidationError(
+            "Roster contract v1 has invalid player IDs at indexes: "
+            f"{', '.join(str(index) for index in invalid_player_ids)}"
+        )
+    player_ids = {player["id"] for player in players}
+
+    invalid_team_rosters = [
+        index
+        for index, team in enumerate(teams)
+        if not isinstance(team, dict)
+        or not isinstance(team.get("roster"), list)
+        or any(not isinstance(player_id, str) for player_id in team["roster"])
+    ]
+    if invalid_team_rosters:
+        raise ContractValidationError(
+            "Roster contract v1 has invalid team rosters at indexes: "
+            f"{', '.join(str(index) for index in invalid_team_rosters)}"
+        )
+
+    unknown_roster_ids = sorted(
+        {
+            player_id
+            for team in teams
+            for player_id in team["roster"]
+            if player_id not in player_ids
+        }
+    )
+    if unknown_roster_ids:
+        raise ContractValidationError(
+            "Roster contract v1 team rosters reference unknown player IDs: "
+            f"{', '.join(unknown_roster_ids)}"
+        )

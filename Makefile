@@ -21,7 +21,7 @@ roster-generate:
 roster-compare:
 	$(PYTHON) -m roster_generator --config $(ROSTER_CONFIG) compare
 
-all: reference-build roster-generate roster-compare
+all: reference-download reference-build roster-generate roster-compare
 
 workbench:
 	npm run workbench:dev

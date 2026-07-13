@@ -29,7 +29,7 @@ See the [version 2 planning index](docs/planning/README.md) for the remaining ep
 
 ## Setup
 
-Python 3.10+, Node.js 22+, and npm are required.
+Python 3.10+, Node.js 22.12.0+, and npm are required.
 
 ```bash
 python3 -m venv .venv
@@ -52,6 +52,15 @@ python -m ruff check .
 npm run workbench:test
 npm run workbench:build
 ```
+
+Run the current data pipeline from a clean checkout with:
+
+```bash
+make all
+```
+
+This downloads or verifies the pinned reference source, builds the processed reference data,
+generates the roster, and writes the comparison reports.
 
 ## Applications
 

@@ -40,6 +40,26 @@ def test_roster_v1_validation_rejects_missing_fields() -> None:
         validate_roster_payload(payload)
 
 
+@pytest.mark.parametrize("count_field", ["playerCount", "teamCount"])
+def test_roster_v1_validation_rejects_incorrect_declared_counts(
+    count_field: str,
+) -> None:
+    payload = _payload()
+    payload["league"][count_field] = 1
+    with pytest.raises(ContractValidationError, match=f"{count_field} does not match"):
+        validate_roster_payload(payload)
+
+
+def test_roster_v1_validation_rejects_unknown_team_roster_player() -> None:
+    payload = _payload()
+    payload["league"].update({"teamCount": 1, "playerCount": 1})
+    payload["players"] = [{"id": "player_000001"}]
+    payload["teams"] = [{"roster": ["player_000002"]}]
+
+    with pytest.raises(ContractValidationError, match="unknown player IDs: player_000002"):
+        validate_roster_payload(payload)
+
+
 def test_roster_v1_schema_is_packaged() -> None:
     schema = files("player_data_contracts").joinpath("schemas/roster-v1.schema.json")
     assert schema.is_file()

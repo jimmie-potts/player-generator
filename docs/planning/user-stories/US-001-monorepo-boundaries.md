@@ -47,11 +47,14 @@ that each responsibility can evolve and be tested independently.
   workspace for the workbench shell.
 - Added AST import-boundary tests so the data applications cannot import one another and shared
   packages cannot import applications.
+- Review follow-up restored clean-checkout orchestration by making the aggregate root command
+  download or verify reference data before building it, tightened roster relationship validation,
+  and aligned the declared Node.js floor with Vite 7.
 
 ## Completion notes
 
 - **Completed:** 2026-07-12
-- **Branch:** `agent/implement-us-001-us-002`; commit and PR pending local handoff.
+- **Branch:** `agent/implement-us-001-us-002`; [PR #3](https://github.com/jimmie-potts/player-generator/pull/3).
 - **Delivered:** Independent `reference-data`, `roster-generator`, and formula-workbench entrypoints;
   separate application configs/tests/READMEs; shared `data-contracts` and `attribute-engine` package
   ownership; root install/test/build commands; and CI coverage for Python and frontend boundaries.
@@ -61,8 +64,9 @@ that each responsibility can evolve and be tested independently.
 - **Accepted deviation:** The workbench is a static React shell with no API or formula behavior,
   preserving the EPIC-05 and EPIC-06 boundaries.
 - **Validation:** Fresh local Python editable install; npm install with zero reported
-  vulnerabilities; 25 Python tests; Ruff; both console `--help` entrypoints; workbench test and
-  production build; complete reference build, roster generation, and comparison commands.
+  vulnerabilities; Python tests including aggregate-command and contract relationship regressions;
+  Ruff; both console `--help` entrypoints; workbench test and production build; complete reference
+  build, roster generation, and comparison commands.
 - **Follow-up:** US-003 begins local Parquet registration. US-005 and US-008 replace the transitional
   processed-CSV seam with versioned packages. US-006 makes formulas declarative.
 - **Learning:** Setuptools multi-root discovery preserves one clean root install while keeping

@@ -33,6 +33,10 @@ its completion notes.
   versioned normalized reference package planned by US-005 and US-008.
 - A static React shell is sufficient to prove the frontend build, test, and runtime boundary without
   pulling formula or API behavior forward from later epics.
+- Root aggregate commands must include source acquisition or verification so they work from a clean
+  checkout, even when lower-level build commands intentionally fail fast on missing inputs.
+- Declared runtime engine ranges should match the strictest locked build-tool requirement; Vite 7
+  requires Node.js 22.12 or newer within the Node 22 line.
 
 ### 2026-07-12 — US-002
 

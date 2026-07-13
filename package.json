@@ -10,6 +10,6 @@
     "workbench:test": "npm run test --workspace @player-generator/formula-workbench"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12.0"
   }
 }
