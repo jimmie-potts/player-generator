@@ -1,6 +1,6 @@
 # US-006: Define declarative formulas
 
-- **Status:** in_progress
+- **Status:** complete
 - **Epic:** [EPIC-03](../epics/EPIC-03-attributes.md)
 - **Dependencies:** US-005
 
@@ -62,5 +62,26 @@ previews use exactly the same calculations.
 
 ## Completion notes
 
-Pending. Record the final formula contract, evaluator interface, validation behavior, commands, and
-learnings before changing status to `complete`.
+- **Completed:** 2026-07-13 in commit `201c3f7`.
+- **Delivered:** packaged formula contract version 1 and active formula version `1.0.0`; typed
+  semantic validation; a public, application-independent evaluator returning ordered rows and
+  reconstructable JSON explanations; and migration of the current reference-data batch seam to
+  the shared evaluator.
+- **Failure behavior:** unsupported schema/reference versions, unknown or cyclic metrics, invalid
+  numeric values, weights, directions, anchors, schedules, tiers, output collisions, missing input
+  fields, mixed cohorts, and invalid player IDs fail before ratings are returned. Formula documents
+  support only the four declared metric kinds and cannot execute expressions or code.
+- **Deviation:** the preview API does not exist until US-010. Per
+  [D-017](../DECISIONS.md#d-017-shared-evaluator-consumer-sequencing), this story exported the
+  evaluator that US-010 must import instead of implementing the later API early.
+- **Validation:** `.venv/bin/python -m pytest` (`172 passed`), `.venv/bin/python -m ruff check .`,
+  `git diff --check`, `sha256sum -c FILE_MANIFEST.sha256`, and the current `reference-data build`
+  against ignored local inputs all passed. The formula schema and active formula resources were
+  also confirmed in a built wheel.
+- **Follow-ups:** US-007 locks the initial attribute calibration and representative regressions;
+  US-008 replaces the current wide-table batch seam; US-010 imports this evaluator for previews.
+- **Learnings:** structural schema validation and semantic graph validation are complementary;
+  derived-metric policy belongs to the formula version; full-cohort shooting priors must precede
+  formula eligibility; and consumer-independent evaluation requires package/path loading to stay
+  outside the engine. These findings are recorded in
+  [LEARNINGS.md](../LEARNINGS.md#2026-07-13--us-006).

@@ -44,8 +44,8 @@ team or coach generation.
 | US-003 | [Register local Parquet inputs](user-stories/US-003-local-parquet-inputs.md) | EPIC-02 | complete |
 | US-004 | [Normalize sources into a canonical model](user-stories/US-004-canonical-normalization.md) | EPIC-02 | complete |
 | US-005 | [Publish normalized reference CSVs](user-stories/US-005-reference-csv-package.md) | EPIC-02 | complete |
-| US-006 | [Define declarative formulas](user-stories/US-006-declarative-formulas.md) | EPIC-03 | in_progress |
-| US-007 | [Calculate the initial attribute set](user-stories/US-007-initial-attributes.md) | EPIC-03 | ready |
+| US-006 | [Define declarative formulas](user-stories/US-006-declarative-formulas.md) | EPIC-03 | complete |
+| US-007 | [Calculate the initial attribute set](user-stories/US-007-initial-attributes.md) | EPIC-03 | in_progress |
 | US-008 | [Consume a published reference package](user-stories/US-008-consume-reference-package.md) | EPIC-04 | ready |
 | US-009 | [Generate the normalized roster package](user-stories/US-009-generate-roster-package.md) | EPIC-04 | ready |
 | US-010 | [Provide formula and player preview endpoints](user-stories/US-010-formula-preview-api.md) | EPIC-05 | ready |

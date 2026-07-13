@@ -1,6 +1,6 @@
 # US-007: Calculate the initial attribute set
 
-- **Status:** ready
+- **Status:** in_progress
 - **Epic:** [EPIC-03](../epics/EPIC-03-attributes.md)
 - **Dependencies:** US-006
 
@@ -37,7 +37,16 @@ explained and calibrated.
 
 ## Implementation notes
 
-Append dated notes here while the story is active.
+### 2026-07-13
+
+- Started after US-006 completed in commit `201c3f7`.
+- Formula version `1.0.0` already contains the documented initial attributes because the active
+  declarative resource was needed to validate and integrate US-006. This story now locks that
+  calibration with exact contract assertions, tier boundaries, representative snapshots, and
+  named-outcome regressions.
+- Regression cohorts are generated from synthetic rows. No source IDs, names, or third-party raw
+  values are copied into tracked fixtures; ignored local reference data is used only to compare the
+  new evaluator with the prior generated baseline.
 
 ## Completion notes
 
