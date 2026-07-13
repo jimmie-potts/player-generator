@@ -8,6 +8,7 @@ __pycache__/
 .venv/
 venv/
 node_modules/
+/build/
 dist/
 coverage/
 
@@ -23,7 +24,6 @@ reference_data/raw/*
 !reference_data/raw/.gitkeep
 reference_data/processed/*
 !reference_data/processed/README.md
-!reference_data/processed/.gitkeep
 reference_data/registry/*
 reference_data/packages/*
 !reference_data/source_manifest.json

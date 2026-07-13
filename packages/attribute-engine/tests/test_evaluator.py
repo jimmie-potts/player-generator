@@ -299,6 +299,7 @@ def test_explanations_reconstruct_composites_and_are_json_serializable() -> None
         },
     }
     assert list(batch.rows[0]) == list(_formula().output_fields)
+    assert batch.results is batch.rows
     assert batch.rows[0]["formulaVersion"] == "test-v1"
     json.dumps(batch.rows)
     json.dumps(batch.explanations)

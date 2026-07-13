@@ -3,7 +3,7 @@ REFERENCE_CONFIG ?= apps/reference-data/config/default.yaml
 ROSTER_CONFIG ?= apps/roster-generator/config/default.yaml
 
 .PHONY: install reference-download reference-build roster-generate roster-compare all \
-	workbench workbench-build test test-python test-web clean
+	workbench workbench-build test test-python test-web manifest clean
 
 install:
 	$(PYTHON) -m pip install -e '.[dev]'
@@ -21,7 +21,11 @@ roster-generate:
 roster-compare:
 	$(PYTHON) -m roster_generator --config $(ROSTER_CONFIG) compare
 
-all: reference-download reference-build roster-generate roster-compare
+all:
+	$(MAKE) reference-download
+	$(MAKE) reference-build
+	$(MAKE) roster-generate
+	$(MAKE) roster-compare
 
 workbench:
 	npm run workbench:dev
@@ -39,6 +43,11 @@ test-web:
 	npm run workbench:test
 	npm run workbench:build
 
+manifest:
+	$(PYTHON) scripts/update_file_manifest.py
+
 clean:
-	rm -f roster_data/default_roster.json roster_data/players.csv
-	rm -f reports/comparison_report.json reports/comparison_table.csv
+	rm -rf build dist coverage .pytest_cache .ruff_cache .mypy_cache *.egg-info
+	rm -rf apps/formula-workbench/dist __pycache__
+	find apps/reference-data apps/roster-generator packages scripts tests -type d -name __pycache__ \
+		-prune -exec rm -rf {} +

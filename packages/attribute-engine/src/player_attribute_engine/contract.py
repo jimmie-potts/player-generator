@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any
@@ -17,6 +17,21 @@ from player_data_contracts.reference import (
 
 class FormulaContractError(ValueError):
     """Raised when a formula document does not satisfy schema version 1."""
+
+
+def normalize_component_weights(weights: Sequence[float]) -> tuple[float, ...]:
+    """Normalize finite, nonnegative weights without overflowing their sum."""
+    values = tuple(float(weight) for weight in weights)
+    if not values or any(not math.isfinite(weight) or weight < 0 for weight in values):
+        raise ValueError("weights must be finite and nonnegative")
+
+    maximum = max(values)
+    if maximum <= 0:
+        raise ValueError("weights must have a positive sum")
+
+    scaled = tuple(weight / maximum for weight in values)
+    total = sum(scaled)
+    return tuple(weight / total for weight in scaled)
 
 
 @dataclass(frozen=True)
@@ -530,15 +545,16 @@ def _parse_attributes(
                     f"{component_path}.direction must be 'higher' or 'lower'."
                 )
             parsed_components.append((metric, weight, direction))
-        maximum_weight = max(weight for _, weight, _ in parsed_components)
-        if maximum_weight <= 0:
-            raise FormulaContractError(f"{path} component weights must have a positive sum.")
-        scaled_weights = [weight / maximum_weight for _, weight, _ in parsed_components]
-        scaled_total = sum(scaled_weights)
+        try:
+            normalized_weights = normalize_component_weights(
+                [weight for _, weight, _ in parsed_components]
+            )
+        except ValueError as error:
+            raise FormulaContractError(f"{path} component {error}.") from error
         components = tuple(
-            FormulaComponent(metric, weight, direction, scaled_weight / scaled_total)
-            for (metric, weight, direction), scaled_weight in zip(
-                parsed_components, scaled_weights, strict=True
+            FormulaComponent(metric, weight, direction, normalized_weight)
+            for (metric, weight, direction), normalized_weight in zip(
+                parsed_components, normalized_weights, strict=True
             )
         )
         eligibility_rule = _name(definition["eligibilityRule"], f"{path}.eligibilityRule")

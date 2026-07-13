@@ -13,7 +13,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from reference_data_app.ingest import PLAYER_STATS_REQUIRED_COLUMNS
+from reference_data_app.playerstats_source import PLAYER_STATS_REQUIRED_COLUMNS
 
 NBA_PLAYERSTATS_V1_REQUIRED_COLUMNS = (
     *PLAYER_STATS_REQUIRED_COLUMNS,
@@ -39,14 +39,6 @@ NBA_PLAYER_FIELD_MAP = {
     "draft_year": "draftYear",
     "draft_round": "draftRound",
     "draft_number": "draftNumber",
-}
-
-NBA_SEASON_FIELD_MAP = {
-    "age": "age",
-    "gp": "games",
-    "w": "wins",
-    "l": "losses",
-    "min": "minutes",
 }
 
 NBA_TRADITIONAL_STAT_MAP = {

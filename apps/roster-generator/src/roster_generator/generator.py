@@ -8,9 +8,12 @@ import pandas as pd
 from faker import Faker
 from player_data_contracts.models import RATING_FIELDS, TIER_ORDER
 
-from roster_generator.math import clamp_int
 from roster_generator.models import POSITION_GROUPS
-from roster_generator.names import TEAMS
+from roster_generator.teams import TEAMS
+
+
+def _clamp_int(value: float, minimum: int = 25, maximum: int = 99) -> int:
+    return int(max(minimum, min(maximum, round(float(value)))))
 
 
 def _expanded_targets(targets: dict[str, int], order: tuple[str, ...]) -> list[str]:
@@ -76,13 +79,13 @@ def _mutate_ratings(
     for field in RATING_FIELDS:
         source = float(template[field])
         mutated = source + rng.normal(0.0, float(volatility[field]))
-        ratings[field] = clamp_int(mutated, minimum, maximum)
+        ratings[field] = _clamp_int(mutated, minimum, maximum)
         deltas.append(ratings[field] - source)
 
     overall_base = float(template["overall"])
     overall = overall_base + 0.18 * float(np.mean(deltas)) + rng.normal(0.0, 1.25)
     low, high = config["league_generation"]["tier_bounds"][tier]
-    ratings["overall"] = clamp_int(overall, int(low), int(high))
+    ratings["overall"] = _clamp_int(overall, int(low), int(high))
     return ratings
 
 
@@ -112,7 +115,7 @@ def _generate_potential(age: int, overall: int, rng: np.random.Generator) -> int
         growth = rng.integers(0, 4)
     else:
         growth = rng.integers(0, 2)
-    return clamp_int(max(overall, overall + int(growth)), overall, 99)
+    return _clamp_int(overall + int(growth), overall, 99)
 
 
 def _physical_profile(
@@ -348,7 +351,7 @@ def generate_league(
                 "ratings": ratings,
                 "development": {
                     "truePotential": ratings["potential"],
-                    "displayedPotential": clamp_int(
+                    "displayedPotential": _clamp_int(
                         ratings["potential"] + rng.normal(0.0, 3.0), ratings["overall"], 99
                     ),
                     "developmentRate": round(float(rng.uniform(0.80, 1.20)), 3),

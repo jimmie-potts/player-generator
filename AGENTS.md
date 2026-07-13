@@ -133,6 +133,7 @@ when the active story requires it, then inspect the diff.
 
 - Do not hand-edit generated artifacts when their owning generator or schema should make the change.
 - Preserve unrelated local changes and never add ignored reference files to Git.
-- `FILE_MANIFEST.sha256` is a tracked snapshot of file hashes but has no automated validator in the
-  repository. Keep it synchronized when intentionally maintaining it; otherwise create an explicit
-  decision to retire it rather than silently relying on stale entries.
+- `FILE_MANIFEST.sha256` is a tracked snapshot of file hashes. `tests/test_file_manifest.py`
+  verifies that its entries are sorted, cover every other tracked file, and match current content.
+  After staging intended additions and deletions, run `make manifest` to synchronize it with every
+  intentional tracked-file change, then stage the regenerated `FILE_MANIFEST.sha256`.

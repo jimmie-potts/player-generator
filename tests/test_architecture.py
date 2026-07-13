@@ -28,7 +28,7 @@ def _import_roots(path: Path) -> set[str]:
     return imported
 
 
-def test_planned_python_package_roots_exist() -> None:
+def test_implemented_python_package_roots_exist() -> None:
     assert all(path.is_dir() for path in PACKAGE_ROOTS.values())
 
 
