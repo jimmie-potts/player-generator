@@ -24,6 +24,7 @@ reference_data/raw/*
 reference_data/processed/*
 !reference_data/processed/README.md
 !reference_data/processed/.gitkeep
+reference_data/registry/*
 !reference_data/source_manifest.json
 
 # Generated files may be regenerated. Keep the starter examples unless you

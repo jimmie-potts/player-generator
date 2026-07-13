@@ -1,6 +1,6 @@
 # US-003: Register local Parquet inputs
 
-- **Status:** ready
+- **Status:** in_progress
 - **Epic:** [EPIC-02](../epics/EPIC-02-reference-data.md)
 - **Dependencies:** US-001
 
@@ -34,7 +34,25 @@ without remote downloads or redistribution.
 
 ## Implementation notes
 
-Append dated notes here while the story is active.
+### 2026-07-13
+
+- Began replacing the single-source pinned-download assumption with an adapter-versioned registry
+  for caller-supplied local Parquet files.
+- Kept the current download and wide build commands as explicitly legacy interfaces because the
+  roster generator does not consume normalized reference packages until US-008.
+- Selected an application-owned local registry that records resolved input paths and provenance
+  metadata without copying or tracking the source files.
+- Defined adapter schema version 1 for `nba_playerstats` using the implemented player-stat fields
+  plus aggregate-team context, and for `espn_player_details` using the conservative required
+  identity fields `id` and `displayName`.
+- Derived unspecified source IDs from source type and a sanitized filename stem; explicit IDs remain
+  available for a single input. Registrations validate the complete batch before an atomic registry
+  replacement, preserve the first processing timestamp on identical re-registration, and report
+  changed hashes or other source-ID conflicts.
+- Persisted license status as `unknown` when the caller cannot supply a reviewed status. Upstream
+  version remains optional and is recorded when known.
+- Focused validation: `.venv/bin/python -m pytest apps/reference-data/tests/test_registration.py -q`
+  passed 11 tests; targeted Ruff checks for the registration, adapter, CLI, and test modules passed.
 
 ## Completion notes
 

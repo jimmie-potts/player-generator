@@ -18,9 +18,11 @@ packages/
 Reference data and roster generation are the two data subprojects. The formula workbench is a
 supporting application over the shared contracts and calculation engine.
 
-The architecture boundary is implemented, but later behavior remains planned:
+The architecture boundary and local source registration are implemented, but later behavior remains
+planned:
 
-- Reference data still uses the current pinned remote Parquet download and wide processed CSVs.
+- Reference data can register local NBA and ESPN Parquet inputs, while its current build still uses
+  the legacy pinned remote Parquet download and wide processed CSVs.
 - Roster generation still produces a combined roster JSON and flat player CSV.
 - Rating formulas retain their current Python definitions.
 - The workbench currently renders a static application shell without data or formula behavior.
@@ -68,13 +70,16 @@ generates the roster, and writes the comparison reports.
 
 ```bash
 reference-data --help
+reference-data register --source-type nba_playerstats /path/to/playerstats.parquet
 reference-data download
 reference-data build
 ```
 
-The current download is pinned by `reference_data/source_manifest.json`. Raw and processed named
-data remain local and ignored by Git. Local multi-source registration and normalized reference CSVs
-are planned in EPIC-02.
+Registration validates and records local files without copying them into the repository. Source
+types `nba_playerstats` and `espn_player_details` use adapter schema version 1, and their ignored
+local provenance registry lives at `reference_data/registry/sources.json`. The current legacy
+download remains pinned by `reference_data/source_manifest.json`; normalized reference CSV
+publication remains planned in EPIC-02.
 
 ### Roster generator
 
@@ -141,9 +146,10 @@ These rules are enforced by automated import-boundary and entrypoint tests.
 - Missing source fields are not invented merely to fill a planned schema.
 - The repository MIT license covers project software, not third-party data.
 
-The primary current input is `llimllib/nba_data`'s `data/playerstats.parquet`, pinned to commit
+The primary current build input is `llimllib/nba_data`'s `data/playerstats.parquet`, pinned to commit
 `a7bc98d73324300bd28d77260f45c98c239d1e87`. No root license file was observed in that upstream
-repository when the snapshot was selected. ESPN ingestion is planned but not currently implemented.
+repository when the snapshot was selected. ESPN player-detail files can be registered locally, but
+their canonical normalization is not part of US-003.
 
 Review [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md),
 [Data boundaries](docs/DATA_BOUNDARIES.md), and the
