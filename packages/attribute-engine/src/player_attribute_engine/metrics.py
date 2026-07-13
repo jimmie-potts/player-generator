@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from numbers import Real
 from typing import Any
 
 import numpy as np
@@ -18,9 +19,26 @@ def _value(definition: object, field: str) -> Any:
 
 
 def _numeric(series: pd.Series, field: str) -> pd.Series:
+    def supported(value: object) -> bool:
+        if value is None or value is pd.NA:
+            return True
+        try:
+            missing = pd.isna(value)
+        except (TypeError, ValueError):
+            missing = False
+        if isinstance(missing, (bool, np.bool_)) and bool(missing):
+            return True
+        return isinstance(value, Real) and not isinstance(value, (bool, np.bool_))
+
+    invalid_types = ~series.map(supported)
+    if invalid_types.any():
+        rows = ", ".join(str(index) for index in series.index[invalid_types][:5])
+        raise MetricPreparationError(
+            f"Formula input {field!r} must contain finite numeric values or null; "
+            f"invalid rows: {rows}"
+        )
     numeric = pd.to_numeric(series, errors="coerce").astype(float)
-    boolean = series.map(lambda value: isinstance(value, (bool, np.bool_)))
-    invalid = series.notna() & (boolean | numeric.isna() | ~np.isfinite(numeric))
+    invalid = series.notna() & (numeric.isna() | ~np.isfinite(numeric))
     if invalid.any():
         rows = ", ".join(str(index) for index in series.index[invalid][:5])
         raise MetricPreparationError(
@@ -49,7 +67,7 @@ def required_input_fields(metrics: Mapping[str, object]) -> set[str]:
     }
 
 
-def _schedule_value(schedule: Mapping[object, object], season: object) -> float | None:
+def scheduled_value(schedule: Mapping[object, object], season: object) -> float | None:
     if pd.isna(season):
         return None
     candidates: list[object] = [season, str(season)]
@@ -115,7 +133,8 @@ def prepare_formula_metrics(
             f"Formula evaluation is missing required input columns: {', '.join(missing)}"
         )
 
-    result = frame.reset_index(drop=True).copy()
+    source = frame.reset_index(drop=True).copy()
+    result = source.copy()
     resolved: set[str] = set()
     resolving: set[str] = set()
 
@@ -133,7 +152,7 @@ def prepare_formula_metrics(
         kind = _value(definition, "kind")
         if kind == "input":
             field = str(_value(definition, "field"))
-            result[name] = _numeric(result[field], field)
+            result[name] = _numeric(source[field], field)
         else:
             inputs = tuple(str(item) for item in (_value(definition, "inputs") or ()))
             for input_name in inputs:
@@ -178,7 +197,7 @@ def prepare_formula_metrics(
                         f"Scheduled ratio metric {name!r} has no schedule"
                     )
                 denominators = result[inputs[1]].map(
-                    lambda season: _schedule_value(schedule, season)
+                    lambda season: scheduled_value(schedule, season)
                 )
                 unsupported = sorted(
                     {

@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 from player_attribute_engine.evaluator import EvaluationError, evaluate_player_attributes
 from player_attribute_engine.formula import load_formula
+from player_attribute_engine.metrics import prepare_formula_metrics
 
 
 def _item(**values: object) -> SimpleNamespace:
@@ -303,6 +304,39 @@ def test_explanations_reconstruct_composites_and_are_json_serializable() -> None
     json.dumps(batch.explanations)
 
 
+def test_large_finite_weights_normalize_stably_during_evaluation() -> None:
+    formula = _formula()
+    formula.attributes[0].components = (
+        _item(metric="adjustedPercentage", weight=1e308, direction="higher"),
+        _item(metric="freeThrowRate", weight=1e308, direction="higher"),
+    )
+
+    batch = evaluate_player_attributes(
+        pd.DataFrame([_row("a", made=8), _row("b", made=2)]),
+        formula,
+    )
+
+    assert batch.explanations[0]["attributes"]["shooting"]["normalizedWeights"] == {
+        "adjustedPercentage": 0.5,
+        "freeThrowRate": 0.5,
+    }
+
+
+def test_input_aliases_read_an_immutable_source_snapshot() -> None:
+    definitions = [
+        ("season", _item(kind="input", field="games")),
+        ("games", _item(kind="input", field="season")),
+    ]
+
+    for ordered in (definitions, list(reversed(definitions))):
+        prepared = prepare_formula_metrics(
+            pd.DataFrame([{"season": 2026, "games": 50}]),
+            dict(ordered),
+        )
+        assert prepared.loc[0, "season"] == 50
+        assert prepared.loc[0, "games"] == 2026
+
+
 @pytest.mark.parametrize("value", [None, "", "   ", 7])
 def test_invalid_player_ids_fail_before_evaluation(value: object) -> None:
     with pytest.raises(EvaluationError, match="non-empty string playerId"):
@@ -323,7 +357,18 @@ def test_duplicate_players_and_multiple_cohorts_fail_before_evaluation() -> None
         )
 
 
-@pytest.mark.parametrize("value", ["not-a-number", float("inf"), float("-inf"), True])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "not-a-number",
+        "1.5",
+        1 + 2j,
+        pd.Timestamp("2026-01-01"),
+        float("inf"),
+        float("-inf"),
+        True,
+    ],
+)
 def test_invalid_numeric_inputs_fail_before_evaluation(value: object) -> None:
     with pytest.raises(EvaluationError, match="finite numeric values or null"):
         evaluate_player_attributes(

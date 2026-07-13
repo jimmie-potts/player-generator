@@ -13,8 +13,8 @@ The remaining redesign is documented in [docs/planning/README.md](docs/planning/
 documents describe future behavior unless their stories are marked complete. The reference builder
 now supports registered local inputs, canonical normalization, and version 1 CSV publication; its
 pinned download and wide tables remain a current legacy seam for the roster generator. The roster
-generator still emits its current combined outputs, formulas remain Python-defined, and the
-workbench has no formula or data behavior yet.
+generator still emits its current combined outputs. Player attributes now use the versioned
+declarative formula and shared Python evaluator; the workbench has no formula or data behavior yet.
 
 Do not implement a later story until the user explicitly starts it. Avoid changing runtime code,
 configuration, schemas, outputs, or pipeline behavior merely to resemble an unstarted plan.

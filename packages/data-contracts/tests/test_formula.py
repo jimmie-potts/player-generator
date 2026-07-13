@@ -44,6 +44,12 @@ def test_formula_v1_contract_loads_required_document_shape() -> None:
         "priorAttempts",
         "schedule",
     }
+    assert contract["$defs"]["metric"]["properties"]["schedule"] == {
+        "type": "object",
+        "minProperties": 1,
+        "propertyNames": {"pattern": "^[1-9][0-9]{3}$"},
+        "additionalProperties": {"type": "integer", "minimum": 1},
+    }
     assert "rerankComposite" in contract["$defs"]["attribute"]["required"]
     assert contract["$defs"]["attribute"]["properties"]["percentileOutput"] == {
         "type": "string",

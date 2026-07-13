@@ -174,6 +174,18 @@ def test_rejects_zero_sum_component_weights() -> None:
         parse_formula_document(document)
 
 
+def test_large_finite_component_weights_normalize_without_overflow() -> None:
+    document = _document()
+    for component in document["attributes"][0]["components"]:
+        component["weight"] = 1e308
+
+    parsed = parse_formula_document(document)
+
+    assert [
+        component.normalized_weight for component in parsed.attributes[0].components
+    ] == [0.5, 0.5]
+
+
 def test_rejects_duplicate_and_unknown_components() -> None:
     duplicate = _document()
     duplicate["attributes"][0]["components"][1]["metric"] = "adjustedPercentage"
@@ -277,6 +289,14 @@ def test_stabilized_percentages_require_the_season_metric() -> None:
     with pytest.raises(FormulaContractError, match="require.*season"):
         parse_formula_document(document)
 
+    derived_season = _document()
+    derived_season["metrics"]["season"] = {
+        "kind": "ratio",
+        "inputs": ["adjustedPercentage", "games"],
+    }
+    with pytest.raises(FormulaContractError, match="input mapped.*season"):
+        parse_formula_document(derived_season)
+
 
 @pytest.mark.parametrize(
     ("metric", "field", "value", "message"),
@@ -286,6 +306,18 @@ def test_stabilized_percentages_require_the_season_metric() -> None:
         ("availability", "schedule", {}, "must not be empty"),
         ("availability", "schedule", {"2021": 0}, "at least 1"),
         ("availability", "schedule", {"2021": 82.5}, "integer"),
+        (
+            "availability",
+            "schedule",
+            {"2021.0": 82},
+            "canonical four-digit seasons",
+        ),
+        (
+            "availability",
+            "schedule",
+            {"not-a-season": 82},
+            "canonical four-digit seasons",
+        ),
     ],
 )
 def test_rejects_invalid_derived_metric_parameters(

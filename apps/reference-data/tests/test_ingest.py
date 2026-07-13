@@ -124,7 +124,7 @@ def test_load_player_stats_maps_advanced_metrics_and_coerces_weight(
         "playerImpactEstimate": 0.167,
         "defensiveWinShares": 3.8,
         "estimatedTurnoverPercentage": 8.7,
-            "twoPointAttemptFrequency": 0.63,
+        "twoPointAttemptFrequency": 0.63,
         "threePointAttemptFrequency": 0.37,
         "weightPounds": 212.0,
     }

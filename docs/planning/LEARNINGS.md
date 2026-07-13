@@ -110,6 +110,11 @@ its completion notes.
 - A shared engine stays reusable when it accepts joined in-memory rows and returns ordered output
   plus JSON-serializable explanations. Package loading, source adapters, and application
   configuration remain consumer responsibilities.
+- Individually finite weights still need overflow-safe normalization. Scaling by the largest weight
+  before summing preserves a normalized total of 1 even near floating-point limits.
+- Formula evaluation must read input aliases from an immutable source snapshot and make implicit
+  derivation dependencies explicit. Otherwise harmless document-key reordering or a derived season
+  metric can move validation failures from load time to runtime.
 
 ### 2026-07-13 — US-007
 

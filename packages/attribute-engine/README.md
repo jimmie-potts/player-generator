@@ -28,6 +28,11 @@ ratios, shooting percentages stabilized toward the full season's league average,
 ratios. Unknown fields, arbitrary expressions, unsupported schema versions, invalid weights,
 directions, anchors, dependencies, or tier ranges fail before evaluation.
 
+Input columns accept only finite real numeric scalars or nulls; strings, booleans, complex values,
+and temporal values are rejected rather than coerced. Schedule keys are canonical four-digit season
+years, and metric aliases always read from the original input snapshot so document key order cannot
+change a result.
+
 Deterministic version 1 rules are:
 
 - null component or eligibility values exclude that row from the affected formula;

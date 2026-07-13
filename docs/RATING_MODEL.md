@@ -7,7 +7,8 @@ active formula and evaluator are owned by `attribute-engine`.
 ## Processing order
 
 1. Accept already joined, camelCase player-season metrics. The engine has no source adapter, file,
-   package, or application-configuration dependency.
+   package, or application-configuration dependency. Numeric strings, booleans, complex values,
+   and temporal values are rejected rather than coerced into formula inputs.
 2. Derive only formula-declared ratios, stabilized shooting percentages, and scheduled-game ratios.
    Shooting league averages use every row in the season before player eligibility is applied.
 3. Exclude a player from an attribute when a required value is null or its versioned minimum of 20
@@ -43,8 +44,8 @@ median-filled; an excluded player receives empty attribute outputs plus structur
 - Overall combines PIE, estimated net rating, points per 100, minutes per game, true shooting, and
   availability.
 
-The active resource pins scheduled games for end-season years 2021 through 2026. An unlisted season
-fails before evaluation instead of silently assuming a schedule.
+The active resource pins scheduled games under canonical four-digit end-season keys for 2021
+through 2026. An unlisted season fails before evaluation instead of silently assuming a schedule.
 
 ## Explanation contract
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -7,7 +8,11 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from player_attribute_engine.metrics import MetricPreparationError, prepare_formula_metrics
+from player_attribute_engine.metrics import (
+    MetricPreparationError,
+    prepare_formula_metrics,
+    scheduled_value,
+)
 
 
 class EvaluationError(ValueError):
@@ -54,15 +59,6 @@ def _json_value(value: object) -> Any:
     if isinstance(value, np.bool_):
         return bool(value)
     return value
-
-
-def _scheduled_value(schedule: Mapping[object, object], season: object) -> float | None:
-    if season is None or pd.isna(season):
-        return None
-    numeric = float(season)
-    key = str(int(numeric)) if numeric.is_integer() else str(season)
-    value = schedule.get(key, schedule.get(season))
-    return None if value is None else float(value)
 
 
 def _metric_detail(
@@ -118,7 +114,7 @@ def _metric_detail(
                 detail["leagueAverage"] = league_averages[average_key]
         elif kind == "scheduledRatio":
             detail["scheduledGames"] = _json_value(
-                _scheduled_value(_value(definition, "schedule"), frame.at[index, inputs[1]])
+                scheduled_value(_value(definition, "schedule"), frame.at[index, inputs[1]])
             )
             detail["minimum"] = 0.0
             detail["maximum"] = 1.0
@@ -314,9 +310,19 @@ def evaluate_player_attributes(frame: pd.DataFrame, formula: object) -> Evaluati
             str(_value(component, "metric")): float(_value(component, "weight"))
             for component in components
         }
-        total_weight = sum(weights.values())
+        if not weights or any(
+            not math.isfinite(weight) or weight < 0 for weight in weights.values()
+        ):
+            raise EvaluationError(f"Attribute {name!r} has invalid component weights")
+        maximum_weight = max(weights.values())
+        if maximum_weight <= 0:
+            raise EvaluationError(f"Attribute {name!r} component weights have no positive sum")
+        scaled_weights = {
+            metric: weight / maximum_weight for metric, weight in weights.items()
+        }
+        scaled_total = sum(scaled_weights.values())
         normalized_weights = {
-            metric: weight / total_weight for metric, weight in weights.items()
+            metric: weight / scaled_total for metric, weight in scaled_weights.items()
         }
         component_percentiles = {
             metric: pd.Series(np.nan, index=prepared.index, dtype=float)

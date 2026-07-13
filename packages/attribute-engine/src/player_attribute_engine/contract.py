@@ -252,7 +252,11 @@ def _parse_metrics(raw: Any) -> Mapping[str, MetricDefinition]:
                             f"metrics.{name}.schedule keys must be seasons."
                         )
                     season_key = str(season)
-                    if not season_key or season_key in parsed_schedule:
+                    if not re.fullmatch(r"[1-9][0-9]{3}", season_key):
+                        raise FormulaContractError(
+                            f"metrics.{name}.schedule keys must be canonical four-digit seasons."
+                        )
+                    if season_key in parsed_schedule:
                         raise FormulaContractError(
                             f"metrics.{name}.schedule contains a duplicate season."
                         )
@@ -282,9 +286,15 @@ def _parse_metrics(raw: Any) -> Mapping[str, MetricDefinition]:
                     f"metrics.{metric.name} references unknown metric {dependency!r}."
                 )
     if any(metric.kind == "stabilizedPercentage" for metric in metrics.values()):
-        if "season" not in metrics:
+        season = metrics.get("season")
+        if season is None:
             raise FormulaContractError(
                 "stabilizedPercentage metrics require the conventional 'season' metric."
+            )
+        if season.kind != "input" or season.field != "season":
+            raise FormulaContractError(
+                "stabilizedPercentage metrics require the conventional 'season' metric to be "
+                "an input mapped to the reference 'season' field."
             )
 
     visiting: set[str] = set()
@@ -520,12 +530,16 @@ def _parse_attributes(
                     f"{component_path}.direction must be 'higher' or 'lower'."
                 )
             parsed_components.append((metric, weight, direction))
-        total_weight = sum(weight for _, weight, _ in parsed_components)
-        if total_weight <= 0:
+        maximum_weight = max(weight for _, weight, _ in parsed_components)
+        if maximum_weight <= 0:
             raise FormulaContractError(f"{path} component weights must have a positive sum.")
+        scaled_weights = [weight / maximum_weight for _, weight, _ in parsed_components]
+        scaled_total = sum(scaled_weights)
         components = tuple(
-            FormulaComponent(metric, weight, direction, weight / total_weight)
-            for metric, weight, direction in parsed_components
+            FormulaComponent(metric, weight, direction, scaled_weight / scaled_total)
+            for (metric, weight, direction), scaled_weight in zip(
+                parsed_components, scaled_weights, strict=True
+            )
         )
         eligibility_rule = _name(definition["eligibilityRule"], f"{path}.eligibilityRule")
         cohort = _name(definition["cohort"], f"{path}.cohort")

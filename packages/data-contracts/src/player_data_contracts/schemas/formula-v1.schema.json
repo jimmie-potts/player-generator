@@ -88,7 +88,8 @@
         "schedule": {
           "type": "object",
           "minProperties": 1,
-          "additionalProperties": {"type": "integer"}
+          "propertyNames": {"pattern": "^[1-9][0-9]{3}$"},
+          "additionalProperties": {"type": "integer", "minimum": 1}
         }
       },
       "additionalProperties": false

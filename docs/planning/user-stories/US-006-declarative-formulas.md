@@ -21,7 +21,9 @@ previews use exactly the same calculations.
   rules.
 - Evaluation returns raw inputs, component percentiles, normalized weights, contributions,
   composite percentile, and final rating.
-- The batch generator and preview API import the same evaluator.
+- Every implemented batch or preview calculation path imports the shared evaluator. The current
+  batch path does; per [D-017](../DECISIONS.md#d-017-shared-evaluator-consumer-sequencing), this is
+  a binding acceptance constraint on the preview API when US-010 implements it.
 - Arbitrary code or expression execution is not supported.
 
 ## Out of scope
