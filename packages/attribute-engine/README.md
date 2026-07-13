@@ -14,6 +14,9 @@ formula = load_formula()
 batch = evaluate_player_attributes(joined_rows, formula)
 ```
 
+Package publishers can call `load_formula_snapshot()` to parse a document and hash the exact same
+byte snapshot for integrity metadata.
+
 The evaluator accepts one season cohort as an in-memory `pandas.DataFrame` whose camelCase fields
 come from a joined reference or roster player-season. A caller with multiple seasons evaluates each
 cohort separately; the current legacy adapter performs that grouping. The evaluator does not read
@@ -45,5 +48,6 @@ Deterministic version 1 rules are:
 - talent tiers come only from the active formula's versioned overall ranges.
 
 The current legacy `reference-data build` delegates to this evaluator through
-`rate_player_seasons`. US-008 will replace that wide-table compatibility adapter, and US-010 must
-import this same evaluator for previews rather than implementing another calculation path.
+`rate_player_seasons`. Normalized roster generation evaluates its generated season cohorts through
+the public API instead of that wide-table adapter. US-010 must import this same evaluator for
+previews rather than implementing another calculation path.

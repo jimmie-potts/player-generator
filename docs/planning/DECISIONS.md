@@ -140,3 +140,25 @@ changes one; do not rewrite history without recording the replacement.
   second consumer.
 - **Reason:** This satisfies the single-evaluator architecture without violating the dependency
   order or expanding declarative-formula work into the later API epic.
+
+## D-018: Published roster possession basis
+
+- **Status:** accepted
+- **Decision:** Roster contract version 1 includes `season`, `games`, `minutes`, and `possessions`
+  in `player_stats.csv`. Generation infers a template's possession total as the median of its
+  available positive total/per-100 pairs, applies the controlled volume mutation once, and derives
+  every roster per-100 field from that one published possession value.
+- **Reason:** The reference contract publishes per-100 rates but no possession total. One explicit,
+  reproducible inference rule preserves cross-stat consistency without adding a separate roster
+  season table or independently jittering related rate fields.
+
+## D-019: Roster advanced-stat identities
+
+- **Status:** accepted
+- **Decision:** Derive roster `assistRatio` and `estimatedTurnoverPercentage` from mutated event
+  operands using the shared play-ending denominator `FGA + 0.44 * FTA + AST + TOV`. Keep
+  `reboundPercentage` as a separately mapped, bounded source metric rather than forcing it to equal
+  the mean of offensive and defensive rebound percentages.
+- **Reason:** The reference adapter maps per-100 rates, assist ratio, estimated turnover percentage,
+  and rebound percentage as distinct upstream metrics. Preserving their domain definitions avoids
+  silently collapsing separate statistics while still making derived roster values reproducible.

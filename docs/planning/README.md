@@ -46,8 +46,8 @@ team or coach generation.
 | US-005 | [Publish normalized reference CSVs](user-stories/US-005-reference-csv-package.md) | EPIC-02 | complete |
 | US-006 | [Define declarative formulas](user-stories/US-006-declarative-formulas.md) | EPIC-03 | complete |
 | US-007 | [Calculate the initial attribute set](user-stories/US-007-initial-attributes.md) | EPIC-03 | complete |
-| US-008 | [Consume a published reference package](user-stories/US-008-consume-reference-package.md) | EPIC-04 | ready |
-| US-009 | [Generate the normalized roster package](user-stories/US-009-generate-roster-package.md) | EPIC-04 | ready |
+| US-008 | [Consume a published reference package](user-stories/US-008-consume-reference-package.md) | EPIC-04 | complete |
+| US-009 | [Generate the normalized roster package](user-stories/US-009-generate-roster-package.md) | EPIC-04 | complete |
 | US-010 | [Provide formula and player preview endpoints](user-stories/US-010-formula-preview-api.md) | EPIC-05 | ready |
 | US-011 | [Inspect formulas and calculations](user-stories/US-011-inspect-formulas.md) | EPIC-06 | ready |
 | US-012 | [Preview formula adjustments](user-stories/US-012-preview-adjustments.md) | EPIC-06 | ready |
@@ -64,9 +64,8 @@ team or coach generation.
 
 ## Current-state warning
 
-EPIC-01 through EPIC-03 establish the application boundaries, normalized reference-package builder,
-and shared declarative attribute engine. The reference-data application also retains its pinned
-download and wide processed build as a current legacy seam until US-008 migrates the roster
-generator. The roster generator still emits the combined roster JSON and flat player CSV.
-Normalized roster packages, the preview API, and interactive workbench behavior do not exist until
-their stories are completed.
+EPIC-01 through EPIC-04 establish the application boundaries, normalized reference-package builder,
+shared declarative attribute engine, and deterministic player-only roster package. The
+reference-data application retains its pinned download and wide processed build only as standalone
+legacy interfaces. The preview API and interactive workbench behavior do not exist until their
+stories are completed.

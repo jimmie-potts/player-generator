@@ -21,7 +21,9 @@ from player_attribute_engine.evaluator import (
 from player_attribute_engine.formula import (
     ACTIVE_FORMULA_VERSION,
     FORMULA_SCHEMA_VERSION,
+    formula_content_hash,
     load_formula,
+    load_formula_snapshot,
 )
 from player_attribute_engine.ratings import (
     assign_talent_tier,
@@ -45,7 +47,9 @@ __all__ = [
     "TalentTier",
     "assign_talent_tier",
     "evaluate_player_attributes",
+    "formula_content_hash",
     "load_formula",
+    "load_formula_snapshot",
     "parse_formula_document",
     "rate_player_seasons",
 ]

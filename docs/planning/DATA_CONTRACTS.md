@@ -1,9 +1,9 @@
 # Version 2 data contracts
 
-Reference contract version 1 is implemented by US-005. The roster, coach, and team sections remain
-planned interfaces for their later stories. All CSVs use camelCase headers, UTF-8 encoding, one
-header row, LF line endings, and stable IDs. Missing optional source values remain empty rather than
-being inferred without an approved rule.
+Reference contract version 1 is implemented by US-005 and roster contract version 1 by US-009.
+Coach and team sections remain planned interfaces for their later stories. All CSVs use camelCase
+headers, UTF-8 encoding, one header row, LF line endings, and stable IDs. Missing optional source
+values remain empty rather than being inferred without an approved rule.
 
 ## Reference package
 
@@ -74,6 +74,57 @@ that content hash.
 
 Every CSV joins through `playerId`. Upstream names, source IDs, source team IDs, and source-row
 indexes are forbidden from roster output.
+
+Version 1 `players.csv` header:
+
+```text
+playerId,displayName,firstName,lastName,age,heightInches,weightPounds
+```
+
+Names and IDs are generated independently of the sampled template. Age, height, and weight are
+nullable and are adjusted only when the selected reference row supplies the corresponding value.
+
+Version 1 `player_stats.csv` header:
+
+```text
+playerId,season,games,minutes,possessions,fieldGoalsMade,fieldGoalsAttempted,twoPointersMade,twoPointersAttempted,threePointersMade,threePointersAttempted,freeThrowsMade,freeThrowsAttempted,reboundsOffensive,reboundsDefensive,reboundsTotal,assists,turnovers,steals,blocks,foulsPersonal,points,plusMinusPoints,fieldGoalPercentage,twoPointPercentage,threePointPercentage,freeThrowPercentage,minutesPerGame,pointsPerGame,reboundsPerGame,assistsPerGame,turnoversPerGame,threePointAttemptsPer36,freeThrowAttemptsPer36,offensiveReboundsPer36,defensiveReboundsPer36,assistsPer36,turnoversPer36,stealsPer36,blocksPer36,pointsPer36,plusMinusPer36,pointsPer100,assistsPer100,turnoversPer100,stealsPer100,blocksPer100,twoPointAttemptFrequency,threePointAttemptFrequency
+```
+
+`season`, `games`, and `minutes` come from the selected eligible player-season. `possessions` is the
+single controlled possession basis defined by D-018. Makes, attempts, and event totals are mutated
+first; field-goal totals, points, rebound totals, percentages, and every per-game, per-36, and
+per-100 field are derived afterward. Rebound, foul, and plus-minus values remain empty when their
+source total or supported rate is unavailable.
+
+Version 1 `player_advanced_stats.csv` header:
+
+```text
+playerId,season,estimatedOffensiveRating,offensiveRating,estimatedDefensiveRating,defensiveRating,estimatedNetRating,netRating,assistPercentage,assistTurnoverRatio,assistRatio,offensiveReboundPercentage,defensiveReboundPercentage,reboundPercentage,estimatedTurnoverPercentage,effectiveFieldGoalPercentage,trueShootingPercentage,usagePercentage,playerImpactEstimate,defensiveWinShares,defensiveWinSharesPer36
+```
+
+Net ratings, shooting percentages, assist/turnover ratio, and defensive win shares per 36 are
+derived from their published operands. `assistRatio` and `estimatedTurnoverPercentage` share the
+play-ending denominator `fieldGoalsAttempted + 0.44 * freeThrowsAttempted + assists + turnovers`.
+Rebound percentage remains a separately mapped, bounded source metric rather than an arithmetic
+mean of the offensive and defensive values. Other available advanced values receive bounded
+controlled mutation.
+
+Version 1 `player_attributes.csv` header:
+
+```text
+playerId,insideScoring,threePointShooting,freeThrowShooting,scoringVolume,playmaking,ballSecurity,offensiveRebounding,defensiveRebounding,perimeterDefense,interiorDefense,stamina,durability,overall,impactPercentile,talentTier,formulaVersion
+```
+
+The packaged `roster-v1.schema.json` resource governs ordered headers, scalar types, nullability,
+bounds, unique keys, exact player and player-season key sets, and relationships. Semantic validation
+also recomputes every published statistical identity before publication.
+
+`manifest.json` is deterministic and records manifest and package version 1, every CSV contract
+version, the reference-package content hash, formula version and document hash, seed, semantic
+configuration hash, per-file row counts and hashes, and one aggregate content hash. It intentionally
+has no creation timestamp. Publication writes a same-parent staging directory and replaces the
+destination only after contract, relationship, statistical, integrity, and identity-leak checks
+pass.
 
 ## Future coach contract
 

@@ -131,6 +131,38 @@ its completion notes.
   only uniformly high and low players. The core evaluator preserves valid per-attribute results;
   the current legacy wide adapter deliberately keeps only complete rating vectors.
 
+### 2026-07-13 — US-008
+
+- A normalized CSV contract is not a complete package-integrity contract. Consumers must also
+  verify the package manifest, exact file set, per-file hashes and row counts, aggregate content
+  hash, and compatible formula reference-contract version before using validated rows.
+- A published package path can change after its first hash check. Rechecking every manifest file
+  after typed reads closes the consumer-side mutation window before template selection.
+- Formula-derived priors and percentiles require the whole configured season cohort. Evaluate that
+  cohort before applying generator-specific games and minutes filters, then sample only complete
+  outputs with explicit recency and minutes weights.
+
+### 2026-07-13 — US-009
+
+- The player-only roster package still needs `season`, `games`, and `minutes` beside traditional
+  stats because the formula engine evaluates season cohorts and enforces availability thresholds.
+- Reference per-100 rates do not expose a possession total. Infer one deterministic template basis,
+  mutate it once with volume, publish it, and derive all roster per-100 values from it instead of
+  allowing each rate to drift independently.
+- Generate attributes after statistics mutation. Direct rating mutation bypasses formula
+  governance and can make published attributes impossible to reproduce from the roster package.
+- Validate native mappings, serialized CSVs, semantic statistical identities, integrity metadata,
+  and identity leakage before atomic replacement. Each layer catches a different partial-package or
+  cross-domain failure mode.
+- A deterministic manifest should omit wall-clock creation time and separately pin reference
+  content, exact formula bytes, semantic configuration, seed, individual files, and aggregate
+  content.
+- Similar metric names do not imply interchangeable formulas. Assist ratio and estimated turnover
+  percentage use a play-ending denominator rather than the roster possession total, while rebound
+  percentage remains distinct from its offensive and defensive components.
+- Parse and hash a custom formula from the same immutable byte snapshot. Reading the path again
+  after generation can make the manifest describe bytes that were not used for evaluation.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:

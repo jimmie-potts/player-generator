@@ -29,7 +29,7 @@ Path: `roster_data/`
 Allowed contents:
 
 - Independently generated player identities.
-- Generated or adjusted statistics, ratings, and development values.
+- Generated bio fields, adjusted statistics, and formula-derived attributes.
 - Roster package metadata such as schema version, formula version, reference-package hash, and seed.
 
 Forbidden contents:
@@ -38,17 +38,10 @@ Forbidden contents:
 - A source-to-roster player crosswalk.
 - Raw or transformed named reference records.
 
-## Reports zone
-
-Current path: `reports/`
-
-Reports compare populations rather than identities. They may contain aggregated reference values,
-but must not contain direct mappings between named reference players and roster players.
-
 ## Application boundary
 
 The reference-data application publishes a validated version 1 normalized package and retains its
-wide processed tables as a current legacy interface. The roster generator still consumes only that
-legacy processed file without importing the reference pipeline or reading raw Parquet. US-008 will
-move the consumer to the normalized package and versioned manifest. See the
+wide processed tables only as a standalone legacy interface. The roster generator validates and
+consumes the normalized package and versioned manifest without importing the reference application
+or reading raw Parquet. It never publishes a template crosswalk. See the
 [version 2 plan](planning/README.md).

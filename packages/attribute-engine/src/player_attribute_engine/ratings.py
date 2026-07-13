@@ -75,9 +75,9 @@ def rate_player_seasons(
 ) -> pd.DataFrame:
     """Rate the current legacy wide rows through the shared declarative evaluator.
 
-    ``config`` remains accepted while the current reference-data build is a legacy interface, but
-    formula behavior no longer comes from application configuration. US-008 will replace this
-    compatibility adapter when the roster generator consumes normalized reference packages.
+    ``config`` remains accepted for the standalone legacy reference-data build, but formula
+    behavior no longer comes from application configuration. Normalized roster generation calls the
+    shared evaluator directly on generated season cohorts.
     """
     del config
     formula = load_formula()

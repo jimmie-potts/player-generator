@@ -25,8 +25,8 @@ inputs fail publication with guidance to restore the file or rebuild its local r
 
 Its application configuration boundary is `config/default.yaml`; formula weights, eligibility,
 anchors, schedules, and tier ranges live only in the packaged attribute formula. Raw, registered, and
-processed named data remain local and untracked. The remote download and wide CSV outputs are
-transitional legacy behavior retained until the roster generator consumes the normalized package.
+processed named data remain local and untracked. The remote download and wide CSV outputs remain
+standalone legacy behavior and are not consumed by the normalized roster generator.
 The canonical model already produces validated relational tables and audit records in memory;
 `publish` writes the six version 1 relational CSVs, deterministic audit and integrity metadata, and
 a package manifest to the ignored `reference_data/packages/reference-v1` directory by default. It

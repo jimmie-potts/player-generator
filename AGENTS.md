@@ -12,9 +12,10 @@ under `packages/data-contracts/` and `packages/attribute-engine/`.
 The remaining redesign is documented in [docs/planning/README.md](docs/planning/README.md). Planning
 documents describe future behavior unless their stories are marked complete. The reference builder
 now supports registered local inputs, canonical normalization, and version 1 CSV publication; its
-pinned download and wide tables remain a current legacy seam for the roster generator. The roster
-generator still emits its current combined outputs. Player attributes now use the versioned
-declarative formula and shared Python evaluator; the workbench has no formula or data behavior yet.
+pinned download and wide tables remain standalone legacy interfaces. The roster generator consumes
+only a validated published reference package and atomically emits the normalized player-only roster
+package. Player attributes use the versioned declarative formula and shared Python evaluator; the
+workbench has no formula or data behavior yet.
 
 Do not implement a later story until the user explicitly starts it. Avoid changing runtime code,
 configuration, schemas, outputs, or pipeline behavior merely to resemble an unstarted plan.
@@ -38,8 +39,8 @@ configuration, schemas, outputs, or pipeline behavior merely to resemble an unst
 - `data-contracts` owns versioned schemas, keys, types, and relationship validation.
 - `attribute-engine` is the only formula evaluator used by batch generation and the preview API.
 - The workbench calls the preview API and must not reimplement rating calculations in TypeScript.
-- The planned normalized roster package is player-only. Coach and team contracts are future design
-  targets, not permission to populate those files.
+- The normalized roster package is player-only. Coach and team contracts are future design targets,
+  not permission to populate those files.
 
 ## User stories, decisions, and learnings
 
@@ -126,8 +127,8 @@ git diff --check
 ```
 
 Also inspect Markdown links and verify that current paths are not presented as planned paths or the
-reverse. Reference and roster pipeline commands may rewrite tracked example outputs; run them only
-when the active story requires it, then inspect the diff.
+reverse. Reference and roster package commands write ignored local outputs; never stage those
+packages or their named reference inputs.
 
 ## Generated files and integrity metadata
 

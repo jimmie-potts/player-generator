@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import json
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
 from player_attribute_engine import (
     ACTIVE_FORMULA_VERSION,
     FormulaContractError,
+    formula_content_hash,
     load_formula,
+    load_formula_snapshot,
 )
 
 
@@ -75,3 +78,30 @@ def test_forward_formula_document_is_rejected_before_use(tmp_path: Path) -> None
 
     with pytest.raises(FormulaContractError, match="Unsupported formula schema version 2"):
         load_formula(active_path)
+
+
+def test_formula_content_hash_pins_exact_document_bytes(tmp_path: Path) -> None:
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+    first.write_text('{"formulaVersion":"1"}\n', encoding="utf-8")
+    second.write_text('{"formulaVersion": "1"}\n', encoding="utf-8")
+
+    assert len(formula_content_hash()) == 64
+    assert formula_content_hash(first) == formula_content_hash(first)
+    assert formula_content_hash(first) != formula_content_hash(second)
+
+
+def test_formula_snapshot_hashes_the_same_bytes_it_parses(tmp_path: Path) -> None:
+    active = load_formula()
+    path = tmp_path / "formula.json"
+    path.write_bytes(
+        files("player_attribute_engine")
+        .joinpath("formulas/player-attributes-v1.json")
+        .read_bytes()
+    )
+
+    snapshot, digest = load_formula_snapshot(path)
+    path.write_text(json.dumps({"changed": True}) + "\n", encoding="utf-8")
+
+    assert snapshot == active
+    assert digest != formula_content_hash(path)

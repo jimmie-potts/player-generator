@@ -62,5 +62,6 @@ single calculation detail future batch and preview consumers use.
 - The current formula supports only the attributes listed in
   [ATTRIBUTE_FORMULAS.md](planning/ATTRIBUTE_FORMULAS.md). Unsupported play-style, physical, and
   tendency attributes are absent rather than filled with placeholders.
-- The current wide reference build remains a compatibility consumer until US-008 moves roster
-  generation to published reference packages.
+- The standalone wide reference build remains a legacy compatibility consumer. Normalized roster
+  generation is the second current consumer and evaluates its generated statistics through the same
+  formula engine.

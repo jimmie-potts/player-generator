@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 import os
 import shutil
@@ -13,6 +12,7 @@ from typing import Any
 from uuid import uuid4
 
 from player_data_contracts.io import sha256_file
+from player_data_contracts.package import content_hash
 from player_data_contracts.reference import load_reference_contract, validate_reference_package
 
 from reference_data_app.canonical import CanonicalBundle, normalize_registered_sources
@@ -112,13 +112,6 @@ def _audit_row_count(audit: Mapping[str, object]) -> int:
     return sum(len(value) for value in audit.values() if isinstance(value, list))
 
 
-def _content_hash(file_hashes: Mapping[str, str]) -> str:
-    pairs = "\n".join(
-        f"{filename}:{file_hashes[filename]}" for filename in sorted(file_hashes)
-    )
-    return hashlib.sha256(pairs.encode("utf-8")).hexdigest()
-
-
 def _manifest(
     *,
     contract: Mapping[str, Any],
@@ -160,7 +153,7 @@ def _manifest(
         },
         "inputs": inputs,
         "files": files,
-        "contentHash": _content_hash(file_hashes),
+        "contentHash": content_hash(file_hashes),
     }
 
 
