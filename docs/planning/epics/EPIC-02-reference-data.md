@@ -1,6 +1,6 @@
 # EPIC-02: Reference-data builder
 
-- **Status:** ready
+- **Status:** in_progress
 - **Outcome:** Transform local Parquet inputs from multiple sources into a validated canonical CSV
   package.
 - **Dependencies:** EPIC-01

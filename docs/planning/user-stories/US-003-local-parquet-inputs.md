@@ -1,6 +1,6 @@
 # US-003: Register local Parquet inputs
 
-- **Status:** in_progress
+- **Status:** complete
 - **Epic:** [EPIC-02](../epics/EPIC-02-reference-data.md)
 - **Dependencies:** US-001
 
@@ -56,5 +56,26 @@ without remote downloads or redistribution.
 
 ## Completion notes
 
-Pending. Record supported source schema versions, fixture coverage, commands, and source-specific
-learnings before changing status to `complete`.
+- **Completed:** 2026-07-13
+- **Branch and implementation commit:** `agent/implement-us-003-us-005`; `ee0e13f`.
+- **Delivered:** A `reference-data register` command for one or more caller-owned local Parquet
+  files; version 1 adapters for `nba_playerstats` and `espn_player_details`; contextual schema and
+  readability validation; and an ignored, atomically written provenance registry with stable source
+  IDs, input paths, filenames, hashes, adapter versions, row counts, timestamps, upstream versions,
+  and license status.
+- **Compatibility boundary:** The existing `download` and wide `build` commands remain as explicit
+  legacy interfaces until US-008 moves roster generation to the normalized reference package. No
+  remote acquisition behavior was added to the version 2 registration path.
+- **Validation:** `.venv/bin/python -m pytest apps/reference-data/tests/test_registration.py -q`
+  passed 11 tests; `.venv/bin/python -m pytest apps/reference-data/tests tests/test_architecture.py
+  tests/test_entrypoints.py -q` passed 24 tests; targeted Ruff and `git diff --check` passed; and a
+  local ignored NBA file registered from its existing location without being copied.
+- **Fixture coverage:** Both source types, multiple paths, deterministic registry ordering,
+  idempotent re-registration, changed content, conflicting IDs, missing fields, invalid Parquet,
+  unsupported adapter versions, all-or-nothing batch validation, CLI metadata, and default unknown
+  license status.
+- **Follow-up:** US-004 consumes the registry through these adapters, performs reconciliation, and
+  creates canonical tables. US-005 publishes those tables; US-008 retires the legacy build seam.
+- **Learning:** Parquet metadata does not supply the application adapter version, so callers select
+  it explicitly. Preserving the original processing timestamp on identical registration keeps
+  provenance stable across later deterministic package rebuilds.

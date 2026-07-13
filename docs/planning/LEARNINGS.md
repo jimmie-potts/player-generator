@@ -45,6 +45,17 @@ its completion notes.
 - Generated examples and reports should be rebuilt from their owning applications after interface
   renames rather than edited by hand.
 
+### 2026-07-13 — US-003
+
+- Parquet metadata does not identify the application adapter schema version; local registration
+  must pair each file with an explicit source type and adapter version.
+- Idempotent registration must preserve its first processing timestamp as well as its content hash,
+  otherwise unchanged inputs would make later package provenance non-deterministic.
+- Registration can remain safe for named third-party data by storing only an ignored local path and
+  provenance record; the application never needs to copy source bytes into its workspace.
+- A conservative adapter may require only observed stable fields and leave other source-specific
+  values unavailable rather than treating a guessed upstream schema as a supported contract.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:
