@@ -16,6 +16,7 @@ from reference_data_app.registration import (
     RegistrationError,
     load_registered_sources,
     register_sources,
+    verify_registered_source,
 )
 
 FIRST_TIMESTAMP = datetime(2026, 7, 13, 12, 0, tzinfo=timezone.utc)
@@ -170,6 +171,37 @@ def test_changed_content_reports_hash_conflict_without_rewriting_registry(tmp_pa
     assert "adapter espn_player_details v1" in message
     assert "different content" in message
     assert registry_path.read_bytes() == original_registry
+
+
+def test_registered_source_verification_reports_hash_and_row_count_drift(
+    tmp_path: Path,
+) -> None:
+    registry_path = tmp_path / "registry.json"
+    source_path = _write_parquet(tmp_path / "players.parquet", [_espn_row()])
+    registered = register_sources(
+        [source_path],
+        registry_path=registry_path,
+        source_type="espn_player_details",
+        processed_at=FIRST_TIMESTAMP,
+    )[0]
+    _write_parquet(
+        source_path,
+        [
+            _espn_row(id="espn-101"),
+            _espn_row(id="espn-202", displayName="Second Player"),
+        ],
+    )
+
+    with pytest.raises(RegistrationError) as error:
+        verify_registered_source(registered)
+
+    message = str(error.value)
+    assert str(source_path) in message
+    assert "adapter espn_player_details v1" in message
+    assert "source ID 'espn_player_details:players'" in message
+    assert "SHA-256 changed" in message
+    assert "row count changed (registered 1, current 2)" in message
+    assert "rebuild its local registration before publishing" in message
 
 
 def test_conflicting_explicit_source_id_is_reported(tmp_path: Path) -> None:

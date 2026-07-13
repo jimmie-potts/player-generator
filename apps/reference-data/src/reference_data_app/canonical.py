@@ -12,7 +12,11 @@ from uuid import UUID, uuid5
 
 from reference_data_app.adapters import NormalizedSourceRow, normalize_source
 from reference_data_app.config import resolve_path
-from reference_data_app.registration import RegisteredSource, load_registered_sources
+from reference_data_app.registration import (
+    RegisteredSource,
+    load_registered_sources,
+    verify_registered_source,
+)
 
 PLAYER_FIELDS = (
     "displayName",
@@ -449,14 +453,16 @@ def normalize_registered_sources(config: Mapping[str, Any]) -> CanonicalBundle:
         raise CanonicalNormalizationError(f"No local sources are registered in {registry_path}")
     rows: list[NormalizedSourceRow] = []
     for source in sources:
-        rows.extend(
-            normalize_source(
-                Path(source.input_path),
-                source.source_id,
-                source.source_type,
-                source.adapter_version,
-            )
+        source_path = Path(source.input_path)
+        verify_registered_source(source)
+        source_rows = normalize_source(
+            source_path,
+            source.source_id,
+            source.source_type,
+            source.adapter_version,
         )
+        verify_registered_source(source)
+        rows.extend(source_rows)
     normalization = config.get("normalization")
     if not isinstance(normalization, Mapping):
         raise CanonicalNormalizationError("Configuration is missing normalization settings")

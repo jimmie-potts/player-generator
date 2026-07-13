@@ -87,6 +87,9 @@ its completion notes.
   manifest's `createdAt`; persisted registration timestamps keep provenance stable between builds.
 - Directory-level publication needs a same-parent staging directory and backup restoration so a
   failed final rename cannot leave a partial package or destroy the last valid one.
+- A registry path is mutable even when its stored provenance is deterministic. Publication must
+  revalidate registered hashes and row counts before consuming a file and recheck after reading;
+  atomic output replacement alone cannot prevent stale input metadata from reaching a package.
 - Real source files may encode unavailable optional text as whitespace. Normalize it to null before
   CSV writing so the contract produces an empty cell rather than invalid non-empty text.
 

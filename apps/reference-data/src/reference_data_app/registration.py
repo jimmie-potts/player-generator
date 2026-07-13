@@ -12,13 +12,13 @@ from typing import Any
 
 from player_data_contracts.io import sha256_file
 
-from reference_data_app.adapters import inspect_source
+from reference_data_app.adapters import AdapterValidationError, inspect_source
 
 REGISTRY_VERSION = 1
 
 
 class RegistrationError(ValueError):
-    """Raised when a registration conflicts with existing provenance."""
+    """Raised when source registration or registered-source verification fails."""
 
 
 @dataclass(frozen=True)
@@ -112,6 +112,42 @@ def load_registered_sources(registry_path: Path) -> list[RegisteredSource]:
     if len(source_ids) != len(set(source_ids)):
         raise RegistrationError(f"Source registry {registry_path} contains duplicate source IDs.")
     return sorted(sources, key=lambda source: source.source_id)
+
+
+def verify_registered_source(source: RegisteredSource) -> None:
+    path = Path(source.input_path).expanduser().resolve()
+    context = (
+        f"{path}: adapter {source.source_type} v{source.adapter_version}: "
+        f"source ID {source.source_id!r}"
+    )
+    action = "Restore the registered file or rebuild its local registration before publishing."
+    try:
+        inspection = inspect_source(path, source.source_type, source.adapter_version)
+    except AdapterValidationError as error:
+        raise RegistrationError(
+            f"{context}: registered source cannot be verified: {error}. {action}"
+        ) from error
+    try:
+        actual_sha256 = sha256_file(path)
+    except OSError as error:
+        raise RegistrationError(
+            f"{context}: registered source cannot be hashed: {error}. {action}"
+        ) from error
+
+    mismatches: list[str] = []
+    if actual_sha256 != source.sha256:
+        mismatches.append(
+            f"SHA-256 changed (registered {source.sha256}, current {actual_sha256})"
+        )
+    if inspection.row_count != source.row_count:
+        mismatches.append(
+            f"row count changed (registered {source.row_count}, current {inspection.row_count})"
+        )
+    if mismatches:
+        raise RegistrationError(
+            f"{context}: registered source no longer matches its local file: "
+            f"{'; '.join(mismatches)}. {action}"
+        )
 
 
 def _write_registry(registry_path: Path, sources: Sequence[RegisteredSource]) -> None:

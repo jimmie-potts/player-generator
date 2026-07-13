@@ -53,6 +53,9 @@ without remote downloads or redistribution.
   version remains optional and is recorded when known.
 - Focused validation: `.venv/bin/python -m pytest apps/reference-data/tests/test_registration.py -q`
   passed 11 tests; targeted Ruff checks for the registration, adapter, CLI, and test modules passed.
+- PR review added reusable registered-source verification. Consumers can now compare the current
+  local SHA-256 hash and adapter row count with stored provenance and fail with recovery guidance
+  when a referenced file is missing or has changed.
 
 ## Completion notes
 

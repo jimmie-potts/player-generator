@@ -57,6 +57,11 @@ consumed without Parquet or source-specific knowledge.
 - Synthetic golden, contract-failure, final-replace rollback, and end-to-end CLI fixtures passed.
   The full Python suite passed 88 tests and Ruff. Two builds from the ignored 6,908-row NBA input
   produced byte-identical CSV/audit files and content hash while differing only in `createdAt`.
+- PR review made input provenance fail closed: publication verifies every registered source's hash
+  and row count before normalization and repeats verification after reading. Drift therefore stops
+  before staging or replacing a package, while the existing destination remains intact.
+- Review follow-up validation passed 20 focused registration/publication tests and all 98 Python
+  tests, plus Ruff, workbench tests, and the production workbench build.
 
 ## Completion notes
 

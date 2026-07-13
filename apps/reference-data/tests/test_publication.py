@@ -13,12 +13,12 @@ import pytest
 import yaml
 from player_data_contracts.io import sha256_file
 from player_data_contracts.reference import load_reference_contract
-from reference_data_app import publication
+from reference_data_app import canonical, publication
 from reference_data_app.adapters import NBA_PLAYERSTATS_V1_REQUIRED_COLUMNS
 from reference_data_app.canonical import CanonicalBundle
 from reference_data_app.cli import main
 from reference_data_app.publication import CSV_FILENAMES, publish_reference_package
-from reference_data_app.registration import register_sources
+from reference_data_app.registration import RegistrationError, register_sources
 
 CREATED_AT = datetime(2026, 7, 13, 14, 0, tzinfo=timezone.utc)
 
@@ -276,7 +276,7 @@ def test_failed_final_replace_restores_existing_package_and_cleans_backup(
     assert not list(tmp_path.glob(".reference-v1.backup-*"))
 
 
-def _nba_row() -> dict[str, object]:
+def _nba_row(**overrides: object) -> dict[str, object]:
     row: dict[str, object] = {
         column: 0 for column in NBA_PLAYERSTATS_V1_REQUIRED_COLUMNS
     }
@@ -297,14 +297,14 @@ def _nba_row() -> dict[str, object]:
             "player_weight": "212",
         }
     )
+    row.update(overrides)
     return row
 
 
-def test_publish_cli_builds_package_from_synthetic_registered_parquet(
+def _registered_nba_config(
     tmp_path: Path,
     reference_config: dict,
-    capsys,
-) -> None:
+) -> tuple[dict, Path]:
     registry_path = tmp_path / "registry" / "sources.json"
     source_path = tmp_path / "playerstats.parquet"
     pd.DataFrame([_nba_row()]).to_parquet(source_path, index=False)
@@ -316,8 +316,18 @@ def test_publish_cli_builds_package_from_synthetic_registered_parquet(
         processed_at=CREATED_AT,
     )
     config = deepcopy(reference_config)
+    config["_meta"] = {"project_root": str(tmp_path)}
     config["paths"]["source_registry"] = str(registry_path)
     config["paths"]["reference_package_dir"] = str(tmp_path / "configured-package")
+    return config, source_path
+
+
+def test_publish_cli_builds_package_from_synthetic_registered_parquet(
+    tmp_path: Path,
+    reference_config: dict,
+    capsys,
+) -> None:
+    config, _source_path = _registered_nba_config(tmp_path, reference_config)
     config_path = tmp_path / "reference.yaml"
     config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
     output_path = tmp_path / "cli-package"
@@ -339,3 +349,63 @@ def test_publish_cli_builds_package_from_synthetic_registered_parquet(
         "audit.json",
         "manifest.json",
     }
+
+
+def test_publish_rejects_replaced_registered_source_and_preserves_existing_package(
+    tmp_path: Path,
+    reference_config: dict,
+) -> None:
+    config, source_path = _registered_nba_config(tmp_path, reference_config)
+    output_path = tmp_path / "reference-v1"
+    output_path.mkdir()
+    marker = output_path / "old-package.txt"
+    marker.write_text("keep me", encoding="utf-8")
+    pd.DataFrame([_nba_row(player_name="Replacement Player")]).to_parquet(
+        source_path,
+        index=False,
+    )
+
+    with pytest.raises(RegistrationError) as error:
+        publish_reference_package(config, output_path, created_at=CREATED_AT)
+
+    message = str(error.value)
+    assert str(source_path) in message
+    assert "adapter nba_playerstats v1" in message
+    assert "source ID 'nba_playerstats:playerstats'" in message
+    assert "SHA-256 changed" in message
+    assert "rebuild its local registration before publishing" in message
+    assert marker.read_text(encoding="utf-8") == "keep me"
+    assert list(output_path.iterdir()) == [marker]
+    assert not list(tmp_path.glob(".reference-v1.tmp-*"))
+    assert not list(tmp_path.glob(".reference-v1.backup-*"))
+
+
+def test_publish_rechecks_source_after_normalization(
+    tmp_path: Path,
+    reference_config: dict,
+    monkeypatch,
+) -> None:
+    config, source_path = _registered_nba_config(tmp_path, reference_config)
+    output_path = tmp_path / "reference-v1"
+    output_path.mkdir()
+    marker = output_path / "old-package.txt"
+    marker.write_text("keep me", encoding="utf-8")
+    normalize_source = canonical.normalize_source
+
+    def normalize_then_replace(*args, **kwargs):
+        normalized = normalize_source(*args, **kwargs)
+        pd.DataFrame([_nba_row(player_name="Changed During Read")]).to_parquet(
+            source_path,
+            index=False,
+        )
+        return normalized
+
+    monkeypatch.setattr(canonical, "normalize_source", normalize_then_replace)
+
+    with pytest.raises(RegistrationError, match="SHA-256 changed"):
+        publish_reference_package(config, output_path, created_at=CREATED_AT)
+
+    assert marker.read_text(encoding="utf-8") == "keep me"
+    assert list(output_path.iterdir()) == [marker]
+    assert not list(tmp_path.glob(".reference-v1.tmp-*"))
+    assert not list(tmp_path.glob(".reference-v1.backup-*"))

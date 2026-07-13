@@ -18,6 +18,9 @@ Registration validates local Parquet files without copying them. Adapter schema 
 `displayName`, leaving unobserved bio fields optional. The ignored local registry records source
 paths, IDs, hashes, adapter versions, row counts, processing timestamps, and supplied upstream or
 license metadata in `reference_data/registry/sources.json`.
+Registered files are referenced in place and must remain unchanged. Before and after normalization,
+`publish` verifies each file's SHA-256 hash and row count against the registry; missing or changed
+inputs fail publication with guidance to restore the file or rebuild its local registration.
 
 Its configuration boundary is `config/default.yaml` within this application. Raw, registered, and
 processed named data remain local and untracked. The remote download and wide CSV outputs are
