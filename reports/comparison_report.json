@@ -1,7 +1,7 @@
 {
   "status": "pass",
   "referencePlayerCount": 376,
-  "generatedPlayerCount": 450,
+  "rosterPlayerCount": 450,
   "ratings": {
     "insideScoring": {
       "reference": {
@@ -17,7 +17,7 @@
         "p95": 94.25,
         "p99": 98.0
       },
-      "generated": {
+      "roster": {
         "mean": 64.502,
         "std": 17.907,
         "min": 25.0,
@@ -48,7 +48,7 @@
         "p95": 94.25,
         "p99": 98.0
       },
-      "generated": {
+      "roster": {
         "mean": 66.596,
         "std": 17.763,
         "min": 25.0,
@@ -79,7 +79,7 @@
         "p95": 94.25,
         "p99": 98.0
       },
-      "generated": {
+      "roster": {
         "mean": 67.991,
         "std": 18.15,
         "min": 25.0,
@@ -110,7 +110,7 @@
         "p95": 94.25,
         "p99": 98.0
       },
-      "generated": {
+      "roster": {
         "mean": 67.913,
         "std": 17.729,
         "min": 25.0,
@@ -141,7 +141,7 @@
         "p95": 94.25,
         "p99": 98.0
       },
-      "generated": {
+      "roster": {
         "mean": 69.467,
         "std": 17.874,
         "min": 25.0,
@@ -172,7 +172,7 @@
         "p95": 94.25,
         "p99": 98.0
       },
-      "generated": {
+      "roster": {
         "mean": 66.373,
         "std": 17.871,
         "min": 25.0,
@@ -203,7 +203,7 @@
         "p95": 94.25,
         "p99": 98.0
       },
-      "generated": {
+      "roster": {
         "mean": 63.807,
         "std": 17.985,
         "min": 25.0,
@@ -234,7 +234,7 @@
         "p95": 94.0,
         "p99": 98.0
       },
-      "generated": {
+      "roster": {
         "mean": 64.696,
         "std": 17.813,
         "min": 25.0,
@@ -265,7 +265,7 @@
         "p95": 94.25,
         "p99": 98.0
       },
-      "generated": {
+      "roster": {
         "mean": 66.951,
         "std": 18.301,
         "min": 25.0,
@@ -296,7 +296,7 @@
         "p95": 94.25,
         "p99": 98.0
       },
-      "generated": {
+      "roster": {
         "mean": 65.111,
         "std": 18.493,
         "min": 25.0,
@@ -327,7 +327,7 @@
         "p95": 94.25,
         "p99": 98.0
       },
-      "generated": {
+      "roster": {
         "mean": 68.871,
         "std": 17.847,
         "min": 25.0,
@@ -358,7 +358,7 @@
         "p95": 94.0,
         "p99": 97.0
       },
-      "generated": {
+      "roster": {
         "mean": 67.782,
         "std": 17.095,
         "min": 25.0,
@@ -389,7 +389,7 @@
         "p95": 87.0,
         "p99": 94.25
       },
-      "generated": {
+      "roster": {
         "mean": 68.269,
         "std": 10.216,
         "min": 50.0,
@@ -430,7 +430,7 @@
         "share": 0.516
       }
     },
-    "generated": {
+    "roster": {
       "superstar": {
         "count": 13,
         "share": 0.0289
@@ -468,7 +468,7 @@
         "share": 0.2447
       }
     },
-    "generated": {
+    "roster": {
       "guard": {
         "count": 180,
         "share": 0.4
@@ -484,7 +484,7 @@
     }
   },
   "identityChecks": {
-    "generatedNameCollisionsWithReference": 0,
+    "rosterNameCollisionsWithReference": 0,
     "collidingNames": [],
     "exactFullRatingVectorMatches": 0,
     "nearestReferenceMeanAbsoluteRatingDistance": {

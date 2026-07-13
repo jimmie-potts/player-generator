@@ -3,9 +3,9 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nba-gm-player-generator"
-version = "0.1.0"
-description = "Offline pipeline for deriving basketball player templates and generating fictional rosters."
+name = "nba-gm-roster-tools"
+version = "0.2.0"
+description = "Offline applications for building basketball reference data and roster data."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -26,16 +26,23 @@ dev = [
 ]
 
 [project.scripts]
-player-generator = "player_generator.cli:main"
-
-[tool.setuptools]
-package-dir = {"" = "src"}
+reference-data = "reference_data_app.cli:main"
+roster-generator = "roster_generator.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = [
+  "apps/reference-data/src",
+  "apps/roster-generator/src",
+  "packages/data-contracts/src",
+  "packages/attribute-engine/src",
+]
+namespaces = false
+
+[tool.setuptools.package-data]
+player_data_contracts = ["schemas/*.json"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["apps", "packages", "tests"]
 addopts = "-q"
 
 [tool.ruff]

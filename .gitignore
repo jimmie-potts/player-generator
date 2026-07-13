@@ -7,6 +7,9 @@ __pycache__/
 .ruff_cache/
 .venv/
 venv/
+node_modules/
+dist/
+coverage/
 
 # Editors / OS
 .DS_Store
@@ -25,5 +28,5 @@ reference_data/processed/*
 
 # Generated files may be regenerated. Keep the starter examples unless you
 # choose to track new outputs.
-generated_data/*.tmp
+roster_data/*.tmp
 reports/*.tmp

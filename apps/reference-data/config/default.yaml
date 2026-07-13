@@ -1,0 +1,46 @@
+paths:
+  reference_raw_dir: reference_data/raw
+  reference_processed_dir: reference_data/processed
+  source_manifest: reference_data/source_manifest.json
+
+reference:
+  seasons: [2021, 2022, 2023, 2024, 2025, 2026]
+  comparison_season: 2026
+  season_weights:
+    2021: 0.40
+    2022: 0.50
+    2023: 0.65
+    2024: 0.80
+    2025: 0.90
+    2026: 1.00
+  minimum_games: 20
+  minimum_minutes: 500
+  prior_attempts:
+    two_point: 150
+    three_point: 100
+    free_throw: 75
+  scheduled_games:
+    2021: 72
+    2022: 82
+    2023: 82
+    2024: 82
+    2025: 82
+    2026: 82
+
+ratings:
+  minimum: 25
+  maximum: 99
+  skill_percentile_anchors:
+    percentiles: [0.00, 0.05, 0.25, 0.50, 0.75, 0.90, 0.98, 1.00]
+    ratings:     [25,   38,   54,   68,   80,   90,   97,   99]
+  overall_percentile_anchors:
+    percentiles: [0.00, 0.05, 0.25, 0.50, 0.75, 0.90, 0.97, 0.99, 1.00]
+    ratings:     [50,   53,   60,   67,   74,   82,   89,   94,   97]
+
+league_generation:
+  tier_bounds:
+    superstar: [90, 99]
+    all_star: [84, 89]
+    starter: [76, 83]
+    rotation: [68, 75]
+    fringe: [50, 67]

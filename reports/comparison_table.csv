@@ -1,4 +1,4 @@
-rating,reference_mean,generated_mean,mean_difference,reference_std,generated_std,std_difference,quantile_mae
+rating,reference_mean,roster_mean,mean_difference,reference_std,roster_std,std_difference,quantile_mae
 insideScoring,66.809,64.502,-2.307,17.581,17.907,0.326,1.75
 threePointShooting,66.824,66.596,-0.228,17.575,17.763,0.188,0.986
 freeThrowShooting,66.814,67.991,1.177,17.58,18.15,0.57,1.18

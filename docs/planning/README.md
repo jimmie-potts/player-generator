@@ -37,24 +37,22 @@ team or coach generation.
 
 ## User story index
 
-All stories begin in `ready` status.
-
-| ID | Story | Epic |
-|---|---|---|
-| US-001 | [Establish the monorepo boundaries](user-stories/US-001-monorepo-boundaries.md) | EPIC-01 |
-| US-002 | [Adopt neutral domain terminology](user-stories/US-002-neutral-terminology.md) | EPIC-01 |
-| US-003 | [Register local Parquet inputs](user-stories/US-003-local-parquet-inputs.md) | EPIC-02 |
-| US-004 | [Normalize sources into a canonical model](user-stories/US-004-canonical-normalization.md) | EPIC-02 |
-| US-005 | [Publish normalized reference CSVs](user-stories/US-005-reference-csv-package.md) | EPIC-02 |
-| US-006 | [Define declarative formulas](user-stories/US-006-declarative-formulas.md) | EPIC-03 |
-| US-007 | [Calculate the initial attribute set](user-stories/US-007-initial-attributes.md) | EPIC-03 |
-| US-008 | [Consume a published reference package](user-stories/US-008-consume-reference-package.md) | EPIC-04 |
-| US-009 | [Generate the normalized roster package](user-stories/US-009-generate-roster-package.md) | EPIC-04 |
-| US-010 | [Provide formula and player preview endpoints](user-stories/US-010-formula-preview-api.md) | EPIC-05 |
-| US-011 | [Inspect formulas and calculations](user-stories/US-011-inspect-formulas.md) | EPIC-06 |
-| US-012 | [Preview formula adjustments](user-stories/US-012-preview-adjustments.md) | EPIC-06 |
-| US-013 | [Compare representative players](user-stories/US-013-compare-players.md) | EPIC-06 |
-| US-014 | [Define coach and team contracts](user-stories/US-014-coach-team-contracts.md) | EPIC-07 |
+| ID | Story | Epic | Status |
+|---|---|---|---|
+| US-001 | [Establish the monorepo boundaries](user-stories/US-001-monorepo-boundaries.md) | EPIC-01 | complete |
+| US-002 | [Adopt neutral domain terminology](user-stories/US-002-neutral-terminology.md) | EPIC-01 | complete |
+| US-003 | [Register local Parquet inputs](user-stories/US-003-local-parquet-inputs.md) | EPIC-02 | ready |
+| US-004 | [Normalize sources into a canonical model](user-stories/US-004-canonical-normalization.md) | EPIC-02 | ready |
+| US-005 | [Publish normalized reference CSVs](user-stories/US-005-reference-csv-package.md) | EPIC-02 | ready |
+| US-006 | [Define declarative formulas](user-stories/US-006-declarative-formulas.md) | EPIC-03 | ready |
+| US-007 | [Calculate the initial attribute set](user-stories/US-007-initial-attributes.md) | EPIC-03 | ready |
+| US-008 | [Consume a published reference package](user-stories/US-008-consume-reference-package.md) | EPIC-04 | ready |
+| US-009 | [Generate the normalized roster package](user-stories/US-009-generate-roster-package.md) | EPIC-04 | ready |
+| US-010 | [Provide formula and player preview endpoints](user-stories/US-010-formula-preview-api.md) | EPIC-05 | ready |
+| US-011 | [Inspect formulas and calculations](user-stories/US-011-inspect-formulas.md) | EPIC-06 | ready |
+| US-012 | [Preview formula adjustments](user-stories/US-012-preview-adjustments.md) | EPIC-06 | ready |
+| US-013 | [Compare representative players](user-stories/US-013-compare-players.md) | EPIC-06 | ready |
+| US-014 | [Define coach and team contracts](user-stories/US-014-coach-team-contracts.md) | EPIC-07 | ready |
 
 ## Planning records
 
@@ -66,7 +64,8 @@ All stories begin in `ready` status.
 
 ## Current-state warning
 
-The repository still contains the version 1 implementation under `src/player_generator/`, with its
-existing CLI, configuration, and output paths. Until a story is marked complete, those files remain
-the source of truth for current behavior. Planning documents use the version 2 names and must not be
-used as evidence that the corresponding code exists.
+EPIC-01 establishes the application and shared-package boundaries, but later behavior remains
+planned. The reference-data application still implements the pinned remote download and wide
+processed tables. The roster generator still emits the combined roster JSON and flat player CSV.
+Normalized packages, declarative formulas, the preview API, and interactive workbench behavior do
+not exist until their stories are completed.

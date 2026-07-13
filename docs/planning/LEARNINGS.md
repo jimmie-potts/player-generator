@@ -23,6 +23,24 @@ its completion notes.
 - ESPN play-style data can improve future attributes, but source-ID reconciliation and schema
   differences make it a separate adapter and formula-extension story.
 
+### 2026-07-12 — US-001
+
+- Setuptools can discover packages across multiple app and package source roots while exposing one
+  root editable install and separate console entrypoints.
+- Physical directories alone do not enforce application separation; AST import tests make the
+  reference-to-roster prohibition executable.
+- The current processed player-season CSV is only a transitional application seam. It is not the
+  versioned normalized reference package planned by US-005 and US-008.
+- A static React shell is sufficient to prove the frontend build, test, and runtime boundary without
+  pulling formula or API behavior forward from later epics.
+
+### 2026-07-12 — US-002
+
+- Output terminology appears in paths, code identifiers, report JSON keys, CSV headers, schemas,
+  fixtures, and documentation; all of those surfaces must move together.
+- Generated examples and reports should be rebuilt from their owning applications after interface
+  renames rather than edited by hand.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:

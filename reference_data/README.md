@@ -1,7 +1,6 @@
 # Local non-anonymized reference data
 
-This directory is deliberately separate from the current roster-output directory,
-`generated_data/`.
+This directory is deliberately separate from the roster-output directory, `roster_data/`.
 
 It may contain real player names, source IDs, team abbreviations, historical statistics, physical
 metadata and derived ratings. Its purpose is local calibration and regression testing—not game
@@ -24,15 +23,15 @@ Both `raw/` and files in `processed/` are ignored by Git. They are not included 
 rebuilding ratings or generating a new roster requires the download first:
 
 ```bash
-player-generator download-reference
-player-generator build-reference
+reference-data download
+reference-data build
 ```
 
 Never load this directory from the game runtime. Current game-facing output lives under
-`generated_data/` and contains no source IDs or source-player names. Do not commit or redistribute
+`roster_data/` and contains no source IDs or source-player names. Do not commit or redistribute
 the raw Parquet file or the derived named tables. The pinned `llimllib/nba_data` snapshot had no
 observed root license file; see `THIRD_PARTY_NOTICES.md`.
 
-Version 2 will accept local Parquet files through source adapters and publish normalized reference
-CSVs. The current downloader and wide processed tables remain authoritative until
+The next reference-data stories will accept local Parquet files through source adapters and publish
+normalized reference CSVs. The current downloader and wide processed tables remain authoritative until
 [EPIC-02](../docs/planning/epics/EPIC-02-reference-data.md) is implemented.
