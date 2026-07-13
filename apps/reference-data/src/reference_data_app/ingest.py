@@ -317,14 +317,7 @@ def load_player_stats(
     result["twoPointAttemptsPer36"] = safe_divide(
         result["twoPointersAttempted"] * 36.0, result["minutes"]
     )
-    result["freeThrowRate"] = safe_divide(
-        result["freeThrowsAttempted"], result["fieldGoalsAttempted"]
-    )
     result["turnoverRateProxy"] = result["estimatedTurnoverPercentage"]
-
-    scheduled_games = config["reference"].get("scheduled_games", {})
-    result["scheduledGames"] = result["season_year"].map(scheduled_games).fillna(82).astype(int)
-    result["availability"] = safe_divide(result["games"], result["scheduledGames"]).clip(0, 1)
     season_weights = config["reference"].get("season_weights", {})
     result["seasonWeight"] = result["season_year"].map(season_weights).fillna(1.0)
 
@@ -342,7 +335,6 @@ def load_player_stats(
         - result["turnovers"]
     )
     result["gameScorePer36"] = safe_divide(game_score * 36.0, result["minutes"])
-    result = _add_stabilized_percentages(result, config)
     result["games"] = result["games"].fillna(0).astype(int)
     return result.sort_values(["season_year", "personName"]).reset_index(drop=True)
 
@@ -549,10 +541,6 @@ def aggregate_player_seasons(
         2.0 * (result["fieldGoalsAttempted"] + 0.44 * result["freeThrowsAttempted"]),
     )
 
-    scheduled_games = config["reference"].get("scheduled_games", {})
-    result["scheduledGames"] = result["season_year"].map(scheduled_games).fillna(82).astype(int)
-    result["availability"] = safe_divide(result["games"], result["scheduledGames"]).clip(0.0, 1.0)
-
     game_score = (
         result["points"]
         + 0.4 * result["fieldGoalsMade"]
@@ -568,45 +556,4 @@ def aggregate_player_seasons(
     )
     result["gameScorePer36"] = safe_divide(game_score * 36.0, result["minutes"])
 
-    result = _add_stabilized_percentages(result, config)
     return result.sort_values(["season_year", "personName"]).reset_index(drop=True)
-
-
-def _add_stabilized_percentages(
-    player_seasons: pd.DataFrame, config: dict[str, Any]
-) -> pd.DataFrame:
-    result = player_seasons.copy()
-    priors = config["reference"]["prior_attempts"]
-
-    for _season, indices in result.groupby("season_year").groups.items():
-        frame = result.loc[indices]
-        pairs = (
-            (
-                "twoPointersMade",
-                "twoPointersAttempted",
-                "adjustedTwoPointPercentage",
-                float(priors["two_point"]),
-            ),
-            (
-                "threePointersMade",
-                "threePointersAttempted",
-                "adjustedThreePointPercentage",
-                float(priors["three_point"]),
-            ),
-            (
-                "freeThrowsMade",
-                "freeThrowsAttempted",
-                "adjustedFreeThrowPercentage",
-                float(priors["free_throw"]),
-            ),
-        )
-        for made, attempted, output, prior_attempts in pairs:
-            total_attempts = float(frame[attempted].sum())
-            league_average = (
-                float(frame[made].sum()) / total_attempts if total_attempts > 0 else 0.0
-            )
-            result.loc[indices, output] = (
-                frame[made] + league_average * prior_attempts
-            ) / (frame[attempted] + prior_attempts)
-
-    return result

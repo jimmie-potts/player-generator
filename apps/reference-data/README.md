@@ -1,7 +1,8 @@
 # Reference-data application
 
 This Python application owns local source registration, source-specific adapters, reconciliation,
-canonical normalization, the legacy rating path, and processed reference outputs.
+canonical normalization, and processed reference outputs. Its current wide build invokes the shared
+declarative attribute engine as a legacy compatibility path.
 
 ```bash
 reference-data --help
@@ -22,7 +23,8 @@ Registered files are referenced in place and must remain unchanged. Before and a
 `publish` verifies each file's SHA-256 hash and row count against the registry; missing or changed
 inputs fail publication with guidance to restore the file or rebuild its local registration.
 
-Its configuration boundary is `config/default.yaml` within this application. Raw, registered, and
+Its application configuration boundary is `config/default.yaml`; formula weights, eligibility,
+anchors, schedules, and tier ranges live only in the packaged attribute formula. Raw, registered, and
 processed named data remain local and untracked. The remote download and wide CSV outputs are
 transitional legacy behavior retained until the roster generator consumes the normalized package.
 The canonical model already produces validated relational tables and audit records in memory;

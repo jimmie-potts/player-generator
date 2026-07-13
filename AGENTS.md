@@ -13,8 +13,8 @@ The remaining redesign is documented in [docs/planning/README.md](docs/planning/
 documents describe future behavior unless their stories are marked complete. The reference builder
 now supports registered local inputs, canonical normalization, and version 1 CSV publication; its
 pinned download and wide tables remain a current legacy seam for the roster generator. The roster
-generator still emits its current combined outputs, formulas remain Python-defined, and the
-workbench has no formula or data behavior yet.
+generator still emits its current combined outputs. Player attributes now use the versioned
+declarative formula and shared Python evaluator; the workbench has no formula or data behavior yet.
 
 Do not implement a later story until the user explicitly starts it. Avoid changing runtime code,
 configuration, schemas, outputs, or pipeline behavior merely to resemble an unstarted plan.
@@ -58,6 +58,22 @@ Use the workflow in
 - Append reusable implementation findings to
   [docs/planning/LEARNINGS.md](docs/planning/LEARNINGS.md).
 - An epic is complete only after all of its required stories are complete.
+
+## Git and pull-request handoff
+
+- Treat completion of a story, epic, or other logical unit of work as authorization to commit its
+  intended files, push the working branch, and open a pull request without waiting for another
+  user prompt, unless the user explicitly requests local-only work or says not to publish it.
+- Open pull requests ready for review, not as drafts. If a publishing tool creates a draft, mark it
+  ready before reporting the handoff complete.
+- Pull-request handoff is non-blocking for the local implementation and story status. If GitHub
+  authentication, network access, permissions, or another external condition prevents publication,
+  preserve the validated commits, report the exact blocker, and retry when it clears; do not undo
+  completed work or silently stop at a local commit.
+- Use the repository's default branch as the base unless the user specifies another target. Give
+  the pull request a concise title and a body covering scope, motivation, impact, and validation.
+- Link the ready pull request from applicable story completion notes. Never include unrelated
+  working-tree changes merely to complete a handoff.
 
 ## Data and licensing
 

@@ -1,0 +1,298 @@
+{
+  "schemaVersion": 1,
+  "formulaVersion": "1.0.0",
+  "referenceContractVersion": 1,
+  "outputFields": [
+    "playerId",
+    "insideScoring",
+    "threePointShooting",
+    "freeThrowShooting",
+    "scoringVolume",
+    "playmaking",
+    "ballSecurity",
+    "offensiveRebounding",
+    "defensiveRebounding",
+    "perimeterDefense",
+    "interiorDefense",
+    "stamina",
+    "durability",
+    "overall",
+    "impactPercentile",
+    "talentTier",
+    "formulaVersion"
+  ],
+  "rules": {
+    "nullHandling": "exclude",
+    "tieMethod": "average",
+    "percentileMethod": "rankPct",
+    "ratingRounding": "halfEven"
+  },
+  "metrics": {
+    "season": {"kind": "input", "field": "season"},
+    "games": {"kind": "input", "field": "games"},
+    "minutes": {"kind": "input", "field": "minutes"},
+    "minutesPerGame": {"kind": "input", "field": "minutesPerGame"},
+    "fieldGoalsAttempted": {"kind": "input", "field": "fieldGoalsAttempted"},
+    "twoPointersMade": {"kind": "input", "field": "twoPointersMade"},
+    "twoPointersAttempted": {"kind": "input", "field": "twoPointersAttempted"},
+    "threePointersMade": {"kind": "input", "field": "threePointersMade"},
+    "threePointersAttempted": {"kind": "input", "field": "threePointersAttempted"},
+    "freeThrowsMade": {"kind": "input", "field": "freeThrowsMade"},
+    "freeThrowsAttempted": {"kind": "input", "field": "freeThrowsAttempted"},
+    "twoPointAttemptFrequency": {"kind": "input", "field": "twoPointAttemptFrequency"},
+    "threePointAttemptFrequency": {"kind": "input", "field": "threePointAttemptFrequency"},
+    "pointsPer100": {"kind": "input", "field": "pointsPer100"},
+    "usagePercentage": {"kind": "input", "field": "usagePercentage"},
+    "trueShootingPercentage": {"kind": "input", "field": "trueShootingPercentage"},
+    "assistPercentage": {"kind": "input", "field": "assistPercentage"},
+    "assistsPer36": {"kind": "input", "field": "assistsPer36"},
+    "assistRatio": {"kind": "input", "field": "assistRatio"},
+    "assistTurnoverRatio": {"kind": "input", "field": "assistTurnoverRatio"},
+    "estimatedTurnoverPercentage": {"kind": "input", "field": "estimatedTurnoverPercentage"},
+    "turnoversPer100": {"kind": "input", "field": "turnoversPer100"},
+    "offensiveReboundPercentage": {"kind": "input", "field": "offensiveReboundPercentage"},
+    "defensiveReboundPercentage": {"kind": "input", "field": "defensiveReboundPercentage"},
+    "stealsPer100": {"kind": "input", "field": "stealsPer100"},
+    "blocksPer100": {"kind": "input", "field": "blocksPer100"},
+    "estimatedDefensiveRating": {"kind": "input", "field": "estimatedDefensiveRating"},
+    "defensiveWinSharesPer36": {"kind": "input", "field": "defensiveWinSharesPer36"},
+    "playerImpactEstimate": {"kind": "input", "field": "playerImpactEstimate"},
+    "estimatedNetRating": {"kind": "input", "field": "estimatedNetRating"},
+    "adjustedTwoPointPercentage": {
+      "kind": "stabilizedPercentage",
+      "inputs": ["twoPointersMade", "twoPointersAttempted"],
+      "priorAttempts": 150
+    },
+    "adjustedThreePointPercentage": {
+      "kind": "stabilizedPercentage",
+      "inputs": ["threePointersMade", "threePointersAttempted"],
+      "priorAttempts": 100
+    },
+    "adjustedFreeThrowPercentage": {
+      "kind": "stabilizedPercentage",
+      "inputs": ["freeThrowsMade", "freeThrowsAttempted"],
+      "priorAttempts": 75
+    },
+    "freeThrowRate": {
+      "kind": "ratio",
+      "inputs": ["freeThrowsAttempted", "fieldGoalsAttempted"]
+    },
+    "availability": {
+      "kind": "scheduledRatio",
+      "inputs": ["games", "season"],
+      "schedule": {
+        "2021": 72,
+        "2022": 82,
+        "2023": 82,
+        "2024": 82,
+        "2025": 82,
+        "2026": 82
+      }
+    }
+  },
+  "cohorts": {
+    "season": {"groupBy": ["season"]}
+  },
+  "eligibilityRules": {
+    "standardSeason": {
+      "requiredMetrics": ["games", "minutes"],
+      "minimumSamples": {"games": 20, "minutes": 500}
+    }
+  },
+  "ratingScales": {
+    "skill": {
+      "minimum": 25,
+      "maximum": 99,
+      "anchors": [
+        {"percentile": 0.00, "rating": 25},
+        {"percentile": 0.05, "rating": 38},
+        {"percentile": 0.25, "rating": 54},
+        {"percentile": 0.50, "rating": 68},
+        {"percentile": 0.75, "rating": 80},
+        {"percentile": 0.90, "rating": 90},
+        {"percentile": 0.98, "rating": 97},
+        {"percentile": 1.00, "rating": 99}
+      ]
+    },
+    "overall": {
+      "minimum": 25,
+      "maximum": 99,
+      "anchors": [
+        {"percentile": 0.00, "rating": 50},
+        {"percentile": 0.05, "rating": 53},
+        {"percentile": 0.25, "rating": 60},
+        {"percentile": 0.50, "rating": 67},
+        {"percentile": 0.75, "rating": 74},
+        {"percentile": 0.90, "rating": 82},
+        {"percentile": 0.97, "rating": 89},
+        {"percentile": 0.99, "rating": 94},
+        {"percentile": 1.00, "rating": 97}
+      ]
+    }
+  },
+  "attributes": [
+    {
+      "name": "insideScoring",
+      "components": [
+        {"metric": "adjustedTwoPointPercentage", "weight": 0.50, "direction": "higher"},
+        {"metric": "twoPointAttemptFrequency", "weight": 0.30, "direction": "higher"},
+        {"metric": "freeThrowRate", "weight": 0.20, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "threePointShooting",
+      "components": [
+        {"metric": "adjustedThreePointPercentage", "weight": 0.60, "direction": "higher"},
+        {"metric": "threePointAttemptFrequency", "weight": 0.40, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "freeThrowShooting",
+      "components": [
+        {"metric": "adjustedFreeThrowPercentage", "weight": 1.00, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "scoringVolume",
+      "components": [
+        {"metric": "pointsPer100", "weight": 0.50, "direction": "higher"},
+        {"metric": "usagePercentage", "weight": 0.30, "direction": "higher"},
+        {"metric": "trueShootingPercentage", "weight": 0.20, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "playmaking",
+      "components": [
+        {"metric": "assistPercentage", "weight": 0.30, "direction": "higher"},
+        {"metric": "assistsPer36", "weight": 0.25, "direction": "higher"},
+        {"metric": "assistRatio", "weight": 0.15, "direction": "higher"},
+        {"metric": "assistTurnoverRatio", "weight": 0.15, "direction": "higher"},
+        {"metric": "usagePercentage", "weight": 0.15, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "ballSecurity",
+      "components": [
+        {"metric": "estimatedTurnoverPercentage", "weight": 0.40, "direction": "lower"},
+        {"metric": "assistTurnoverRatio", "weight": 0.30, "direction": "higher"},
+        {"metric": "turnoversPer100", "weight": 0.30, "direction": "lower"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "offensiveRebounding",
+      "components": [
+        {"metric": "offensiveReboundPercentage", "weight": 1.00, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "defensiveRebounding",
+      "components": [
+        {"metric": "defensiveReboundPercentage", "weight": 1.00, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "perimeterDefense",
+      "components": [
+        {"metric": "stealsPer100", "weight": 0.45, "direction": "higher"},
+        {"metric": "estimatedDefensiveRating", "weight": 0.20, "direction": "lower"},
+        {"metric": "defensiveWinSharesPer36", "weight": 0.15, "direction": "higher"},
+        {"metric": "defensiveReboundPercentage", "weight": 0.10, "direction": "higher"},
+        {"metric": "playerImpactEstimate", "weight": 0.10, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "interiorDefense",
+      "components": [
+        {"metric": "blocksPer100", "weight": 0.35, "direction": "higher"},
+        {"metric": "defensiveReboundPercentage", "weight": 0.25, "direction": "higher"},
+        {"metric": "estimatedDefensiveRating", "weight": 0.20, "direction": "lower"},
+        {"metric": "defensiveWinSharesPer36", "weight": 0.10, "direction": "higher"},
+        {"metric": "playerImpactEstimate", "weight": 0.10, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "stamina",
+      "components": [
+        {"metric": "minutesPerGame", "weight": 0.80, "direction": "higher"},
+        {"metric": "minutes", "weight": 0.20, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "durability",
+      "components": [
+        {"metric": "availability", "weight": 1.00, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "skill",
+      "rerankComposite": true
+    },
+    {
+      "name": "overall",
+      "components": [
+        {"metric": "playerImpactEstimate", "weight": 0.35, "direction": "higher"},
+        {"metric": "estimatedNetRating", "weight": 0.20, "direction": "higher"},
+        {"metric": "pointsPer100", "weight": 0.15, "direction": "higher"},
+        {"metric": "minutesPerGame", "weight": 0.12, "direction": "higher"},
+        {"metric": "trueShootingPercentage", "weight": 0.10, "direction": "higher"},
+        {"metric": "availability", "weight": 0.08, "direction": "higher"}
+      ],
+      "eligibilityRule": "standardSeason",
+      "cohort": "season",
+      "ratingScale": "overall",
+      "rerankComposite": true,
+      "percentileOutput": "impactPercentile"
+    }
+  ],
+  "talentTiers": [
+    {"name": "fringe", "minimum": 25, "maximum": 67},
+    {"name": "rotation", "minimum": 68, "maximum": 75},
+    {"name": "starter", "minimum": 76, "maximum": 83},
+    {"name": "all_star", "minimum": 84, "maximum": 89},
+    {"name": "superstar", "minimum": 90, "maximum": 99}
+  ]
+}

@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nba-gm/formula-v1.schema.json",
+  "title": "Player attribute formula document",
+  "description": "Version 1 structural contract for declarative player attribute formulas. Semantic validation is owned by player_attribute_engine.",
+  "contractVersion": 1,
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "formulaVersion",
+    "referenceContractVersion",
+    "outputFields",
+    "rules",
+    "metrics",
+    "cohorts",
+    "eligibilityRules",
+    "ratingScales",
+    "attributes",
+    "talentTiers"
+  ],
+  "properties": {
+    "schemaVersion": {"type": "integer", "const": 1},
+    "formulaVersion": {"type": "string", "minLength": 1},
+    "referenceContractVersion": {"type": "integer", "const": 1},
+    "outputFields": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "rules": {
+      "type": "object",
+      "required": ["nullHandling", "tieMethod", "percentileMethod", "ratingRounding"],
+      "properties": {
+        "nullHandling": {"const": "exclude"},
+        "tieMethod": {"const": "average"},
+        "percentileMethod": {"const": "rankPct"},
+        "ratingRounding": {"const": "halfEven"}
+      },
+      "additionalProperties": false
+    },
+    "metrics": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/metric"}
+    },
+    "cohorts": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "object"}
+    },
+    "eligibilityRules": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "object"}
+    },
+    "ratingScales": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/ratingScale"}
+    },
+    "attributes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/attribute"}
+    },
+    "talentTiers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/talentTier"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "metric": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {"type": "string", "minLength": 1},
+        "field": {"type": "string", "minLength": 1},
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "priorAttempts": {"type": "number"},
+        "schedule": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"pattern": "^[1-9][0-9]{3}$"},
+          "additionalProperties": {"type": "integer", "minimum": 1}
+        }
+      },
+      "additionalProperties": false
+    },
+    "component": {
+      "type": "object",
+      "required": ["metric", "weight", "direction"],
+      "properties": {
+        "metric": {"type": "string", "minLength": 1},
+        "weight": {"type": "number"},
+        "direction": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "ratingScale": {
+      "type": "object",
+      "required": ["minimum", "maximum", "anchors"],
+      "properties": {
+        "minimum": {"type": "number"},
+        "maximum": {"type": "number"},
+        "anchors": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["percentile", "rating"],
+            "properties": {
+              "percentile": {"type": "number"},
+              "rating": {"type": "number"}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "attribute": {
+      "type": "object",
+      "required": [
+        "name",
+        "components",
+        "eligibilityRule",
+        "cohort",
+        "ratingScale",
+        "rerankComposite"
+      ],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/component"}
+        },
+        "eligibilityRule": {"type": "string", "minLength": 1},
+        "cohort": {"type": "string", "minLength": 1},
+        "ratingScale": {"type": "string", "minLength": 1},
+        "rerankComposite": {"type": "boolean"},
+        "percentileOutput": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "talentTier": {
+      "type": "object",
+      "required": ["name", "minimum", "maximum"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "minimum": {"type": "number"},
+        "maximum": {"type": "number"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -93,6 +93,44 @@ its completion notes.
 - Real source files may encode unavailable optional text as whitespace. Normalize it to null before
   CSV writing so the contract produces an empty cell rather than invalid non-empty text.
 
+### 2026-07-13 — US-006
+
+- A formula document needs both a structural versioned schema and semantic validation of metric
+  dependencies, weights, directions, cohort references, and output coverage. A JSON shape alone
+  cannot reject a cyclic derived metric or an unknown component.
+- Derived metric policy is formula behavior. Shooting priors and season schedules must travel with
+  the formula version instead of remaining in application configuration, or identical source rows
+  can produce different ratings without a formula-version change.
+- Shooting stabilization must use the full season before minimum-sample eligibility is applied to
+  preserve the declared league prior. Eligibility applies to ranking and rating, not to construction
+  of that prior.
+- Existing percentile semantics are calibration behavior: average ties with pandas rank-percentile
+  semantics gives an eligible singleton `1.0`. Encoding this rule prevents a refactor from silently
+  shifting every anchor mapping.
+- A shared engine stays reusable when it accepts joined in-memory rows and returns ordered output
+  plus JSON-serializable explanations. Package loading, source adapters, and application
+  configuration remain consumer responsibilities.
+- Individually finite weights still need overflow-safe normalization. Scaling by the largest weight
+  before summing preserves a normalized total of 1 even near floating-point limits.
+- Formula evaluation must read input aliases from an immutable source snapshot and make implicit
+  derivation dependencies explicit. Otherwise harmless document-key reordering or a derived season
+  metric can move validation failures from load time to runtime.
+
+### 2026-07-13 — US-007
+
+- A rank-only synthetic cohort can preserve named calibration expectations without committing
+  source IDs or third-party reference rows. Cohort size and ordinal rank are sufficient to lock the
+  impact percentile, overall-anchor mapping, and tier.
+- Explanation regressions should reconstruct formula-derived metrics before reconstructing
+  weighted contributions. Otherwise a shooting prior, ratio zero policy, or scheduled-game rule
+  could drift while contribution arithmetic still appears correct.
+- Season-relative overall ratings need cohort and availability context. A small availability weight
+  can visibly separate otherwise prominent players when their availability percentile ranks differ
+  sharply.
+- Representative snapshots should include a specialist and independently missing attributes, not
+  only uniformly high and low players. The core evaluator preserves valid per-attribute results;
+  the current legacy wide adapter deliberately keeps only complete rating vectors.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:

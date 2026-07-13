@@ -1,50 +1,66 @@
-# Current version 1 rating model
+# Current declarative rating model
 
-The model is intentionally transparent and easy to replace.
+Formula schema version 1 and active formula version `1.0.0` make the player-attribute calculation
+inspectable and reproducible. The machine-readable structure is owned by `data-contracts`; the
+active formula and evaluator are owned by `attribute-engine`.
 
 ## Processing order
 
-1. Project the required totals, per-game, per-36, per-100, advanced and bio fields from the pinned
-   `playerstats.parquet` snapshot.
-2. Select end-season years 2021 through 2026 and players meeting the minutes threshold.
-3. Infer broad guard/wing/big buckets from height and role metrics because the source has no position.
-4. Stabilize 2P%, 3P% and FT% toward each season's league average.
-5. Rank composite skill metrics within each season and interpolate them onto configured 25-99 curves.
-6. Rank PIE, estimated net rating, points per 100, minutes, TS% and availability onto the overall
-   curve.
-7. Use all six rated seasons as the template pool, with recent seasons weighted more heavily, while
-   retaining the latest season as the comparison snapshot.
+1. Accept already joined, camelCase player-season metrics. The engine has no source adapter, file,
+   package, or application-configuration dependency. Numeric strings, booleans, complex values,
+   and temporal values are rejected rather than coerced into formula inputs.
+2. Derive only formula-declared ratios, stabilized shooting percentages, and scheduled-game ratios.
+   Shooting league averages use every row in the season before player eligibility is applied.
+3. Exclude a player from an attribute when a required value is null or its versioned minimum of 20
+   games and 500 minutes is not met.
+4. Rank every component inside its declared season cohort. Ties receive their average rank; inverse
+   components rank lower values as better.
+5. Multiply component percentiles by normalized weights and sum the contributions. The active
+   formulas rank that composite again inside the same eligible season cohort.
+6. Interpolate the composite percentile through the attribute's declared 25–99 anchors, round
+   half-even, and clamp to the output scale.
+7. Use the overall composite percentile as `impactPercentile`, map it through the overall anchors,
+   and assign `talentTier` only from the formula's versioned overall ranges.
 
-## Inputs
+Pandas `rank(method="average", pct=True)` is the versioned percentile definition. Its minimum rank
+is `1 / cohort size`, its maximum is `1.0`, and an eligible singleton receives `1.0`. Nulls are never
+median-filled; an excluded player receives empty attribute outputs plus structured reasons.
 
-- Shooting combines stabilized percentages with 2PA/3PA frequency and free-throw rate.
-- Scoring combines points per 100 possessions, usage and true shooting.
-- Playmaking uses assists per 36, assist percentage, assist ratio, assist-to-turnover and usage.
-- Ball security uses inverse estimated turnover percentage, inverse turnovers per 100 and
-  assist-to-turnover.
+## Formula inputs
+
+- Inside scoring combines stabilized 2P%, 2PA frequency, and free-throw rate.
+- Three-point and free-throw shooting use stabilized percentages with declared priors of 100 and 75
+  attempts; 2P% uses 150.
+- Scoring combines points per 100 possessions, usage, and true shooting.
+- Playmaking uses assist percentage, assists per 36, assist ratio, assist-to-turnover ratio, and
+  usage.
+- Ball security uses inverse estimated turnover percentage, assist-to-turnover ratio, and inverse
+  turnovers per 100.
 - Rebounding uses offensive and defensive rebound percentages.
-- Defense uses steals or blocks per 100 with estimated defensive rating, defensive win shares, PIE
-  and defensive rebound percentage.
+- Defense uses steals or blocks per 100 with inverse estimated defensive rating, defensive win
+  shares per 36, PIE, and defensive rebound percentage.
+- Stamina combines minutes per game and total minutes. Durability uses games divided by the
+  versioned scheduled-game count, clipped to `0..1`.
+- Overall combines PIE, estimated net rating, points per 100, minutes per game, true shooting, and
+  availability.
 
-## Why rank composites twice?
+The active resource pins scheduled games under canonical four-digit end-season keys for 2021
+through 2026. An unlisted season fails before evaluation instead of silently assuming a schedule.
 
-Each component is first converted to a percentile so metrics with different units can be combined.
-The resulting weighted composite is ranked again. This ensures that the best composite performer
-reaches the top of the configured scale even when no player is first in every component.
+## Explanation contract
+
+Each evaluated attribute returns raw component values, component percentiles, normalized weights,
+contributions, their weighted composite, the composite percentile, final rating, cohort identity,
+eligible cohort size, and any ineligibility reasons. These values are JSON-serializable and are the
+single calculation detail future batch and preview consumers use.
 
 ## Known limitations
 
-- Per-36 and per-100 values do not fully account for role and opponent quality.
-- Broad position groups are inferred, not authoritative source positions.
-- Defensive rating, defensive win shares and PIE remain noisy individual-defense signals with team
+- Per-36 and per-100 metrics do not fully account for role and opponent quality.
+- Defensive rating, defensive win shares, and PIE remain noisy individual-defense signals with team
   and context effects.
-- Potential, detailed positions and development traits are generated game-design variables.
-- ESPN play-style analytics are intentionally deferred.
-
-Every current formula is owned by `packages/attribute-engine/`; its anchors and eligibility settings
-are supplied by `apps/reference-data/config/default.yaml`.
-
-Version 2 will move formula definitions into a shared declarative contract used by roster generation
-and the preview API. See the [proposed formulas](planning/ATTRIBUTE_FORMULAS.md) and
-[attribute epic](planning/epics/EPIC-03-attributes.md). Those documents describe planned behavior,
-not the current implementation.
+- The current formula supports only the attributes listed in
+  [ATTRIBUTE_FORMULAS.md](planning/ATTRIBUTE_FORMULAS.md). Unsupported play-style, physical, and
+  tendency attributes are absent rather than filled with placeholders.
+- The current wide reference build remains a compatibility consumer until US-008 moves roster
+  generation to published reference packages.

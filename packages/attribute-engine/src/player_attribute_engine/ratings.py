@@ -2,133 +2,154 @@ from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
 import pandas as pd
-from player_data_contracts.models import RATING_FIELDS, TIER_ORDER
 
-from player_attribute_engine.math import interpolate_rating, stable_rank_percentile
-
-
-def _weighted_percentiles(frame: pd.DataFrame, components: dict[str, float]) -> pd.Series:
-    total_weight = sum(components.values())
-    if total_weight <= 0:
-        raise ValueError("Rating component weights must sum to a positive value.")
-    result = pd.Series(0.0, index=frame.index)
-    for metric, weight in components.items():
-        higher_is_better = True
-        if metric.startswith("inverse:"):
-            metric = metric.removeprefix("inverse:")
-            higher_is_better = False
-        result += stable_rank_percentile(frame[metric], higher_is_better) * weight
-    return result / total_weight
+from player_attribute_engine.contract import FormulaDocument
+from player_attribute_engine.evaluator import evaluate_player_attributes
+from player_attribute_engine.formula import load_formula
+from player_attribute_engine.metrics import prepare_formula_metrics
 
 
-def _map_skill(percentile: pd.Series, config: dict[str, Any]) -> np.ndarray:
-    anchors = config["ratings"]["skill_percentile_anchors"]
-    return interpolate_rating(percentile, anchors["percentiles"], anchors["ratings"])
-
-
-def _map_overall(percentile: pd.Series, config: dict[str, Any]) -> np.ndarray:
-    anchors = config["ratings"]["overall_percentile_anchors"]
-    return interpolate_rating(percentile, anchors["percentiles"], anchors["ratings"])
-
-
-def assign_talent_tier(overall: int | float, config: dict[str, Any]) -> str:
-    bounds = config["league_generation"]["tier_bounds"]
+def assign_talent_tier(
+    overall: int | float,
+    formula: FormulaDocument | None = None,
+) -> str:
+    """Assign an overall rating using only the active formula's versioned tier ranges."""
+    active = formula if formula is not None else load_formula()
     value = float(overall)
-    for tier in TIER_ORDER:
-        low, high = bounds[tier]
-        if float(low) <= value <= float(high):
-            return tier
-    return "superstar" if value > bounds["superstar"][1] else "fringe"
+    for tier in active.talent_tiers:
+        if tier.minimum <= value <= tier.maximum:
+            return tier.name
+    raise ValueError(f"Overall rating {overall!r} is outside the formula's talent-tier ranges.")
 
 
-def _rate_one_season(frame: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
-    result = frame.copy()
-    skill_components: dict[str, dict[str, float]] = {
-        "insideScoring": {
-            "adjustedTwoPointPercentage": 0.50,
-            "twoPointAttemptFrequency": 0.30,
-            "freeThrowRate": 0.20,
-        },
-        "threePointShooting": {
-            "adjustedThreePointPercentage": 0.60,
-            "threePointAttemptFrequency": 0.40,
-        },
-        "freeThrowShooting": {"adjustedFreeThrowPercentage": 1.0},
-        "scoringVolume": {
-            "pointsPer100": 0.50,
-            "usagePercentage": 0.30,
-            "trueShootingPercentage": 0.20,
-        },
-        "playmaking": {
-            "assistsPer36": 0.25,
-            "assistPercentage": 0.30,
-            "assistRatio": 0.15,
-            "assistTurnoverRatio": 0.15,
-            "usagePercentage": 0.15,
-        },
-        "ballSecurity": {
-            "inverse:estimatedTurnoverPercentage": 0.40,
-            "assistTurnoverRatio": 0.30,
-            "inverse:turnoversPer100": 0.30,
-        },
-        "offensiveRebounding": {"offensiveReboundPercentage": 1.0},
-        "defensiveRebounding": {"defensiveReboundPercentage": 1.0},
-        "perimeterDefense": {
-            "stealsPer100": 0.45,
-            "inverse:estimatedDefensiveRating": 0.20,
-            "defensiveWinSharesPer36": 0.15,
-            "defensiveReboundPercentage": 0.10,
-            "playerImpactEstimate": 0.10,
-        },
-        "interiorDefense": {
-            "blocksPer100": 0.35,
-            "defensiveReboundPercentage": 0.25,
-            "inverse:estimatedDefensiveRating": 0.20,
-            "defensiveWinSharesPer36": 0.10,
-            "playerImpactEstimate": 0.10,
-        },
-        "stamina": {"minutesPerGame": 0.80, "minutes": 0.20},
-        "durability": {"availability": 1.0},
-    }
-
-    for rating, components in skill_components.items():
-        composite = _weighted_percentiles(result, components)
-        percentile = stable_rank_percentile(composite, higher_is_better=True)
-        result[f"{rating}Percentile"] = percentile
-        result[rating] = np.rint(_map_skill(percentile, config)).astype(int)
-
-    impact_composite = _weighted_percentiles(
-        result,
-        {
-            "playerImpactEstimate": 0.35,
-            "estimatedNetRating": 0.20,
-            "pointsPer100": 0.15,
-            "minutesPerGame": 0.12,
-            "trueShootingPercentage": 0.10,
-            "availability": 0.08,
-        },
+def _evaluation_frame(player_seasons: pd.DataFrame) -> pd.DataFrame:
+    frame = player_seasons.reset_index(drop=True).copy()
+    if "season" not in frame:
+        if "season_year" not in frame:
+            raise ValueError("Player-season rows require a season column.")
+        frame["season"] = frame["season_year"]
+    if "playerId" not in frame:
+        if "personId" in frame:
+            frame["playerId"] = frame["personId"]
+        else:
+            raise ValueError("Player-season rows require a playerId or current legacy personId.")
+    frame["playerId"] = frame["playerId"].map(
+        lambda value: None if pd.isna(value) else str(value)
     )
-    impact_percentile = stable_rank_percentile(impact_composite, higher_is_better=True)
-    result["impactPercentile"] = impact_percentile
-    result["overall"] = np.rint(_map_overall(impact_percentile, config)).astype(int)
-    result["talentTier"] = result["overall"].map(lambda value: assign_talent_tier(value, config))
+    return frame
 
-    minimum = int(config["ratings"]["minimum"])
-    maximum = int(config["ratings"]["maximum"])
-    for field in (*RATING_FIELDS, "overall"):
-        result[field] = result[field].clip(minimum, maximum).astype(int)
+
+def _empty_rated_frame(
+    player_seasons: pd.DataFrame,
+    formula: FormulaDocument,
+) -> pd.DataFrame:
+    result = player_seasons.copy()
+    for metric in (
+        "adjustedTwoPointPercentage",
+        "adjustedThreePointPercentage",
+        "adjustedFreeThrowPercentage",
+        "freeThrowRate",
+        "availability",
+    ):
+        result[metric] = pd.Series(dtype=float)
+    attribute_names = {attribute.name for attribute in formula.attributes}
+    for field in formula.output_fields:
+        if field == "playerId":
+            continue
+        if field in attribute_names:
+            result[field] = pd.Series(dtype="Int64")
+        elif field == "impactPercentile":
+            result[field] = pd.Series(dtype=float)
+        else:
+            result[field] = pd.Series(dtype=object)
+    for attribute in formula.attributes:
+        if attribute.name != "overall":
+            result[f"{attribute.name}Percentile"] = pd.Series(dtype=float)
     return result
 
 
-def rate_player_seasons(player_seasons: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
-    rated = [
-        _rate_one_season(frame, config)
-        for _, frame in player_seasons.groupby("season_year", sort=True)
-    ]
-    if not rated:
-        return player_seasons.copy()
-    return pd.concat(rated, ignore_index=True).sort_values(
-        ["season_year", "overall", "personName"], ascending=[True, False, True]
+def rate_player_seasons(
+    player_seasons: pd.DataFrame,
+    config: dict[str, Any] | None = None,
+) -> pd.DataFrame:
+    """Rate the current legacy wide rows through the shared declarative evaluator.
+
+    ``config`` remains accepted while the current reference-data build is a legacy interface, but
+    formula behavior no longer comes from application configuration. US-008 will replace this
+    compatibility adapter when the roster generator consumes normalized reference packages.
+    """
+    del config
+    formula = load_formula()
+    if player_seasons.empty:
+        return _empty_rated_frame(player_seasons, formula)
+
+    evaluation_frame = _evaluation_frame(player_seasons)
+    prepared_rows: list[pd.DataFrame] = []
+    evaluated_rows: list[dict[str, Any] | None] = [None] * len(evaluation_frame)
+    explanations: list[dict[str, Any] | None] = [None] * len(evaluation_frame)
+    for indices in evaluation_frame.groupby("season", sort=True, dropna=False).groups.values():
+        positions = [int(index) for index in indices]
+        cohort = evaluation_frame.loc[positions].reset_index(drop=True)
+        prepared = prepare_formula_metrics(cohort, formula.metrics)
+        prepared["_legacyRowIndex"] = positions
+        prepared_rows.append(prepared)
+        batch = evaluate_player_attributes(cohort, formula)
+        for offset, position in enumerate(positions):
+            evaluated_rows[position] = batch.rows[offset]
+            explanations[position] = batch.explanations[offset]
+
+    if any(row is None for row in evaluated_rows) or any(
+        explanation is None for explanation in explanations
+    ):
+        raise AssertionError("Every legacy player-season row must be evaluated exactly once.")
+    output_rows = [row for row in evaluated_rows if row is not None]
+    detail_rows = [explanation for explanation in explanations if explanation is not None]
+    prepared = (
+        pd.concat(prepared_rows, ignore_index=True)
+        .sort_values("_legacyRowIndex")
+        .reset_index(drop=True)
     )
+    result = player_seasons.reset_index(drop=True).copy()
+
+    for metric in (
+        "adjustedTwoPointPercentage",
+        "adjustedThreePointPercentage",
+        "adjustedFreeThrowPercentage",
+        "freeThrowRate",
+        "availability",
+    ):
+        result[metric] = prepared[metric]
+
+    for field in formula.output_fields:
+        if field == "playerId":
+            continue
+        result[field] = [row[field] for row in output_rows]
+
+    for attribute in formula.attributes:
+        if attribute.name == "overall":
+            continue
+        result[f"{attribute.name}Percentile"] = [
+            explanation["attributes"][attribute.name]["compositePercentile"]
+            for explanation in detail_rows
+        ]
+
+    rating_fields = [attribute.name for attribute in formula.attributes]
+    result = result[result[rating_fields].notna().all(axis=1)].copy()
+    for field in rating_fields:
+        result[field] = result[field].astype(int)
+
+    sort_columns: list[str] = []
+    ascending: list[bool] = []
+    if "season_year" in result:
+        sort_columns.append("season_year")
+        ascending.append(True)
+    elif "season" in result:
+        sort_columns.append("season")
+        ascending.append(True)
+    sort_columns.append("overall")
+    ascending.append(False)
+    if "personName" in result:
+        sort_columns.append("personName")
+        ascending.append(True)
+    return result.sort_values(sort_columns, ascending=ascending).reset_index(drop=True)

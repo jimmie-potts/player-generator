@@ -10,7 +10,16 @@ from player_attribute_engine.ratings import rate_player_seasons
 def _rating_row(name: str, **overrides: Any) -> dict[str, Any]:
     row = {
         "season_year": 2026,
+        "personId": name,
         "personName": name,
+        "games": 50,
+        "twoPointersMade": 40,
+        "twoPointersAttempted": 80,
+        "threePointersMade": 20,
+        "threePointersAttempted": 60,
+        "freeThrowsMade": 30,
+        "freeThrowsAttempted": 40,
+        "fieldGoalsAttempted": 140,
         "adjustedTwoPointPercentage": 0.50,
         "twoPointAttemptFrequency": 0.50,
         "freeThrowRate": 0.25,
@@ -101,3 +110,40 @@ def test_advanced_metrics_move_ratings_in_expected_direction(
     rated = rate_player_seasons(frame, reference_config).set_index("personName")
 
     assert rated.loc["High", rating] > rated.loc["Low", rating]
+
+
+def test_legacy_adapter_groups_seasons_and_keeps_only_complete_templates(
+    reference_config: dict,
+) -> None:
+    frame = pd.DataFrame(
+        [
+            _rating_row("Shared", season_year=2025, personId=1),
+            _rating_row("Shared", season_year=2026, personId=1),
+            _rating_row("Incomplete", personId=2, stealsPer100=None),
+        ]
+    )
+
+    rated = rate_player_seasons(frame, reference_config)
+
+    assert list(rated["season_year"]) == [2025, 2026]
+    assert list(rated["personName"]) == ["Shared", "Shared"]
+    assert rated["perimeterDefense"].notna().all()
+    assert "Incomplete" not in set(rated["personName"])
+
+
+def test_legacy_adapter_empty_result_keeps_the_rating_schema(
+    reference_config: dict,
+) -> None:
+    source = pd.DataFrame(columns=list(_rating_row("Schema")))
+
+    rated = rate_player_seasons(source, reference_config)
+
+    assert rated.empty
+    assert {
+        "insideScoring",
+        "overall",
+        "impactPercentile",
+        "talentTier",
+        "formulaVersion",
+        "adjustedThreePointPercentage",
+    } <= set(rated.columns)
