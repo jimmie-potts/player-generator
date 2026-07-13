@@ -18,12 +18,12 @@ packages/
 Reference data and roster generation are the two data subprojects. The formula workbench is a
 supporting application over the shared contracts and calculation engine.
 
-The architecture boundary, local source registration, and canonical normalization are implemented,
-but later behavior remains planned:
+The architecture boundary and normalized reference-package builder are implemented, but later
+behavior remains planned:
 
-- Reference data can register and normalize local NBA and ESPN Parquet inputs, while normalized CSV
-  publication remains planned. Its current public build still uses the legacy pinned download and
-  wide processed CSVs.
+- Reference data can register and normalize local NBA and ESPN Parquet inputs and atomically publish
+  a validated version 1 CSV package. The pinned download and wide build remain legacy commands for
+  the roster generator's current transitional input.
 - Roster generation still produces a combined roster JSON and flat player CSV.
 - Rating formulas retain their current Python definitions.
 - The workbench currently renders a static application shell without data or formula behavior.
@@ -72,6 +72,8 @@ generates the roster, and writes the comparison reports.
 ```bash
 reference-data --help
 reference-data register --source-type nba_playerstats /path/to/playerstats.parquet
+reference-data publish
+reference-data publish --output /path/to/reference-v1
 reference-data download
 reference-data build
 ```
@@ -79,8 +81,9 @@ reference-data build
 Registration validates and records local files without copying them into the repository. Source
 types `nba_playerstats` and `espn_player_details` use adapter schema version 1, and their ignored
 local provenance registry lives at `reference_data/registry/sources.json`. The current legacy
-download remains pinned by `reference_data/source_manifest.json`; normalized reference CSV
-publication remains planned in EPIC-02.
+download remains pinned by `reference_data/source_manifest.json`. `publish` writes the version 1
+relational CSVs, reconciliation audit, and deterministic manifest under
+`reference_data/packages/reference-v1` by default. Registry and package output remain ignored.
 
 ### Roster generator
 

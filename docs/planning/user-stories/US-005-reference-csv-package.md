@@ -1,6 +1,6 @@
 # US-005: Publish normalized reference CSVs
 
-- **Status:** in_progress
+- **Status:** complete
 - **Epic:** [EPIC-02](../epics/EPIC-02-reference-data.md)
 - **Dependencies:** US-004
 
@@ -60,5 +60,36 @@ consumed without Parquet or source-specific knowledge.
 
 ## Completion notes
 
-Pending. Record contract versions, final metric lists, package samples, commands, and validation
-results before changing status to `complete`.
+- **Completed:** 2026-07-13
+- **Branch and implementation commit:** `agent/implement-us-003-us-005`; `07c63ef`.
+- **Delivered:** `reference-data publish`; the packaged `reference-v1.schema.json` contract and
+  reusable table/package validators; six contract-ordered UTF-8/LF CSVs; deterministic
+  reconciliation audit; manifest version 1; and staged, validated, backup-restored directory
+  replacement with failure cleanup.
+- **Contract version and metrics:** Reference contract version 1 uses the exact headers in
+  [DATA_CONTRACTS.md](../DATA_CONTRACTS.md): 37 traditional and 19 advanced metrics after the three
+  aggregate player-season identity columns. Missing optional values are empty, and starts, birth
+  data, or other unavailable inputs are not invented.
+- **Manifest and determinism:** The manifest records version 1 for every CSV, registered input
+  hashes and adapter versions, row counts, file hashes, and a content hash over all six CSVs plus
+  `audit.json`. `createdAt` is the only per-publication timestamp and is excluded from that hash;
+  stable registration timestamps remain part of `sources.csv`.
+- **Local package sample:** The ignored pinned NBA file produced 1,693 player rows, 1,693 source-ID
+  rows, one provenance row, and 6,908 rows in each season-grain table. Two publications produced
+  byte-identical CSVs and audit plus content hash
+  `8cffd80a96a8fe5d2e0a937eadf788601e1c185d1175baeb8858b5ba285264a5` while their `createdAt`
+  values differed.
+- **Compatibility boundary:** The legacy pinned `download` and wide `build` remain only because the
+  current roster generator consumes that interface. US-008 owns its move to this package; no roster
+  runtime, formula, rating, or generated identity behavior changed here.
+- **Validation:** `.venv/bin/python -m pytest -q` passed 88 tests; `.venv/bin/python -m ruff check .`,
+  `git diff --check`, `npm run workbench:test`, and `npm run workbench:build` passed. Golden headers,
+  optional empties, type errors, missing required values, duplicates, orphans, mismatched season key
+  sets, deterministic hashes, validation cleanup, final-replace rollback, and CLI publication are
+  covered.
+- **Follow-up:** US-006 consumes the reference metric vocabulary for declarative formulas. US-008
+  validates and consumes a published package without accessing this application's registry or
+  adapters.
+- **Learning:** Validation must run against the serialized staging directory, not only in-memory
+  rows; the real input also showed that whitespace-only optional source text must normalize to null
+  before contract serialization.

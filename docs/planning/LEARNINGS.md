@@ -71,6 +71,19 @@ its completion notes.
 - Opaque player IDs anchored to a primary namespaced identity remain stable when a supplemental
   source is later reconciled, while opaque player-season IDs make aggregate grain executable.
 
+### 2026-07-13 — US-005
+
+- A machine-readable CSV contract must govern ordered headers as well as field types and keys;
+  validating row mappings alone cannot detect a consumer-visible header reorder.
+- Validate the serialized staging directory before publication. This catches encoding, empty-cell,
+  numeric-format, and header errors that in-memory canonical validation cannot observe.
+- A deterministic package content hash can cover contract CSVs and audit while excluding the
+  manifest's `createdAt`; persisted registration timestamps keep provenance stable between builds.
+- Directory-level publication needs a same-parent staging directory and backup restoration so a
+  failed final rename cannot leave a partial package or destroy the last valid one.
+- Real source files may encode unavailable optional text as whitespace. Normalize it to null before
+  CSV writing so the contract produces an empty cell rather than invalid non-empty text.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:

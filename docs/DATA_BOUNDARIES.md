@@ -17,7 +17,7 @@ Allowed contents:
 
 Rules:
 
-- Keep raw and processed named data local and untracked.
+- Keep raw, registered, normalized-package, and processed named data local and untracked.
 - Do not load it from a game client or production runtime.
 - Refresh intentionally and validate provenance and schema changes.
 - Do not commit or redistribute upstream or derived named data without established rights.
@@ -47,7 +47,8 @@ but must not contain direct mappings between named reference players and roster 
 
 ## Application boundary
 
-The reference-data application currently publishes local processed tables. The roster generator
-consumes those files without importing the reference pipeline or reading raw Parquet. US-005 and
-US-008 will replace this transitional seam with a normalized package and versioned manifest. See the
+The reference-data application publishes a validated version 1 normalized package and retains its
+wide processed tables as a current legacy interface. The roster generator still consumes only that
+legacy processed file without importing the reference pipeline or reading raw Parquet. US-008 will
+move the consumer to the normalized package and versioned manifest. See the
 [version 2 plan](planning/README.md).
