@@ -73,7 +73,7 @@ statistics, and attributes can be loaded independently.
   assignment, flattened player CSV, and comparison command/report were retired rather than wrapped.
   Packages now live under ignored `roster_data/packages/roster-v1/` so generated output cannot mix
   with stale tracked examples.
-- **Validation:** `.venv/bin/python -m pytest` passed 275 tests, including a fixed
+- **Validation:** `.venv/bin/python -m pytest` passed 276 tests, including a fixed
   generator-to-publication golden package, deterministic bytes, valid zero-attempt shooters,
   identity leaks, manifest tampering, statistical invariants, and atomic rollback;
   `.venv/bin/python -m ruff check .`, `npm run workbench:test`, `npm run workbench:build`,

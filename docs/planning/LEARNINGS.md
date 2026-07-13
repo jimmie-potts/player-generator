@@ -141,6 +141,9 @@ its completion notes.
 - Formula-derived priors and percentiles require the whole configured season cohort. Evaluate that
   cohort before applying generator-specific games and minutes filters, then sample only complete
   outputs with explicit recency and minutes weights.
+- Formula completeness does not prove that a row has the primitive shooting, event, and
+  total/per-100 inputs required for controlled mutation. Apply generation-viability checks before
+  weighted sampling so unsupported templates cannot fail only for particular seeds.
 
 ### 2026-07-13 — US-009
 

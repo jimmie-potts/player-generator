@@ -26,6 +26,83 @@ class SelectionError(ValueError):
     """Raised when template eligibility or sampling cannot be completed."""
 
 
+def _optional_number(row: object, field: str) -> float | None:
+    getter = getattr(row, "get", None)
+    if getter is None:
+        return None
+    value = getter(field)
+    if value is None or pd.isna(value) or isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def infer_template_possessions(row: object) -> float | None:
+    """Apply D-018's deterministic possession inference to one reference template."""
+    implied: list[float] = []
+    for total_field, rate_field in (
+        ("points", "pointsPer100"),
+        ("assists", "assistsPer100"),
+        ("turnovers", "turnoversPer100"),
+        ("steals", "stealsPer100"),
+        ("blocks", "blocksPer100"),
+    ):
+        total = _optional_number(row, total_field)
+        rate = _optional_number(row, rate_field)
+        if total is not None and rate is not None and total > 0 and rate > 0:
+            implied.append(total / rate * 100.0)
+    if not implied:
+        return None
+    return float(np.median(np.asarray(implied, dtype=float)))
+
+
+def _valid_shooting_pair(row: object, made_field: str, attempted_field: str) -> bool:
+    made = _optional_number(row, made_field)
+    attempted = _optional_number(row, attempted_field)
+    return (
+        made is not None
+        and attempted is not None
+        and made >= 0
+        and attempted >= 0
+        and made <= attempted
+    )
+
+
+def _has_event_source(
+    row: object,
+    total_field: str,
+    per36_field: str,
+    per100_field: str,
+) -> bool:
+    return any(
+        _optional_number(row, field) is not None
+        for field in (total_field, per36_field, per100_field)
+    )
+
+
+def template_is_generation_viable(row: object) -> bool:
+    """Return whether the generator can mutate one formula-complete template."""
+    shooting_pairs = (
+        ("twoPointersMade", "twoPointersAttempted"),
+        ("threePointersMade", "threePointersAttempted"),
+        ("freeThrowsMade", "freeThrowsAttempted"),
+    )
+    event_sources = (
+        ("assists", "assistsPer36", "assistsPer100"),
+        ("turnovers", "turnoversPer36", "turnoversPer100"),
+        ("steals", "stealsPer36", "stealsPer100"),
+        ("blocks", "blocksPer36", "blocksPer100"),
+    )
+    return (
+        infer_template_possessions(row) is not None
+        and all(_valid_shooting_pair(row, made, attempted) for made, attempted in shooting_pairs)
+        and all(_has_event_source(row, *fields) for fields in event_sources)
+    )
+
+
 def _integer(value: object, field: str, *, minimum: int) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise SelectionError(f"selection.{field} must be an integer.")
@@ -196,7 +273,8 @@ def eligible_candidates(
         complete = outputs[list(output_fields)].notna().all(axis=1)
         games_eligible = (cohort["games"] >= settings.minimum_games).fillna(False)
         minutes_eligible = (cohort["minutes"] >= settings.minimum_minutes).fillna(False)
-        eligible = complete & games_eligible & minutes_eligible
+        generation_viable = cohort.apply(template_is_generation_viable, axis=1)
+        eligible = complete & games_eligible & minutes_eligible & generation_viable
         if not eligible.any():
             continue
         rows = pd.concat(
@@ -215,7 +293,7 @@ def eligible_candidates(
         seasons = ", ".join(str(season) for season in settings.seasons)
         raise SelectionError(
             "No eligible reference templates remain after formula completeness and configured "
-            f"games/minutes filters for seasons: {seasons}."
+            f"games/minutes/generation-viability filters for seasons: {seasons}."
         )
     return pd.concat(season_batches, ignore_index=True)
 
@@ -276,5 +354,7 @@ __all__ = [
     "SelectionError",
     "SelectionSettings",
     "eligible_candidates",
+    "infer_template_possessions",
     "select_templates",
+    "template_is_generation_viable",
 ]

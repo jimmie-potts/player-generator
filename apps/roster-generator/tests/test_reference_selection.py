@@ -399,6 +399,9 @@ def test_eligibility_evaluates_full_cohort_before_configured_filters(
         )
 
     monkeypatch.setattr("roster_generator.selection.evaluate_player_attributes", evaluate)
+    monkeypatch.setattr(
+        "roster_generator.selection.template_is_generation_viable", lambda _row: True
+    )
     formula = SimpleNamespace(output_fields=("playerId", "rating"))
 
     candidates = eligible_candidates(package, formula, _settings(roster_size=1))
@@ -416,6 +419,21 @@ def test_empty_eligible_population_is_rejected(reference_package: Path) -> None:
             load_formula(),
             _settings(minimum_minutes=100_000.0),
         )
+
+
+def test_formula_complete_but_generation_inviable_templates_are_excluded(
+    reference_package: Path,
+) -> None:
+    formula = load_formula()
+    package = load_reference_package(reference_package, formula)
+    excluded_id = str(package.frame.loc[0, "playerId"])
+    for field in ("points", "assists", "turnovers", "steals", "blocks"):
+        package.frame.loc[0, field] = None
+
+    candidates = eligible_candidates(package, formula, _settings(roster_size=1))
+
+    assert excluded_id not in set(candidates["playerId"].astype(str))
+    assert len(candidates) == 2
 
 
 def test_template_selection_is_deterministic(reference_package: Path) -> None:

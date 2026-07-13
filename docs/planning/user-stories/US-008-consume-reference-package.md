@@ -47,14 +47,14 @@ does not depend on raw sources or adapter internals.
   all six CSV contract versions, exact required files, per-file hashes and row counts, the audit row
   count, aggregate content hash, normalized table relationships, and formula reference-contract
   and roster-output compatibility before returning a typed player-season join. Selection evaluates
-  complete season cohorts before applying explicit season, recency, games, minutes, size,
-  replacement, and seed controls.
+  complete season cohorts before applying explicit season, recency, games, minutes,
+  generation-viability, size, replacement, and seed controls.
 - **Deviations:** None. The story remains a consumer only and never builds or repairs a reference
   package.
 - **Validation:** `.venv/bin/python -m pytest
-  apps/roster-generator/tests/test_reference_selection.py` passed 23 tests, including missing
-  files, hash/row/version/relationship failures, formula output compatibility, empty populations,
-  deterministic selection, and end-to-end CLI publication; focused Ruff passed.
+  apps/roster-generator/tests/test_reference_selection.py` passed 24 tests, including missing
+  files, hash/row/version/relationship failures, formula output compatibility, mutation viability,
+  empty populations, deterministic selection, and end-to-end CLI publication; focused Ruff passed.
 - **Follow-up:** US-009 consumes the selected internal templates and must not serialize their
   reference identities or any crosswalk.
 - **Learning:** Validate the full published package, then recheck its hashes after typed reads so a

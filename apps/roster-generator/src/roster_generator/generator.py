@@ -17,6 +17,7 @@ from roster_generator.reference_package import LoadedReferencePackage
 from roster_generator.selection import (
     SelectionSettings,
     eligible_candidates,
+    infer_template_possessions,
     select_templates,
 )
 
@@ -167,23 +168,12 @@ def _mutated_makes(
 
 
 def _infer_possessions(row: Mapping[str, object]) -> float:
-    implied: list[float] = []
-    for total_field, rate_field in (
-        ("points", "pointsPer100"),
-        ("assists", "assistsPer100"),
-        ("turnovers", "turnoversPer100"),
-        ("steals", "stealsPer100"),
-        ("blocks", "blocksPer100"),
-    ):
-        total = _optional_number(row, total_field)
-        rate = _optional_number(row, rate_field)
-        if total is not None and rate is not None and total > 0 and rate > 0:
-            implied.append(total / rate * 100.0)
-    if not implied:
+    inferred = infer_template_possessions(row)
+    if inferred is None:
         raise RosterGenerationError(
             "Selected reference template has no usable total/per-100 pair for possession inference"
         )
-    return float(np.median(np.asarray(implied, dtype=float)))
+    return inferred
 
 
 def _reference_count(
