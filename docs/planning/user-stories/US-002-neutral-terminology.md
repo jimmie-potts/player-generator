@@ -23,13 +23,12 @@ domain vocabulary regardless of provenance.
 
 ## Out of scope
 
-- Changing generation algorithms or allowing source identities in roster output.
+- Changing generation algorithms.
 
 ## Validation
 
 - Terminology search over tracked files.
 - Current and planned command/path documentation matches implemented behavior after migration.
-- Existing identity-leak tests remain effective under renamed outputs.
 
 ## Implementation notes
 
