@@ -322,7 +322,8 @@ def _optional_text(value: object, field: str, context: str) -> str | None:
         return None
     if not isinstance(normalized, str):
         raise AdapterValidationError(f"{context}: field {field!r} must be a string or null")
-    return normalized
+    stripped = normalized.strip()
+    return stripped or None
 
 
 def _numeric(

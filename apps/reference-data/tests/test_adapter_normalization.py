@@ -195,7 +195,7 @@ def test_optional_nulls_and_espn_aliases_are_conservative(tmp_path: Path) -> Non
             _nba_row(
                 player_weight=None,
                 country=None,
-                college=None,
+                college="   ",
                 draft_year="Undrafted",
                 draft_round=None,
                 draft_number="Undrafted",
@@ -223,6 +223,7 @@ def test_optional_nulls_and_espn_aliases_are_conservative(tmp_path: Path) -> Non
 
     assert nba.player_fields["weightPounds"] is None
     assert nba.player_fields["country"] is None
+    assert nba.player_fields["college"] is None
     assert nba.player_fields["draftYear"] is None
     assert nba.player_fields["draftNumber"] is None
     assert nba.advanced_stats["playerImpactEstimate"] is None

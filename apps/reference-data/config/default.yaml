@@ -3,6 +3,7 @@ paths:
   reference_processed_dir: reference_data/processed
   source_manifest: reference_data/source_manifest.json
   source_registry: reference_data/registry/sources.json
+  reference_package_dir: reference_data/packages/reference-v1
 
 reference:
   seasons: [2021, 2022, 2023, 2024, 2025, 2026]

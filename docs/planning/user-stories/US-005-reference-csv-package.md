@@ -1,6 +1,6 @@
 # US-005: Publish normalized reference CSVs
 
-- **Status:** ready
+- **Status:** in_progress
 - **Epic:** [EPIC-02](../epics/EPIC-02-reference-data.md)
 - **Dependencies:** US-004
 
@@ -39,7 +39,24 @@ consumed without Parquet or source-specific knowledge.
 
 ## Implementation notes
 
-Append dated notes here while the story is active.
+### 2026-07-13
+
+- Started after US-004 completed in commit `d5148fc`; publication consumes only the validated
+  canonical bundle and does not change the roster generator's US-008-owned legacy seam.
+- Selected one machine-readable reference contract version governing all six relational CSVs, with
+  exact ordered headers, scalar types, nullability, unique keys, and cross-table relationships.
+- Selected sibling-directory staging with validation before a directory-level replacement. Failed
+  writes or validation restore an existing package and remove temporary output.
+- Finalized version 1 with 37 traditional and 19 advanced metric fields, each copied from the
+  canonical adapter without ratings or later formula behavior. The packaged schema governs all six
+  ordered CSV headers, scalar types, required/null rules, unique keys, player relationships, source
+  types, and exact aggregate player-season key-set equality.
+- Added `reference-data publish [--output PATH]`. Publication writes deterministic UTF-8/LF CSVs
+  with empty optional cells, deterministic `audit.json`, and `manifest.json` containing input,
+  contract, row-count, per-file hash, and package content-hash metadata.
+- Synthetic golden, contract-failure, final-replace rollback, and end-to-end CLI fixtures passed.
+  The full Python suite passed 88 tests and Ruff. Two builds from the ignored 6,908-row NBA input
+  produced byte-identical CSV/audit files and content hash while differing only in `createdAt`.
 
 ## Completion notes
 

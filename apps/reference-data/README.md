@@ -7,6 +7,8 @@ canonical normalization, the legacy rating path, and processed reference outputs
 reference-data --help
 reference-data register --source-type nba_playerstats /path/to/playerstats.parquet
 reference-data register --source-type espn_player_details /path/to/player-details.parquet
+reference-data publish
+reference-data publish --output /path/to/reference-v1
 reference-data download
 reference-data build
 ```
@@ -21,7 +23,9 @@ Its configuration boundary is `config/default.yaml` within this application. Raw
 processed named data remain local and untracked. The remote download and wide CSV outputs are
 transitional legacy behavior retained until the roster generator consumes the normalized package.
 The canonical model already produces validated relational tables and audit records in memory;
-versioned normalized CSV publication is US-005.
+`publish` writes the six version 1 relational CSVs, deterministic audit and integrity metadata, and
+a package manifest to the ignored `reference_data/packages/reference-v1` directory by default. It
+stages and validates the complete package before replacing an existing destination atomically.
 
 The application may import `player_data_contracts` and `player_attribute_engine`. It must never
 import `roster_generator`.

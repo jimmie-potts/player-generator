@@ -7,6 +7,7 @@ from pathlib import Path
 from reference_data_app.adapters import SUPPORTED_SOURCE_TYPES, AdapterValidationError
 from reference_data_app.config import DEFAULT_CONFIG_PATH, load_config, resolve_path
 from reference_data_app.pipeline import build_reference_data, download_reference_data
+from reference_data_app.publication import publish_reference_package
 from reference_data_app.registration import RegistrationError, register_sources
 
 
@@ -40,6 +41,8 @@ def _parser() -> argparse.ArgumentParser:
     )
     register.add_argument("--upstream-version", help="Known upstream version or snapshot label.")
     register.add_argument("--license-status", help="Known license status for the local source.")
+    publish = subparsers.add_parser("publish", help="Publish normalized reference CSVs.")
+    publish.add_argument("--output", type=Path, help="Override the configured package directory.")
     return parser
 
 
@@ -72,5 +75,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         except (AdapterValidationError, RegistrationError) as error:
             parser.error(str(error))
         print(f"Registered or verified {len(sources)} local reference source(s).")
+        return 0
+    if args.command == "publish":
+        package_path = publish_reference_package(config, args.output)
+        print(f"Published normalized reference package to {package_path}.")
         return 0
     raise AssertionError(f"Unhandled command: {args.command}")
