@@ -1,6 +1,6 @@
 # EPIC-03: Declarative player attributes
 
-- **Status:** in_progress
+- **Status:** complete
 - **Outcome:** Calculate explainable, versioned player attributes through one shared engine.
 - **Dependencies:** EPIC-02
 

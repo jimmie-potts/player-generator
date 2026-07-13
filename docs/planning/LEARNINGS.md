@@ -111,6 +111,21 @@ its completion notes.
   plus JSON-serializable explanations. Package loading, source adapters, and application
   configuration remain consumer responsibilities.
 
+### 2026-07-13 — US-007
+
+- A rank-only synthetic cohort can preserve named calibration expectations without committing
+  source IDs or third-party reference rows. Cohort size and ordinal rank are sufficient to lock the
+  impact percentile, overall-anchor mapping, and tier.
+- Explanation regressions should reconstruct formula-derived metrics before reconstructing
+  weighted contributions. Otherwise a shooting prior, ratio zero policy, or scheduled-game rule
+  could drift while contribution arithmetic still appears correct.
+- Season-relative overall ratings need cohort and availability context. A small availability weight
+  can visibly separate otherwise prominent players when their availability percentile ranks differ
+  sharply.
+- Representative snapshots should include a specialist and independently missing attributes, not
+  only uniformly high and low players. The core evaluator preserves valid per-attribute results;
+  the current legacy wide adapter deliberately keeps only complete rating vectors.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:
