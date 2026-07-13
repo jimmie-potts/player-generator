@@ -40,8 +40,7 @@ does not depend on raw sources or adapter internals.
 ## Completion notes
 
 - **Completed:** 2026-07-13
-- **Pull request:** Pending EPIC-04 handoff; the ready pull-request link will be added before final
-  publication is reported complete.
+- **Pull request:** [PR #7](https://github.com/jimmie-potts/player-generator/pull/7)
 - **Delivered:** The roster CLI accepts config plus reference-package, formula, output, and seed
   overrides. `roster_generator.reference_package` verifies reference manifest/package version 1,
   all six CSV contract versions, exact required files, per-file hashes and row counts, the audit row

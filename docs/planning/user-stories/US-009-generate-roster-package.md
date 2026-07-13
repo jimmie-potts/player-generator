@@ -50,8 +50,7 @@ statistics, and attributes can be loaded independently.
 ## Completion notes
 
 - **Completed:** 2026-07-13
-- **Pull request:** Pending EPIC-04 handoff; the ready pull-request link will be added before final
-  publication is reported complete.
+- **Pull request:** [PR #7](https://github.com/jimmie-potts/player-generator/pull/7)
 - **Delivered:** Roster contract version 1 governs ordered and typed `players.csv`,
   `player_stats.csv`, `player_advanced_stats.csv`, and `player_attributes.csv` plus their unique
   keys, exact key sets, relationships, bounds, null rules, and statistical identities. Generation

@@ -71,8 +71,8 @@ a9abeb215c6c781208e5c9b9794be0345b9f80793ce48d8fef045021a19e5588  docs/planning/
 e0a01ea7faadb73361701ca3822080d95f1cfd88a93b57cf87dd624b5ee1b0a3  docs/planning/user-stories/US-005-reference-csv-package.md
 30b143a5e88ab3c235cab0a4f5a1bc871cf489e3e7cd12f070189cf3730dca13  docs/planning/user-stories/US-006-declarative-formulas.md
 f8d6380e7eb87414b77a15bcb432686bc19057e333d5a5801f77e11c31aed348  docs/planning/user-stories/US-007-initial-attributes.md
-2adcca1e60d78ac06a0ee29ba89149232e4e93a340ccc02e02160121aa55d3e5  docs/planning/user-stories/US-008-consume-reference-package.md
-8598bd97892b8e1f3355ce1dd82827234627bc5ab5e18efd394bb30fc473142e  docs/planning/user-stories/US-009-generate-roster-package.md
+fd19107a19d5137388c7bf29763ac2035725a26bd46710c32bf659191945b5bc  docs/planning/user-stories/US-008-consume-reference-package.md
+d5822e3c9cf34d3c003bc849774cf97c5e18d90dd4c4dacfca31bf4b0478aa13  docs/planning/user-stories/US-009-generate-roster-package.md
 d55b2d02893364bb716375e0cb4d64839d06683024360347acacc083f45d4208  docs/planning/user-stories/US-010-formula-preview-api.md
 2bac5e64b6a660f2f200287daa69320dedbec0412df54e56e0b56a5ad0418c0b  docs/planning/user-stories/US-011-inspect-formulas.md
 8eb0f351701750683b29b260d3e661446eb1a3f998b08eff1fa065c133ec07d6  docs/planning/user-stories/US-012-preview-adjustments.md
