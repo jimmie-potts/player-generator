@@ -62,9 +62,6 @@ Use the workflow in
 
 - Keep raw Parquet and transformed named reference tables local and untracked.
 - Do not commit or redistribute third-party data without established rights.
-- The repository MIT license covers project software, not upstream data.
-- The pinned `llimllib/nba_data` source had no observed root license when selected. Review
-  `THIRD_PARTY_NOTICES.md` and provenance before changing sources or use.
 - Record source type, path or filename, upstream version when known, SHA-256 hash, adapter/schema
   version, row counts, and license status.
 - Keep source IDs and reconciliation mappings in reference output only. Never publish a
