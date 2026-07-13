@@ -1,46 +1,54 @@
 # Data boundaries
 
-The project treats named reference data and fictional game data as different trust zones.
+The project uses the same player-domain vocabulary for all data while preserving separate
+provenance zones. Neutral entity names do not permit source identity to leak into roster output.
 
 ## Reference zone
 
-Path: `reference_data/`
+Current path: `reference_data/`
 
 Allowed contents:
 
 - Source player IDs and names.
-- Historical team names and abbreviations.
-- Raw and aggregate statistics.
-- Derived ratings associated with real players.
-- Source manifests and checksums.
+- Historical team identifiers and abbreviations.
+- Raw, traditional, rate, and advanced statistics.
+- Derived attributes associated with actual players.
+- Source mappings, manifests, checksums, and license-status notes.
 
 Rules:
 
-- Keep local by default.
-- Do not load from the game client or production server.
-- Do not copy source IDs or names into generated output.
-- Refresh intentionally and review source provenance.
+- Keep raw and processed named data local and untracked.
+- Do not load it from a game client or production runtime.
+- Refresh intentionally and validate provenance and schema changes.
+- Do not commit or redistribute upstream or derived named data without established rights.
 
-## Generated zone
+## Roster-output zone
 
-Path: `generated_data/`
+Current path: `generated_data/`
+
+Planned version 2 path: `roster_data/`
 
 Allowed contents:
 
-- Fictional player and team names.
-- Synthetic ratings and development values.
-- Fictional roster assignments.
-- Generation metadata such as schema version and seed.
+- Independently generated player identities.
+- Generated or adjusted statistics, ratings, and development values.
+- Roster package metadata such as schema version, formula version, reference-package hash, and seed.
 
 Forbidden contents:
 
-- `personId`, `sourcePlayerId`, `sourcePlayerName` or source-row indexes.
-- NBA team abbreviations or source team names.
-- A real-to-fictional player crosswalk.
+- Source player IDs, source player names, source-row indexes, or source team IDs.
+- A source-to-roster player crosswalk.
+- Raw or transformed named reference records.
 
 ## Reports zone
 
-Path: `reports/`
+Current path: `reports/`
 
 Reports compare populations rather than identities. They may contain aggregated reference values,
-but should not contain direct mappings between named and fictional players.
+but must not contain direct mappings between named reference players and roster players.
+
+## Version 2 package boundary
+
+The planned reference-data builder will publish a local, normalized reference package. The roster
+generator may consume only that package and its versioned manifest; it must not read raw Parquet or
+import source adapters. See the [version 2 plan](planning/README.md).
