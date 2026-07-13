@@ -7,7 +7,7 @@ atomic roster-package publication.
 ```bash
 roster-generator --help
 roster-generator generate
-roster-generator generate --reference-package /path/to/reference-v1
+roster-generator generate --reference-package /path/to/reference-v2
 roster-generator generate --output /path/to/roster-v1 --seed 42
 ```
 
@@ -15,8 +15,10 @@ Its YAML configuration makes eligible seasons, recency weights, games/minutes th
 size, sampling replacement, seed, and mutation controls explicit. CLI options may override the
 reference package, formula document, output directory, and seed.
 
-The application validates the complete reference manifest, files, hashes, row counts, contract
-versions, relationships, and formula compatibility before sampling. It mutates primitive totals,
+The application accepts reference package versions 1 and 2 and validates the complete manifest,
+files, hashes, row counts, contract versions, relationships, and formula compatibility before
+sampling. Published reference attributes are validated but roster selection and output evaluate the
+requested formula from statistical inputs. The application mutates primitive totals,
 derives dependent statistics, calculates attributes through `player_attribute_engine`, validates
 the four version 1 roster CSVs, scans for reference identity leakage, and replaces the destination
 only after staging succeeds.

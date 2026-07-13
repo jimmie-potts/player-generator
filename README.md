@@ -73,7 +73,8 @@ normalized roster package. It does not download, repair, or register reference i
 reference-data --help
 reference-data register --source-type nba_playerstats /path/to/playerstats.parquet
 reference-data publish
-reference-data publish --output /path/to/reference-v1
+reference-data publish --output /path/to/reference-v2
+reference-data publish --formula /path/to/formula.json
 reference-data download
 reference-data build
 ```
@@ -81,16 +82,17 @@ reference-data build
 Registration validates and records local files without copying them into the repository. Source
 types `nba_playerstats` and `espn_player_details` use adapter schema version 1, and their ignored
 local provenance registry lives at `reference_data/registry/sources.json`. The current legacy
-download remains pinned by `reference_data/source_manifest.json`. `publish` writes the version 1
-relational CSVs, reconciliation audit, and deterministic manifest under
-`reference_data/packages/reference-v1` by default. Registry and package output remain ignored.
+download remains pinned by `reference_data/source_manifest.json`. `publish` writes the version 2
+relational CSVs, season-relative player attributes, reconciliation audit, and deterministic
+manifest under `reference_data/packages/reference-v2` by default. Registry and package output
+remain ignored.
 
 ### Roster generator
 
 ```bash
 roster-generator --help
 roster-generator generate
-roster-generator generate --reference-package /path/to/reference-v1
+roster-generator generate --reference-package /path/to/reference-v2
 roster-generator generate --output /path/to/roster-v1 --seed 42
 ```
 

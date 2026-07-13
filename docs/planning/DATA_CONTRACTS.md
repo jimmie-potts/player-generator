@@ -1,6 +1,7 @@
 # Version 2 data contracts
 
-Reference contract version 1 is implemented by US-005 and roster contract version 1 by US-009.
+Reference contract version 1 is implemented by US-005; additive reference contract version 2 adds
+calculated player-season attributes in US-015. Roster contract version 1 is implemented by US-009.
 Coach and team sections remain planned interfaces for their later stories. All CSVs use camelCase
 headers, UTF-8 encoding, one header row, LF line endings, and stable IDs. Missing optional source
 values remain empty rather than being inferred without an approved rule.
@@ -13,6 +14,7 @@ values remain empty rather than being inferred without an approved rule.
 | `player_seasons.csv` | one aggregate row per player-season | `playerSeasonId,playerId,season` | Season context, optional single-team identity, age, games, wins, losses, and minutes |
 | `player_stats.csv` | one row per player-season | `playerSeasonId,playerId,season` | Traditional totals and available per-game, per-36, and per-100 rates |
 | `player_advanced_stats.csv` | one row per player-season | `playerSeasonId,playerId,season` | Usage, efficiency, rebound, assist, rating, PIE, and win-share metrics |
+| `player_attributes.csv` | one row per player-season | `playerSeasonId,playerId,season` | Calculated attributes, overall, tier, and formula version (version 2) |
 | `player_source_ids.csv` | one row per player and source | `playerId,sourceType,sourcePlayerId` | Source reconciliation without exposing IDs downstream |
 | `sources.csv` | one row per input | `sourceId` | Source type, input filename, hash, schema version, row count, and processing time |
 
@@ -51,16 +53,26 @@ player_source_ids.csv: playerId,sourceType,sourcePlayerId
 sources.csv: sourceId,sourceType,originalFilename,sha256,adapterVersion,upstreamVersion,rowCount,processedAt,licenseStatus
 ```
 
-The packaged `reference-v1.schema.json` resource is the machine-readable authority for ordered
-headers, scalar types, required and nullable fields, unique keys, and relationships. The three
-season-grain tables must contain exactly the same `(playerSeasonId, playerId, season)` key set.
-Source columns that cannot be mapped without changing meaning remain adapter concerns rather than
-being copied through verbatim.
+Reference contract version 2 `player_attributes.csv` header:
+
+```text
+playerSeasonId,playerId,season,insideScoring,threePointShooting,freeThrowShooting,scoringVolume,playmaking,ballSecurity,offensiveRebounding,defensiveRebounding,perimeterDefense,interiorDefense,stamina,durability,overall,impactPercentile,talentTier,formulaVersion
+```
+
+The packaged `reference-v1.schema.json` and `reference-v2.schema.json` resources are the
+machine-readable authorities for ordered headers, scalar types, required and nullable fields,
+unique keys, and relationships. Version 1 requires the season, traditional-stat, and advanced-stat
+tables to contain exactly the same `(playerSeasonId, playerId, season)` key set; version 2 adds the
+attribute table to that exact set. Attribute values may be empty when formula eligibility or inputs
+do not support them, while the three identity fields and `formulaVersion` remain populated. Source
+columns that cannot be mapped without changing meaning remain adapter concerns rather than being
+copied through verbatim.
 
 Each published reference package also contains `audit.json` and `manifest.json`. The manifest
 records contract versions, input hashes and adapter versions, file row counts and hashes, and one
-content hash over the six CSVs plus the deterministic audit. `createdAt` is explicitly excluded from
-that content hash.
+content hash over every contracted CSV plus the deterministic audit. Version 2 also records the
+formula version and exact formula-document hash. `createdAt` is explicitly excluded from the
+content hash.
 
 ## Roster package
 

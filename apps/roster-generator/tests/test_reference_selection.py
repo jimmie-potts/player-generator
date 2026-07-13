@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import yaml
-from player_attribute_engine import load_formula
+from player_attribute_engine import formula_content_hash, load_formula
 from player_data_contracts import REFERENCE_CONTRACT_VERSION, load_reference_contract
 from player_data_contracts.io import sha256_file
 from player_data_contracts.package import content_hash
@@ -32,10 +32,13 @@ from roster_generator.selection import (
 
 
 def _value(column: dict[str, Any]) -> object:
+    if "enum" in column:
+        return column["enum"][0]
+    minimum = column.get("minimum")
     return {
         "string": "value",
-        "integer": 1,
-        "number": 1.0,
+        "integer": int(minimum) if minimum is not None else 1,
+        "number": float(minimum) if minimum is not None else 1.0,
         "date": "2000-01-01",
         "datetime": "2026-07-13T12:00:00Z",
         "sha256": "0" * 64,
@@ -56,17 +59,19 @@ def _write_csv(path: Path, rows: list[dict[str, object]]) -> None:
         writer.writerows(rows)
 
 
-def _write_manifest(package: Path, row_counts: dict[str, int]) -> None:
-    contract = load_reference_contract()
+def _write_manifest(
+    package: Path, row_counts: dict[str, int], *, version: int = REFERENCE_CONTRACT_VERSION
+) -> None:
+    contract = load_reference_contract(version)
     filenames = (*contract["files"], "audit.json")
     hashes = {filename: sha256_file(package / filename) for filename in filenames}
     manifest = {
         "manifestVersion": 1,
         "packageType": "reference",
-        "packageVersion": 1,
+        "packageVersion": version,
         "createdAt": "2026-07-13T12:00:00Z",
         "contractVersions": {
-            filename: REFERENCE_CONTRACT_VERSION for filename in contract["files"]
+            filename: version for filename in contract["files"]
         },
         "inputs": [],
         "files": {
@@ -75,6 +80,9 @@ def _write_manifest(package: Path, row_counts: dict[str, int]) -> None:
         },
         "contentHash": content_hash(hashes),
     }
+    if version >= 2:
+        manifest["formulaVersion"] = load_formula().formula_version
+        manifest["formulaDocumentHash"] = formula_content_hash()
     (package / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
@@ -90,6 +98,17 @@ def _refresh_hashes(package: Path) -> None:
     manifest_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+
+
+def _convert_to_v1(package: Path) -> None:
+    (package / "player_attributes.csv").unlink()
+    contract = load_reference_contract(1)
+    row_counts: dict[str, int] = {}
+    for filename in contract["files"]:
+        with (package / filename).open(encoding="utf-8") as handle:
+            row_counts[filename] = sum(1 for _ in handle) - 1
+    row_counts["audit.json"] = 0
+    _write_manifest(package, row_counts, version=1)
 
 
 @pytest.fixture
@@ -206,6 +225,17 @@ def reference_package(tmp_path: Path) -> Path:
         "player_source_ids.csv": source_ids,
         "sources.csv": sources,
     }
+    if "player_attributes.csv" in files:
+        tables["player_attributes.csv"] = [
+            _row(
+                files["player_attributes.csv"],
+                playerSeasonId=season_id,
+                playerId=player_id,
+                season=2024,
+                formulaVersion="1.0.0",
+            )
+            for season_id, player_id in zip(season_ids, player_ids, strict=True)
+        ]
     for filename, rows in tables.items():
         _write_csv(package / filename, rows)
     audit = {"unresolved": [], "duplicates": []}
@@ -243,6 +273,7 @@ def test_load_reference_package_validates_and_joins_typed_rows(
     assert pd.api.types.is_integer_dtype(loaded.frame["season"])
     assert pd.api.types.is_float_dtype(loaded.frame["minutes"])
     assert "playerImpactEstimate" in loaded.frame
+    assert "insideScoring" not in loaded.frame
     assert "sourcePlayerId" not in loaded.frame
     assert loaded.forbidden_player_ids == {
         "ref-player-1",
@@ -260,7 +291,50 @@ def test_load_reference_package_validates_and_joins_typed_rows(
     assert "reference player 1" in loaded.forbidden_names
 
 
-@pytest.mark.parametrize("missing", ["manifest.json", "player_stats.csv"])
+def test_load_reference_package_preserves_version_1_compatibility(
+    reference_package: Path,
+) -> None:
+    _convert_to_v1(reference_package)
+
+    loaded = load_reference_package(reference_package, load_formula())
+
+    assert loaded.manifest["packageVersion"] == 1
+    assert len(loaded.frame) == 3
+
+
+def test_load_reference_package_allows_a_different_requested_formula(
+    reference_package: Path,
+) -> None:
+    proposal = replace(load_formula(), formula_version="proposal")
+
+    loaded = load_reference_package(reference_package, proposal)
+
+    assert loaded.manifest["formulaVersion"] == "1.0.0"
+    assert len(loaded.frame) == 3
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("formulaVersion", None, "formulaVersion must be a non-empty string"),
+        ("formulaDocumentHash", "invalid", "formulaDocumentHash must be a lowercase SHA-256"),
+    ],
+)
+def test_load_reference_package_requires_v2_formula_provenance(
+    reference_package: Path, field: str, value: object, message: str
+) -> None:
+    manifest_path = reference_package / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest[field] = value
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(ReferencePackageError, match=message):
+        load_reference_package(reference_package, load_formula())
+
+
+@pytest.mark.parametrize(
+    "missing", ["manifest.json", "player_stats.csv", "player_attributes.csv"]
+)
 def test_load_reference_package_rejects_missing_files(
     reference_package: Path, missing: str
 ) -> None:
@@ -275,6 +349,29 @@ def test_load_reference_package_rejects_file_hash_mismatch(reference_package: Pa
         handle.write("\n")
 
     with pytest.raises(ReferencePackageError, match=r"players\.csv SHA-256 mismatch"):
+        load_reference_package(reference_package, load_formula())
+
+
+def test_load_reference_package_rejects_attribute_hash_mismatch(
+    reference_package: Path,
+) -> None:
+    with (reference_package / "player_attributes.csv").open("a", encoding="utf-8") as handle:
+        handle.write("\n")
+
+    with pytest.raises(ReferencePackageError, match=r"player_attributes\.csv SHA-256 mismatch"):
+        load_reference_package(reference_package, load_formula())
+
+
+def test_load_reference_package_rejects_attribute_formula_version_mismatch(
+    reference_package: Path,
+) -> None:
+    path = reference_package / "player_attributes.csv"
+    rows = list(csv.DictReader(path.open(encoding="utf-8", newline="")))
+    rows[0]["formulaVersion"] = "different"
+    _write_csv(path, rows)
+    _refresh_hashes(reference_package)
+
+    with pytest.raises(ReferencePackageError, match="must all match the manifest"):
         load_reference_package(reference_package, load_formula())
 
 
@@ -301,8 +398,12 @@ def test_load_reference_package_rejects_row_count_mismatch(reference_package: Pa
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
-        ("packageVersion", 2, "unsupported packageVersion 2"),
-        ("contractVersions.players.csv", 2, "players.csv.*unsupported contract version 2"),
+        ("packageVersion", 3, "unsupported packageVersion 3"),
+        (
+            "contractVersions.players.csv",
+            1,
+            "players.csv.*unsupported contract version 1",
+        ),
     ],
 )
 def test_load_reference_package_rejects_unsupported_package_contract_versions(
@@ -321,9 +422,19 @@ def test_load_reference_package_rejects_unsupported_package_contract_versions(
 
 
 def test_load_reference_package_rejects_incompatible_formula(reference_package: Path) -> None:
-    formula = SimpleNamespace(reference_contract_version=2)
+    formula = SimpleNamespace(reference_contract_version=3)
 
-    with pytest.raises(ReferencePackageError, match="formula requires 2"):
+    with pytest.raises(ReferencePackageError, match="formula requires 3"):
+        load_reference_package(reference_package, formula)
+
+
+def test_version_1_package_rejects_formula_requiring_version_2(
+    reference_package: Path,
+) -> None:
+    _convert_to_v1(reference_package)
+    formula = replace(load_formula(), reference_contract_version=2)
+
+    with pytest.raises(ReferencePackageError, match="formula requires 2, package provides 1"):
         load_reference_package(reference_package, formula)
 
 

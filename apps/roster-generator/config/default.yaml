@@ -2,7 +2,7 @@ project:
   roster_contract_version: 1
 
 paths:
-  reference_package_dir: reference_data/packages/reference-v1
+  reference_package_dir: reference_data/packages/reference-v2
   roster_package_dir: roster_data/packages/roster-v1
   formula_path:
 

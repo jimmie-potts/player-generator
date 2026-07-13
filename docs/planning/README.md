@@ -53,6 +53,7 @@ team or coach generation.
 | US-012 | [Preview formula adjustments](user-stories/US-012-preview-adjustments.md) | EPIC-06 | ready |
 | US-013 | [Compare representative players](user-stories/US-013-compare-players.md) | EPIC-06 | ready |
 | US-014 | [Define coach and team contracts](user-stories/US-014-coach-team-contracts.md) | EPIC-07 | ready |
+| US-015 | [Publish reference player attributes](user-stories/US-015-reference-player-attributes.md) | EPIC-03 | in_progress |
 
 ## Planning records
 
@@ -64,8 +65,8 @@ team or coach generation.
 
 ## Current-state warning
 
-EPIC-01 through EPIC-04 establish the application boundaries, normalized reference-package builder,
-shared declarative attribute engine, and deterministic player-only roster package. The
-reference-data application retains its pinned download and wide processed build only as standalone
-legacy interfaces. The preview API and interactive workbench behavior do not exist until their
-stories are completed.
+EPIC-01 through EPIC-04 and US-015 establish the application boundaries, normalized reference
+package with season-relative attributes, shared declarative attribute engine, and deterministic
+player-only roster package. The reference-data application retains its pinned download and wide
+processed build only as standalone legacy interfaces. The preview API and interactive workbench
+behavior do not exist until their stories are completed.

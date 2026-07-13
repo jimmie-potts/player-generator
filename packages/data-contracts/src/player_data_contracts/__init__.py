@@ -5,6 +5,7 @@ from player_data_contracts.models import RATING_FIELDS
 from player_data_contracts.package import content_hash
 from player_data_contracts.reference import (
     REFERENCE_CONTRACT_VERSION,
+    SUPPORTED_REFERENCE_CONTRACT_VERSIONS,
     load_reference_contract,
     validate_reference_package,
     validate_reference_tables,
@@ -22,6 +23,7 @@ __all__ = [
     "FORMULA_CONTRACT_VERSION",
     "RATING_FIELDS",
     "REFERENCE_CONTRACT_VERSION",
+    "SUPPORTED_REFERENCE_CONTRACT_VERSIONS",
     "ROSTER_CONTRACT_VERSION",
     "content_hash",
     "load_formula_contract",
