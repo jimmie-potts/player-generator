@@ -31,6 +31,8 @@ The batch-data foundation and read-only API phase are implemented:
   behavior; that integration remains EPIC-06 work.
 
 See the [version 2 planning index](docs/planning/README.md) for the remaining epics and story status.
+For a presentation-oriented system walkthrough, see the
+[current and projected technical architecture](docs/presentations/PLAYER_GENERATOR_TECHNICAL_OVERVIEW.md).
 
 ## Setup
 
