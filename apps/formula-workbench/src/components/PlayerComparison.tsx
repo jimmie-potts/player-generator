@@ -95,6 +95,43 @@ function rankMovementLabel(measure: ComparisonMeasure): string {
   }.`;
 }
 
+type ImpactDirection = "negative" | "neutral" | "positive" | "unavailable";
+
+function impactDirection(value: number | null): ImpactDirection {
+  if (value === null || !Number.isFinite(value)) return "unavailable";
+  if (value > 0) return "positive";
+  if (value < 0) return "negative";
+  return "neutral";
+}
+
+function impactIcon(direction: ImpactDirection): string {
+  if (direction === "positive") return "▲";
+  if (direction === "negative") return "▼";
+  if (direction === "neutral") return "=";
+  return "";
+}
+
+function RatingImpact({ value }: { value: number | null }) {
+  const direction = impactDirection(value);
+  const accessibleText =
+    direction === "positive"
+      ? `Rating increased by ${formatNumber(value)}.`
+      : direction === "negative"
+        ? `Rating decreased by ${formatNumber(Math.abs(value ?? 0))}.`
+        : direction === "neutral"
+          ? "Rating did not change."
+          : "Rating change unavailable.";
+
+  return (
+    <span className={`impact-value impact-value--${direction}`}>
+      <span aria-hidden="true">
+        {impactIcon(direction)} {formatSignedNumber(value)}
+      </span>
+      <span className="sr-only">{accessibleText}</span>
+    </span>
+  );
+}
+
 const GROUP_MEMBER_LABELS: Record<ComparisonGroupKind, string> = {
   tier: "representative",
   top25: "baseline-ranked player",
@@ -155,6 +192,12 @@ export function PlayerComparison({
           shown here. Signals distinguish unchanged, missing, excluded, failed, and tied largest
           gain or loss results. Selecting a player updates the authoritative explanation above.
         </p>
+        <p>
+          Every nonzero rating delta is green with an upward arrow when the rating increased and red
+          with a downward arrow when it decreased. Rank movement uses green for movement toward
+          rank 1 and red for movement away. Signed values, arrows, and accessible direction labels
+          carry the same meaning when color is unavailable.
+        </p>
       </SectionHelp>
 
       {populatedGroups.map((group) => (
@@ -211,16 +254,23 @@ export function PlayerComparison({
                       </button>
                     </th>
                     <td className="rating-transition">{ratingTransition(player.attribute)}</td>
-                    <td className="delta-value">{formatSignedNumber(player.attribute.delta)}</td>
+                    <td className="delta-value">
+                      <RatingImpact value={player.attribute.delta} />
+                    </td>
                     <td
-                      className="rank-movement"
+                      className={`rank-movement impact-value impact-value--${impactDirection(player.attribute.rankMovement)}`}
                       aria-label={rankMovementLabel(player.attribute)}
                     >
                       {rankMovement(player.attribute)}
                     </td>
                     <td className="rating-transition">{ratingTransition(player.overall)}</td>
-                    <td className="delta-value">{formatSignedNumber(player.overall.delta)}</td>
-                    <td className="rank-movement" aria-label={rankMovementLabel(player.overall)}>
+                    <td className="delta-value">
+                      <RatingImpact value={player.overall.delta} />
+                    </td>
+                    <td
+                      className={`rank-movement impact-value impact-value--${impactDirection(player.overall.rankMovement)}`}
+                      aria-label={rankMovementLabel(player.overall)}
+                    >
                       {rankMovement(player.overall)}
                     </td>
                     <td>

@@ -127,14 +127,17 @@ describe("Formula Workbench", () => {
       name: /Points scored per game/,
     });
     const pointsCells = within(pointsRow).getAllByRole("cell");
-    expect(pointsCells.map((cell) => cell.textContent)).toEqual([
-      "90%",
+    expect([pointsCells[0], pointsCells[2], pointsCells[4]].map((cell) => cell.textContent)).toEqual([
       "90%",
       "60%",
-      "60%",
-      "0.54",
       "0.54",
     ]);
+    expect(
+      [pointsCells[1], pointsCells[3], pointsCells[5]].map(
+        (cell) => cell.querySelector(".preview-change__value")?.textContent,
+      ),
+    ).toEqual(["90%", "60%", "0.54"]);
+    expect(pointsRow.querySelectorAll(".preview-value--unchanged")).toHaveLength(3);
 
     fireEvent.change(screen.getByRole("combobox", { name: "Players per tier" }), {
       target: { value: "1" },
@@ -177,14 +180,19 @@ describe("Formula Workbench", () => {
     const pointsRow = within(breakdown).getByRole("row", {
       name: /Points scored per game/,
     });
-    expect(within(pointsRow).getAllByRole("cell").map((cell) => cell.textContent)).toEqual([
-      "90%",
+    const pointsCells = within(pointsRow).getAllByRole("cell");
+    expect([pointsCells[0], pointsCells[2], pointsCells[4]].map((cell) => cell.textContent)).toEqual([
       "90%",
       "60%",
-      "70%",
       "0.54",
-      "0.63",
     ]);
+    expect(
+      [pointsCells[1], pointsCells[3], pointsCells[5]].map(
+        (cell) => cell.querySelector(".preview-change__value")?.textContent,
+      ),
+    ).toEqual(["90%", "70%", "0.63"]);
+    expect(pointsRow.querySelectorAll(".preview-value--increase")).toHaveLength(1);
+    expect(pointsRow.querySelectorAll(".preview-value--allocation-change")).toHaveLength(1);
     expect(screen.getAllByText("Largest gain").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Largest loss").length).toBeGreaterThan(0);
   });

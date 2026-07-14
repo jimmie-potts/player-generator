@@ -57,6 +57,12 @@ export interface CalculationInspectorProps {
   statusMessage?: string;
 }
 
+const SIGNED_PERCENT_FORMAT = new Intl.NumberFormat(undefined, {
+  maximumFractionDigits: 3,
+  signDisplay: "always",
+  style: "percent",
+});
+
 function hasOwn(record: Record<string, unknown>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(record, key);
 }
@@ -209,6 +215,125 @@ function summaryDelta(
   return baseline !== null && typeof preview === "number" ? preview - baseline : null;
 }
 
+type ChangeDirection = "decrease" | "increase" | "unchanged" | "unavailable";
+
+function changeDirection(
+  baseline: number | null | undefined,
+  preview: number | null | undefined,
+): ChangeDirection {
+  if (
+    typeof baseline !== "number" ||
+    !Number.isFinite(baseline) ||
+    typeof preview !== "number" ||
+    !Number.isFinite(preview)
+  ) {
+    return "unavailable";
+  }
+  if (preview > baseline) return "increase";
+  if (preview < baseline) return "decrease";
+  return "unchanged";
+}
+
+function changeIcon(direction: ChangeDirection): string {
+  if (direction === "increase") return "▲";
+  if (direction === "decrease") return "▼";
+  if (direction === "unchanged") return "=";
+  return "";
+}
+
+function formatSignedPercent(value: number): string {
+  if (value === 0) return formatPercent(0);
+  if (Math.abs(value) < 0.000005) {
+    return value > 0 ? "+<0.001%" : "−<0.001%";
+  }
+  return SIGNED_PERCENT_FORMAT.format(value);
+}
+
+interface PreviewChangeProps {
+  baseline: number | null | undefined;
+  preview: number | null | undefined;
+  pending: boolean;
+  formatValue: (value: unknown) => string;
+  formatDelta: (value: number) => string;
+  tone?: "allocation" | "impact";
+  variant: "scoreboard" | "table";
+}
+
+function PreviewChange({
+  baseline,
+  preview,
+  pending,
+  formatValue,
+  formatDelta,
+  tone = "impact",
+  variant,
+}: PreviewChangeProps) {
+  if (pending) {
+    return variant === "scoreboard" ? (
+      <small className="preview-impact preview-impact--pending">Preview updating…</small>
+    ) : (
+      <>Updating…</>
+    );
+  }
+
+  const direction = changeDirection(baseline, preview);
+  const delta = summaryDelta(baseline ?? null, preview);
+  const previewText = formatValue(preview);
+  const baselineText = formatValue(baseline);
+  const directionText =
+    direction === "increase"
+      ? "increase"
+      : direction === "decrease"
+        ? "decrease"
+        : direction === "unchanged"
+          ? "no change"
+          : "change unavailable";
+  const deltaText = delta === null ? "" : formatDelta(delta);
+  const magnitudeText = delta === null ? "" : formatDelta(Math.abs(delta)).replace(/^\+/, "");
+  const presentation =
+    tone === "allocation" && (direction === "increase" || direction === "decrease")
+      ? "allocation-change"
+      : direction;
+  const accessibleText =
+    direction === "unavailable"
+      ? `Preview ${previewText}. Change unavailable.`
+      : direction === "unchanged"
+        ? `Preview ${previewText}. No change from baseline.`
+        : `Preview ${previewText}. ${direction === "increase" ? "Increased" : "Decreased"} by ${magnitudeText} from baseline ${baselineText}.`;
+  const visual = (
+    <>
+      <span aria-hidden="true" className="preview-change__value">
+        {variant === "scoreboard" ? "Preview " : ""}
+        {previewText}
+      </span>
+      {direction !== "unavailable" ? (
+        <span aria-hidden="true" className="preview-change__delta">
+          {changeIcon(direction)} {deltaText} {directionText}
+        </span>
+      ) : null}
+      <span className="sr-only">{accessibleText}</span>
+    </>
+  );
+
+  return variant === "scoreboard" ? (
+    <small className={`preview-impact preview-impact--${direction}`}>{visual}</small>
+  ) : (
+    <span className={`preview-value preview-value--${presentation}`}>{visual}</span>
+  );
+}
+
+function previewAnnouncement(
+  label: string,
+  baseline: number | null | undefined,
+  preview: number | null | undefined,
+  formatValue: (value: unknown) => string,
+): string {
+  const direction = changeDirection(baseline, preview);
+  if (direction === "unavailable") return `${label} unavailable.`;
+  if (direction === "unchanged") return `${label} unchanged at ${formatValue(preview)}.`;
+  return `${label} ${direction === "increase" ? "increased" : "decreased"} to ${formatValue(preview)}.`;
+}
+
 export function CalculationInspector({
   player,
   attributeName,
@@ -302,6 +427,11 @@ export function CalculationInspector({
             and minimum-sample gates. When a preview is still being validated, the workbench does
             not present an older result as though it belonged to the current edits.
           </p>
+          <p>
+            Preview cards use green with an upward arrow for an increased returned value and red
+            with a downward arrow for a decrease. The signed delta and direction word repeat that
+            meaning without color; unchanged and unavailable results remain neutral.
+          </p>
         </SectionHelp>
 
         {pending ? (
@@ -332,30 +462,64 @@ export function CalculationInspector({
         ) : null}
 
         <div className="calculation-scoreboard" aria-label="Calculation summary">
+          {!pending && preview ? (
+            <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+              Authoritative preview updated. {previewAnnouncement("Rating", baseline.rating, preview.rating, formatNumber)}{" "}
+              {previewAnnouncement(
+                "Composite percentile",
+                baseline.compositePercentile,
+                preview.compositePercentile,
+                formatPercent,
+              )}{" "}
+              {previewAnnouncement(
+                "Weighted composite",
+                baseline.composite,
+                preview.composite,
+                formatNumber,
+              )}
+            </p>
+          ) : null}
           <article>
             <span>Rating</span>
-            <strong>{formatNumber(baseline.rating)}</strong>
-            <small>
-              {pending
-                ? "Preview updating…"
-                : `Preview ${formatNumber(preview?.rating)} · Δ ${formatSignedNumber(summaryDelta(baseline.rating, preview?.rating))}`}
-            </small>
+            <strong className="calculation-scoreboard__baseline">
+              <span>Baseline</span> {formatNumber(baseline.rating)}
+            </strong>
+            <PreviewChange
+              baseline={baseline.rating}
+              preview={preview?.rating}
+              pending={pending}
+              formatValue={formatNumber}
+              formatDelta={formatSignedNumber}
+              variant="scoreboard"
+            />
           </article>
           <article>
             <span>Composite percentile</span>
-            <strong>{formatPercent(baseline.compositePercentile)}</strong>
-            <small>
-              {pending
-                ? "Preview updating…"
-                : `Preview ${formatPercent(preview?.compositePercentile)}`}
-            </small>
+            <strong className="calculation-scoreboard__baseline">
+              <span>Baseline</span> {formatPercent(baseline.compositePercentile)}
+            </strong>
+            <PreviewChange
+              baseline={baseline.compositePercentile}
+              preview={preview?.compositePercentile}
+              pending={pending}
+              formatValue={formatPercent}
+              formatDelta={formatSignedPercent}
+              variant="scoreboard"
+            />
           </article>
           <article>
             <span>Weighted composite</span>
-            <strong>{formatNumber(baseline.composite)}</strong>
-            <small>
-              {pending ? "Preview updating…" : `Preview ${formatNumber(preview?.composite)}`}
-            </small>
+            <strong className="calculation-scoreboard__baseline">
+              <span>Baseline</span> {formatNumber(baseline.composite)}
+            </strong>
+            <PreviewChange
+              baseline={baseline.composite}
+              preview={preview?.composite}
+              pending={pending}
+              formatValue={formatNumber}
+              formatDelta={formatSignedNumber}
+              variant="scoreboard"
+            />
           </article>
           <article>
             <span>Eligible cohort</span>
@@ -462,6 +626,12 @@ export function CalculationInspector({
                 proposed weight or direction change altered the calculation; displayed rounding may
                 make tiny differences appear equal.
               </p>
+              <p>
+                Each changed preview cell includes its new value, signed difference, and an arrow:
+                percentile and contribution increases are green, while decreases are red. A changed
+                normalized weight is blue because it describes an allocation shift—not a judgment
+                that the formula is inherently better or worse. Its arrow still shows direction.
+              </p>
             </SectionHelp>
             <div className="data-table-wrap" tabIndex={0} role="region" aria-label="Component calculation breakdown">
               <table className="data-table data-table--calculation">
@@ -489,11 +659,39 @@ export function CalculationInspector({
                         {row.description ? <small>{row.description}</small> : null}
                       </th>
                       <td>{formatPercent(row.baselinePercentile)}</td>
-                      <td>{pending ? "Updating…" : formatPercent(row.previewPercentile)}</td>
+                      <td>
+                        <PreviewChange
+                          baseline={row.baselinePercentile}
+                          preview={row.previewPercentile}
+                          pending={pending}
+                          formatValue={formatPercent}
+                          formatDelta={formatSignedPercent}
+                          variant="table"
+                        />
+                      </td>
                       <td>{formatPercent(row.baselineWeight)}</td>
-                      <td>{pending ? "Updating…" : formatPercent(row.previewWeight)}</td>
+                      <td>
+                        <PreviewChange
+                          baseline={row.baselineWeight}
+                          preview={row.previewWeight}
+                          pending={pending}
+                          formatValue={formatPercent}
+                          formatDelta={formatSignedPercent}
+                          tone="allocation"
+                          variant="table"
+                        />
+                      </td>
                       <td>{formatNumber(row.baselineContribution)}</td>
-                      <td>{pending ? "Updating…" : formatNumber(row.previewContribution)}</td>
+                      <td>
+                        <PreviewChange
+                          baseline={row.baselineContribution}
+                          preview={row.previewContribution}
+                          pending={pending}
+                          formatValue={formatNumber}
+                          formatDelta={formatSignedNumber}
+                          variant="table"
+                        />
+                      </td>
                     </tr>
                   ))}
                 </tbody>

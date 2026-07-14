@@ -25,6 +25,12 @@ based on one example.
   with guidance to reduce the per-tier count or choose another view.
 - Show baseline rating, preview rating, absolute delta, baseline rank, preview rank, and rank movement
   for the selected attribute and overall when affected.
+- Make nonzero authoritative preview changes conspicuous in the persistent rating summary, the
+  formula-derived component breakdown, and the player-comparison rating and rank outputs. Use green
+  for an increased outcome and movement toward rank 1, red for a decreased outcome and movement away
+  from rank 1, and blue for a changed normalized-weight allocation that is not inherently positive
+  or negative. Pair color with signed or directional text and arrows so meaning never depends on
+  color alone.
 - Highlight the players with the largest positive and negative changes.
 - Keep baseline and preview cohorts fixed for a preview so rank changes are comparable.
 - Preserve the custom list for the browser page session only.
@@ -63,6 +69,13 @@ based on one example.
   remain fixed to the baseline response, and the custom list remains session-only. This refinement
   explicitly supersedes the earlier tier-plus-pins composition in
   [D-029](../DECISIONS.md#d-029-mutually-exclusive-comparison-sets-over-one-fixed-cohort).
+- **2026-07-14 preview-impact refinement:** Added redundant visual and textual change signals after
+  designer feedback that authoritative baseline-to-preview differences were too easy to miss.
+  Summary values, formula-derived component preview cells, comparison deltas, and rank movement use
+  green with outcome-increase or toward-rank-one cues, red with decrease or away-from-rank-one cues,
+  blue for changed weight allocation, and a neutral treatment for unchanged values. This
+  presentation refinement does not alter API-owned calculations, comparison membership, or
+  fixed-cohort rank semantics.
 
 ## Completion notes
 
@@ -124,8 +137,16 @@ based on one example.
   the required repository manifest,
   `.venv/bin/python -m pytest` reached 375 passed with only the expected manifest-hash mismatch; the
   synchronized manifest and final rerun passed all 376 tests.
-- **Follow-ups:** Saved comparison groups and collaborative sharing remain deliberately out of
-  scope. The custom list disappears with the browser page session.
+- **Preview-impact refinement validation:** `npm run workbench:test` passed 77 tests;
+  `npm run workbench:build`, `.venv/bin/python -m pytest` (376 passed),
+  `.venv/bin/python -m ruff check .`, `sha256sum -c FILE_MANIFEST.sha256`, and staged diff checks
+  passed. Focused coverage verifies positive, negative, unchanged, sub-display-precision,
+  allocation-only, rank-direction, and completed screen-reader announcement states.
+- **Follow-ups:** Preview-impact styling must remain redundant: signed values, arrows, and accessible
+  direction labels carry the same meaning as green, red, and blue, while pending, unchanged,
+  unavailable, excluded, and failed states remain distinguishable without implying a gain or loss.
+  Saved comparison groups and collaborative sharing remain deliberately out of scope. The custom
+  list disappears with the browser page session.
 - **Learnings:** Tier stratification reveals sensitivity across the rating curve without changing
   percentile populations; search results and custom-list errors must also be isolated to the query
   and session that produced them. Ranks remain server-owned and cohort-wide rather than depend on

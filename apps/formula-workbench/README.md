@@ -41,6 +41,14 @@ directions, rating anchors, and the proposed formula version. Preview requests a
 superseded requests are cancelled. Context mismatches invalidate the view rather than mixing
 package, formula, or season state.
 
+Changed authoritative preview values are highlighted wherever the designer evaluates impact. Green
+with an upward arrow or positive signed value marks an outcome increase; red with a downward arrow
+or negative signed value marks a decrease. Rank movement uses green for movement toward rank 1 and
+red for movement away. A normalized-weight change is blue because it is an allocation shift rather
+than an inherently positive or negative outcome. The selected-player summary, component breakdown,
+and player-comparison table always pair color with visible directional text or symbols, and only
+display values returned by the preview API.
+
 On desktop, the Formula and Authoritative Explanation panes have matching viewport-bounded heights.
 Formula content scrolls independently, while the selected player's rating summary remains visible
 and secondary calculation details can be expanded as needed. Narrow layouts restore normal document

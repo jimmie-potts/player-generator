@@ -177,6 +177,11 @@ const GLOSSARY_CATEGORIES: readonly GlossaryCategory[] = [
         definition:
           "The preview value minus the baseline value. A zero delta means the displayed value did not change.",
       },
+      {
+        term: "Impact cue",
+        definition:
+          "A green upward or positive marker means an outcome value increased; a red downward or negative marker means it decreased. For ranks, green means movement toward rank 1 and red means movement away. Blue marks a changed formula allocation, which is not inherently a gain or loss. Text and symbols always accompany color.",
+      },
     ],
   },
   {

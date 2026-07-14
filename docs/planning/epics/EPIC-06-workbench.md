@@ -16,6 +16,11 @@
 - Weight, direction, and anchor edits update previews without changing active configuration.
 - Tier-stratified representatives are shown by default, with mutually exclusive baseline Top 25 and
   session-only custom-list views for alternate comparison strategies.
+- Changed authoritative preview values are visually conspicuous throughout the persistent summary,
+  formula-derived breakdown, and comparison output: green indicates an increased outcome or
+  movement toward rank 1, red indicates a decrease or movement away, blue identifies changed weight
+  allocation without judging it as a gain or loss, and signed text and arrows make direction
+  understandable without color.
 - Reset and export make experimentation reversible and portable.
 
 ## Non-goals
@@ -49,6 +54,13 @@
   IDs for detailed preview results; the authoritative API still evaluates the complete fixed cohort
   for every rating, percentile, and rank. The superseding composition is recorded in
   [D-029](../DECISIONS.md#d-029-mutually-exclusive-comparison-sets-over-one-fixed-cohort).
+- **2026-07-14 preview-impact refinement:** Strengthened the visual feedback loop without changing
+  formula authority or calculation semantics. Nonzero changes in the persistent scoreboard,
+  formula-derived component preview cells, and comparison rating and rank cells use green for
+  outcome increases or movement toward rank 1 and red for decreases or movement away. Changed
+  normalized weights use blue because allocation alone is not a positive or negative outcome. All
+  cues are backed by signed values, directional arrows, and accessible labels; unchanged and
+  non-result states remain neutral and explicitly identified.
 
 ## Completion notes
 
@@ -84,6 +96,10 @@
   completed locally in 1.63 seconds under the unchanged 3,000 ms budget. The pre-regeneration Python
   run reached 375 passed with only the expected manifest-hash mismatch; refreshing
   `FILE_MANIFEST.sha256` and rerunning the suite passed all 376 tests.
+- **Preview-impact refinement validation:** `npm run workbench:test` passed 77 tests;
+  `npm run workbench:build`, `.venv/bin/python -m pytest` (376 passed),
+  `.venv/bin/python -m ruff check .`, `sha256sum -c FILE_MANIFEST.sha256`, and staged diff checks
+  passed after adding visible, non-color-only impact feedback and a completed-preview announcement.
 - **Deviations and follow-ups:** No unrecorded deviations were introduced beyond D-028 and D-029.
   Saved comparison groups, collaborative sharing, authentication, persistence, approval, and
   deployment remain out of scope; custom players remain page-session state.

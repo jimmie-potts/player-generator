@@ -1610,15 +1610,37 @@ abbr[title] {
   white-space: nowrap;
 }
 
-.comparison-row--largest-gain .delta-value,
-.comparison-row--largest-gain .rank-movement {
-  color: var(--mint);
+.delta-value .impact-value {
+  display: inline-flex;
+  gap: 0.24rem;
+  align-items: center;
+  padding: 0.25rem 0.38rem;
+  border-radius: 0.35rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
 }
 
-.comparison-row--largest-loss .delta-value,
-.comparison-row--largest-loss .rank-movement,
-.comparison-row--failure .delta-value {
+.rank-movement.impact-value {
+  font-weight: 850;
+}
+
+.comparison-table .impact-value--positive {
+  color: var(--mint);
+  background: var(--mint-wash);
+}
+
+.comparison-table .impact-value--negative {
   color: var(--coral);
+  background: var(--coral-wash);
+}
+
+.comparison-table .impact-value--neutral {
+  color: var(--slate-300);
+  background: rgb(169 181 194 / 7%);
+}
+
+.comparison-table .impact-value--unavailable {
+  color: var(--slate-500);
 }
 
 .comparison-signal {
@@ -1773,13 +1795,13 @@ abbr[title] {
   background: rgb(8 13 20 / 38%);
 }
 
-.calculation-scoreboard span,
+.calculation-scoreboard article > span,
 .calculation-scoreboard strong,
 .calculation-scoreboard small {
   display: block;
 }
 
-.calculation-scoreboard span {
+.calculation-scoreboard article > span {
   color: var(--slate-500);
   font-size: 0.65rem;
   font-weight: 800;
@@ -1794,6 +1816,22 @@ abbr[title] {
   font-variant-numeric: tabular-nums;
 }
 
+.calculation-scoreboard strong.calculation-scoreboard__baseline {
+  display: flex;
+  gap: 0.38rem;
+  align-items: baseline;
+  color: var(--slate-100);
+  font-size: 1rem;
+}
+
+.calculation-scoreboard__baseline span {
+  color: var(--slate-500);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .calculation-scoreboard small {
   margin-top: 0.3rem;
   overflow: hidden;
@@ -1801,6 +1839,81 @@ abbr[title] {
   font-size: 0.68rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.calculation-scoreboard .preview-impact {
+  display: grid;
+  gap: 0.12rem;
+  padding: 0.45rem 0.52rem;
+  margin-top: 0.45rem;
+  overflow: visible;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.preview-change__value {
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.calculation-scoreboard .preview-change__value {
+  color: currentcolor;
+  font-size: 1.12rem;
+  line-height: 1.1;
+}
+
+.preview-change__delta {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.calculation-scoreboard .preview-impact--increase,
+.preview-value--increase {
+  border-color: rgb(85 214 170 / 38%);
+  color: var(--mint);
+  background: var(--mint-wash);
+}
+
+.calculation-scoreboard .preview-impact--decrease,
+.preview-value--decrease {
+  border-color: rgb(255 123 112 / 38%);
+  color: var(--coral);
+  background: var(--coral-wash);
+}
+
+.preview-value--allocation-change {
+  border-color: rgb(114 183 255 / 38%);
+  color: var(--blue);
+  background: var(--blue-wash);
+}
+
+.calculation-scoreboard .preview-impact--unchanged,
+.preview-value--unchanged {
+  color: var(--slate-300);
+  background: rgb(169 181 194 / 7%);
+}
+
+.calculation-scoreboard .preview-impact--unavailable,
+.calculation-scoreboard .preview-impact--pending,
+.preview-value--unavailable {
+  color: var(--slate-500);
+}
+
+.preview-value {
+  display: inline-grid;
+  gap: 0.08rem;
+  min-width: 5.25rem;
+  padding: 0.28rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+}
+
+.preview-value .preview-change__delta {
+  font-size: 0.57rem;
 }
 
 .data-table {

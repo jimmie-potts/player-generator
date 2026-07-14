@@ -89,4 +89,84 @@ describe("PlayerComparison", () => {
     expect(screen.getByRole("heading", { name: "Your custom list is empty" })).toBeTruthy();
     expect(screen.getByText("Search for up to 25 players to compare.")).toBeTruthy();
   });
+
+  it("highlights every rating and rank impact with color-independent direction cues", () => {
+    const negativeMeasure: ComparisonMeasure = {
+      baseline: 87,
+      preview: 85,
+      delta: -2,
+      baselineRank: 9,
+      previewRank: 12,
+      rankMovement: -3,
+    };
+    const { container } = render(
+      <PlayerComparison
+        selectedAttributeLabel="Overall"
+        groups={[
+          {
+            id: "tiers",
+            label: "Tier sample",
+            kind: "tier",
+            rows: [row({ attribute: MEASURE, overall: negativeMeasure })],
+          },
+        ]}
+        onSelect={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelectorAll(".delta-value .impact-value--positive")).toHaveLength(1);
+    expect(container.querySelectorAll(".delta-value .impact-value--negative")).toHaveLength(1);
+    expect(container.querySelector(".delta-value .impact-value--positive")?.textContent).toContain(
+      "▲ +2",
+    );
+    expect(container.querySelector(".delta-value .impact-value--negative")?.textContent).toContain(
+      "▼ -2",
+    );
+    expect(screen.getByText("Rating increased by 2.")).toBeTruthy();
+    expect(screen.getByText("Rating decreased by 2.")).toBeTruthy();
+
+    const positiveRank = screen.getByLabelText(
+      "Rank 12 to 9. Moved 3 places toward rank one.",
+    );
+    const negativeRank = screen.getByLabelText(
+      "Rank 9 to 12. Moved 3 places away from rank one.",
+    );
+    expect(positiveRank.classList.contains("impact-value--positive")).toBe(true);
+    expect(negativeRank.classList.contains("impact-value--negative")).toBe(true);
+  });
+
+  it("shows a neutral unsigned zero when a rating does not change", () => {
+    const unchanged: ComparisonMeasure = {
+      baseline: 85,
+      preview: 85,
+      delta: 0,
+      baselineRank: 12,
+      previewRank: 12,
+      rankMovement: 0,
+    };
+    const { container } = render(
+      <PlayerComparison
+        selectedAttributeLabel="Overall"
+        groups={[
+          {
+            id: "tiers",
+            label: "Tier sample",
+            kind: "tier",
+            rows: [row({ attribute: unchanged, overall: unchanged, state: "no-change" })],
+          },
+        ]}
+        onSelect={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+
+    const deltas = [...container.querySelectorAll(".delta-value")].map(
+      (cell) => cell.textContent,
+    );
+    expect(deltas).toHaveLength(2);
+    expect(deltas.every((value) => value?.includes("= 0"))).toBe(true);
+    expect(screen.getAllByText("Rating did not change.")).toHaveLength(2);
+    expect(deltas.join(" ")).not.toContain("+0");
+  });
 });

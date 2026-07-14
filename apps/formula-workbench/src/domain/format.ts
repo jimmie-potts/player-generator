@@ -3,7 +3,7 @@ const DEFAULT_NUMBER_FORMAT = new Intl.NumberFormat(undefined, {
 });
 
 const SIGNED_NUMBER_FORMAT = new Intl.NumberFormat(undefined, {
-  maximumFractionDigits: 2,
+  maximumFractionDigits: 4,
   signDisplay: "always",
 });
 
@@ -34,9 +34,16 @@ export function formatNumber(value: unknown): string {
 }
 
 export function formatSignedNumber(value: unknown): string {
-  return typeof value === "number" && Number.isFinite(value)
-    ? SIGNED_NUMBER_FORMAT.format(value)
-    : "—";
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "—";
+  }
+  if (value === 0) {
+    return DEFAULT_NUMBER_FORMAT.format(0);
+  }
+  if (Math.abs(value) < 0.00005) {
+    return value > 0 ? "+<0.0001" : "−<0.0001";
+  }
+  return SIGNED_NUMBER_FORMAT.format(value);
 }
 
 export function formatPercent(value: unknown): string {

@@ -165,6 +165,66 @@ describe("CalculationInspector row builders", () => {
     expect(screen.queryByRole("heading", { name: "Loading calculation" })).toBeNull();
   });
 
+  it("highlights authoritative preview increases and decreases with visible direction cues", () => {
+    const baseline = overallCalculation();
+    const preview = makeCalculation("player-test", { adjusted: true }).attributes.overall;
+    const { container } = render(
+      <CalculationInspector
+        player={{ playerId: "player-test", displayName: "Test Player", season: 2026 }}
+        attributeName="overall"
+        baseline={baseline}
+        preview={preview}
+      />,
+    );
+
+    const scoreboard = container.querySelector(".calculation-scoreboard");
+    expect(scoreboard?.querySelectorAll(".preview-impact--increase")).toHaveLength(3);
+    expect(scoreboard?.textContent).toContain("Preview 92");
+    expect(scoreboard?.textContent).toContain("▲ +2 increase");
+    expect(
+      within(scoreboard as HTMLElement).getByText(
+        "Preview 92. Increased by 2 from baseline 90.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toContain(
+      "Authoritative preview updated. Rating increased to 92.",
+    );
+
+    const componentTable = screen.getByRole("region", {
+      name: "Component calculation breakdown",
+    });
+    expect(componentTable.querySelectorAll(".preview-value--increase")).toHaveLength(1);
+    expect(componentTable.querySelectorAll(".preview-value--decrease")).toHaveLength(1);
+    expect(componentTable.querySelectorAll(".preview-value--allocation-change")).toHaveLength(2);
+    expect(componentTable.querySelectorAll(".preview-value--unchanged")).toHaveLength(2);
+    expect(componentTable.textContent).toContain("▲ +10% increase");
+    expect(componentTable.textContent).toContain("▼ -10% decrease");
+  });
+
+  it("keeps zero and very small deltas consistent with their direction cues", () => {
+    const baseline = overallCalculation();
+    const preview = structuredClone(baseline);
+    preview.compositePercentile = baseline.compositePercentile! + 0.000001;
+    preview.composite = baseline.composite! + 0.000001;
+
+    const { container } = render(
+      <CalculationInspector
+        player={{ playerId: "player-test", displayName: "Test Player", season: 2026 }}
+        attributeName="overall"
+        baseline={baseline}
+        preview={preview}
+      />,
+    );
+
+    const scoreboard = container.querySelector(".calculation-scoreboard");
+    expect(scoreboard?.querySelector(".preview-impact--unchanged")?.textContent).toContain(
+      "= 0 no change",
+    );
+    expect(scoreboard?.textContent).not.toContain("= +0 no change");
+    expect(scoreboard?.textContent).toContain("▲ +<0.001% increase");
+    expect(scoreboard?.textContent).toContain("▲ +<0.0001 increase");
+  });
+
   it("renders an explicit unsupported status without calculation tables", () => {
     render(
       <CalculationInspector

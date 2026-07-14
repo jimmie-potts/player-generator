@@ -37,6 +37,7 @@ describe("GlossaryPage", () => {
     );
     expect(screen.getByText("Authoritative", { selector: "dfn" })).toBeTruthy();
     expect(screen.getByText("Fixed cohort", { selector: "dfn" })).toBeTruthy();
+    expect(screen.getByText("Impact cue", { selector: "dfn" })).toBeTruthy();
     expect(screen.getByText("Stale context", { selector: "dfn" })).toBeTruthy();
   });
 

@@ -310,6 +310,12 @@ its completion notes.
 - A comparison list and a calculation cohort are different concepts. The browser may choose up to
   25 rows to display, but the server must continue evaluating the complete fixed cohort so switching
   views cannot change percentiles or ranks.
+- Baseline and preview columns alone do not make a dense tuning surface easy to scan. Emphasize every
+  nonzero authoritative change consistently across summaries, formula-derived component details,
+  and comparison results: green for an increased outcome or movement toward rank 1, red for a
+  decrease or movement away, blue for a changed weight allocation that is not inherently good or
+  bad, and a neutral treatment for no change. Color is only redundant emphasis; signed values,
+  arrows, direction words, and accessible labels must communicate the same meaning.
 
 ## Entry format
 
