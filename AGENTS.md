@@ -6,8 +6,9 @@ working-tree changes intact.
 ## Current state and planned state
 
 The implemented monorepo has two Python data applications under `apps/reference-data/` and
-`apps/roster-generator/`, a React shell under `apps/formula-workbench/`, and shared Python packages
-under `packages/data-contracts/` and `packages/attribute-engine/`.
+`apps/roster-generator/`, a React shell and Python preview API under
+`apps/formula-workbench/`, and shared Python packages under `packages/data-contracts/` and
+`packages/attribute-engine/`.
 
 The remaining redesign is documented in [docs/planning/README.md](docs/planning/README.md). Planning
 documents describe future behavior unless their stories are marked complete. The reference builder
@@ -15,7 +16,9 @@ now supports registered local inputs, canonical normalization, and version 2 CSV
 season-relative attributes; its pinned download and wide tables remain standalone legacy
 interfaces. The roster generator consumes only a validated published reference package and
 atomically emits the normalized player-only roster package. Player attributes use the versioned
-declarative formula and shared Python evaluator; the workbench has no formula or data behavior yet.
+declarative formula and shared Python evaluator. The preview API reads one integrity-checked
+reference cohort and exposes read-only version 1 endpoints; the React client still has no formula or
+data behavior.
 
 Do not implement a later story until the user explicitly starts it. Avoid changing runtime code,
 configuration, schemas, outputs, or pipeline behavior merely to resemble an unstarted plan.
@@ -38,6 +41,8 @@ configuration, schemas, outputs, or pipeline behavior merely to resemble an unst
   Parquet or import source adapters.
 - `data-contracts` owns versioned schemas, keys, types, and relationship validation.
 - `attribute-engine` is the only formula evaluator used by batch generation and the preview API.
+- The preview API reads only a validated published reference package. It must not import either data
+  application, read raw Parquet, or write formula, package, or preset state.
 - The workbench calls the preview API and must not reimplement rating calculations in TypeScript.
 - The normalized roster package is player-only. Coach and team contracts are future design targets,
   not permission to populate those files.
@@ -106,6 +111,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
 npm install
+```
+
+Run the local preview API against the configured ignored reference package with:
+
+```bash
+formula-preview-api --config apps/formula-workbench/api/config/default.yaml
+# or: make formula-api
 ```
 
 For current Python changes, run:

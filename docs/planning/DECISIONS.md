@@ -194,3 +194,54 @@ changes one; do not rewrite history without recording the replacement.
 - **Reason:** Generation samples one reference player-season for each roster player. Allowing more
   than one generated season would leave the player-grain attribute row unable to identify which
   season it rates, even when the two stat tables share the same multi-season key set.
+
+## D-023: FastAPI preview application with API-owned contracts
+
+- **Status:** accepted
+- **Decision:** Implement the formula preview boundary as a FastAPI application served by Uvicorn
+  under `apps/formula-workbench/api`. Version 1 HTTP request and response models are API-owned
+  Pydantic models and publish their authoritative OpenAPI document from the running application.
+  Request JSON accepts only strict camelCase contract fields and their declared scalar types. Run
+  CPU-bound preview evaluation from the async route through an application-owned two-worker
+  executor rather than blocking other endpoints on the event loop.
+- **Reason:** The API needs strict camelCase validation, structured field errors, and a contract that
+  the later TypeScript client can inspect without moving transport concerns into the CSV and formula
+  contract package. Strict input prevents ambiguous coercion, and the bounded dedicated executor
+  preserves responsiveness while avoiding the incompatible FastAPI sync-route/AnyIO and asyncio
+  default-executor paths observed on the repository's supported runtime. Keeping the server beside
+  the React client preserves one workbench application boundary while the shared Python distribution
+  retains a reproducible install and entrypoint.
+
+## D-024: Complete configured preview cohort with bounded responses
+
+- **Status:** accepted
+- **Decision:** Load and evaluate one explicitly configured season cohort in memory, rejecting a
+  cohort larger than the configured maximum. Calculate baselines and previews over that complete
+  fixed cohort, then bound only the top-player response, pins, selected players, and search results.
+  Rank overall values with minimum-rank tie semantics and use stable player IDs only to order equal
+  values for display. Require each preview request to echo the configured season as a context token.
+- **Reason:** Formula priors, percentiles, and rank movement are population-relative. Evaluating only
+  the displayed sample would change the calculation, while one season makes stable `playerId`
+  selection unambiguous and explicit limits keep local interactive work responsive.
+- **2026-07-13 amendment:** Set the exact 1,000-player warm preview budget to 3,000 ms after the
+  GitHub Python 3.12 runner measured 2,260 ms against the initial 2,000 ms target. The revised gate
+  adds cross-environment operating margin without increasing the cohort or response bounds.
+- **2026-07-14 amendment:** Continue evaluating the complete configured cohort for every temporary
+  preview rating, component and composite percentile, and overall rank, but materialize temporary
+  explanation trees only for the request's selected player IDs. Unselected explanations cannot be
+  exposed by the response contract, so constructing them adds work without changing any calculation
+  population or result.
+
+## D-025: Shared package integrity with active-formula recalculation
+
+- **Status:** accepted
+- **Decision:** Put reusable reference manifest, exact-file-set, hash, row-count, contract, and
+  mutation-window checks in `data-contracts`, then let each application apply its own joining and
+  compatibility policy. The preview API recalculates its baseline with the active shared-engine
+  formula and exposes the package identity, active formula identity, and configured season as context
+  tokens. It compares published reference attributes with the recalculation only when their formula
+  version and exact document hash match the active formula.
+- **Reason:** Applications should not import one another or duplicate integrity rules. Published
+  attributes describe the package's calibration snapshot rather than constraining a later consumer's
+  selected formula, while explicit identities prevent stale browser requests from mixing package,
+  baseline, and formula state.

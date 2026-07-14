@@ -4,7 +4,7 @@
 
 Technical presentation for engineers, architects, and product stakeholders
 
-Implementation baseline: 2026-07-13, `agent/implement-epic-04` at `28ca3ab`
+Implementation baseline: 2026-07-14, `agent/implement-epic-05` (PR #10)
 
 > **Scope of “projected final state”:** the end of the currently approved seven-epic roadmap. It is
 > not a projection of a complete league simulator.
@@ -13,8 +13,8 @@ Implementation baseline: 2026-07-13, `agent/implement-epic-04` at `28ca3ab`
 
 # 1. Executive state
 
-The batch-data foundation is implemented and validated. The interactive formula experience and
-future team/coach contracts remain planned.
+The batch-data foundation and read-only formula preview API are implemented and validated. The
+interactive React experience and future team/coach contracts remain planned.
 
 | Capability | Current state | Roadmap state |
 |---|---|---|
@@ -22,11 +22,11 @@ future team/coach contracts remain planned.
 | Local source registration and normalized reference package | Implemented | EPIC-02 complete |
 | Declarative player attributes and reference attributes | Implemented | EPIC-03 complete |
 | Deterministic player-only roster package | Implemented | EPIC-04 complete |
-| Read-only formula preview API | Not implemented | EPIC-05 ready |
+| Read-only formula preview API | Implemented | EPIC-05 complete |
 | Interactive formula workbench | Static React shell only | EPIC-06 ready |
 | Team and coach contract definitions | Proposed headers only | EPIC-07 ready |
 
-**Delivery:** 10 of 15 user stories are complete. US-010 through US-014 are ready and unstarted.
+**Delivery:** 11 of 15 user stories are complete. US-011 through US-014 are ready and unstarted.
 
 ---
 
@@ -38,8 +38,8 @@ The design separates three concerns that were previously coupled:
    provenance, and calibration data.
 2. **Roster generation** owns independent generated identities, controlled statistical mutation,
    attribute calculation, and player-only publication.
-3. **Formula exploration** will provide non-persistent interactive inspection and previews over the
-   same evaluator used by both batch paths.
+3. **Formula exploration** provides a non-persistent read-only API over the same evaluator used by
+   both batch paths; the planned React client will add the interactive inspection experience.
 
 The governing principles are:
 
@@ -58,12 +58,13 @@ The governing principles are:
 |---|---|---|
 | `apps/reference-data` | Python 3.10+, pandas, PyArrow, PyYAML | Source registration, adapters, reconciliation, publication |
 | `apps/roster-generator` | Python 3.10+, NumPy, pandas, Faker, PyYAML | Selection, mutation, generated identity, publication |
-| `packages/data-contracts` | Python + packaged JSON schemas | CSV, formula, key, relationship, and semantic validation |
+| `apps/formula-workbench/api` | Python 3.10+, FastAPI, Pydantic, Uvicorn | Read-only formula inspection, player lookup, and temporary previews |
+| `packages/data-contracts` | Python + packaged JSON schemas | CSV, formula, package-integrity, key, relationship, and semantic validation |
 | `packages/attribute-engine` | Python, pandas, NumPy, declarative JSON | Metric derivation, percentile evaluation, ratings, explanations |
-| `apps/formula-workbench` | Node 22.12+, React 19, TypeScript 5.8, Vite 7 | Current static shell; future formula exploration client |
+| `apps/formula-workbench` client | Node 22.12+, React 19, TypeScript 5.8, Vite 7 | Current static shell; future API-backed formula exploration client |
 | Repository tooling | setuptools, npm workspaces, pytest, Ruff, mypy, Vitest | Build, packaging, tests, linting, type/build checks |
 
-The four Python source roots install through one setuptools distribution while import-boundary tests
+The five Python source roots install through one setuptools distribution while import-boundary tests
 preserve their logical independence. Mypy is installed but is not currently an enforced check.
 
 ---
@@ -79,27 +80,34 @@ flowchart LR
     rosterpkg["Roster package v1<br/>4 CSVs + manifest"]
     contracts["data-contracts<br/>schemas + validators"]
     engine["attribute-engine<br/>formula v1.0.0"]
+    api["FastAPI preview API<br/>read-only /api/v1; one v2 cohort"]
     shell["React workbench<br/>isolated static shell; no API/data behavior"]
     legacy["Pinned download + wide build<br/>standalone legacy path"]
 
     local --> reference --> refpkg --> roster --> rosterpkg
+    refpkg --> api
     contracts -. governs .-> reference
     contracts -. governs .-> roster
+    contracts -. validates packages and formulas .-> api
     contracts -. validates .-> engine
     engine -->|calculates for| reference
     engine -->|calculates for| roster
+    engine -->|calculates for| api
     reference -. standalone compatibility .-> legacy
 ```
 
 Solid left-to-right edges carry data artifacts. Engine edges identify a calculation service called
-by each application; they do not reverse the applications' import direction.
+by each application; they do not reverse the applications' import direction. The preview API is a
+current reference-package consumer. The React shell remains disconnected from it until EPIC-06.
 
 Enforced dependency direction:
 
 - applications may import shared packages;
 - shared packages never import applications;
 - reference and roster applications never import each other;
-- the roster generator never reads Parquet or imports a source adapter.
+- the roster generator never reads Parquet or imports a source adapter;
+- the preview API imports neither data application, reads no raw Parquet, and writes no formula,
+  package, or preset state.
 
 ---
 
@@ -207,8 +215,10 @@ Current outputs:
 - structured explanations containing raw and derived values, eligibility, cohort size, percentiles,
   normalized weights, contributions, composites, and final ratings.
 
-That explanation model is the calculation-detail source the planned API must expose and version;
-there is no separate “UI calculation.”
+That explanation model is the calculation-detail source exposed by the versioned preview API;
+there is no separate “API calculation” or “UI calculation.” Temporary previews build explanation
+trees only for selected players while still calculating every row needed for full-cohort ratings,
+percentiles, and ranks.
 
 ---
 
@@ -311,13 +321,14 @@ These patterns make a data pipeline auditable without coupling the applications 
 
 Current automated checks:
 
-- **308 Python tests** across applications, contracts, engine, architecture, entrypoints, and
+- **364 Python tests** across applications, contracts, engine, architecture, entrypoints, and
   repository integrity;
 - **Ruff** linting and import/order checks;
 - **Vitest** component smoke coverage for the current workbench shell;
 - **TypeScript `--noEmit` + Vite production build**;
 - AST-based dependency tests that enforce application/package boundaries;
 - deterministic package, failure-mode, semantic relationship, and identity-leak tests;
+- 40 preview API contract, startup, failure, concurrency, and maximum-cohort performance tests;
 - `FILE_MANIFEST.sha256` coverage and hash verification for every other tracked file.
 
 GitHub Actions runs Python 3.12 and Node 22.12 on every push and pull request. The repository
@@ -335,7 +346,8 @@ workflow requires each logical unit to be committed, pushed, and opened as a rea
 | Conservative exact-name reconciliation | Avoids probabilistic identity corruption; ambiguous cases require review |
 | Formula schedules cover 2021–2026 | Direct evaluation rejects unlisted schedules; reference publication preserves keys with nullable attributes |
 | Defense is an estimate | Available inputs retain material team and context effects |
-| Static workbench shell | API and interactive stories have not started |
+| Read-only local preview service | FastAPI is implemented; authentication, persistence, deployment, and production hosting remain out of scope |
+| Static workbench client | API integration and interactive formula behavior remain EPIC-06 work |
 | Player-only roster package | No approved generation rules exist for teams, coaches, contracts, or assignments |
 
 Unsupported play-style and tendency ratings, speed/strength ratings, injury detail beyond
@@ -349,56 +361,61 @@ populated with placeholders.
 ```mermaid
 flowchart LR
     sources["Caller-owned Parquet"] --> reference["reference-data"]
-    reference --> refpkg["Versioned reference package<br/>v2 is current; API support is TBD"]
+    reference --> refpkg["Versioned reference package<br/>v2 is current"]
     refpkg --> roster["roster-generator"] --> rosterpkg["Player-only roster v1"]
     refpkg --> frame["Loaded in-memory reference data"]
-    frame --> api["Versioned read-only Python preview API<br/>bounded results; framework TBD"]
-    workbench["React + TypeScript workbench"] --> api
+    frame --> api["Current FastAPI /api/v1<br/>fixed cohort; bounded results"]
+    workbench["Planned API-backed<br/>React + TypeScript workbench"] -. EPIC-06 .-> api
     engine["Shared attribute-engine"] -->|calculates for| reference
     engine -->|calculates for| roster
     engine -->|calculates for| api
     contracts["data-contracts"] -. governs .-> reference
     contracts -. governs .-> roster
+    contracts -. validates package input .-> api
     contracts -. future team/coach schemas .-> future["Contract targets only"]
 ```
 
-The API becomes the interactive consumer of the existing Python evaluator, alongside the current
-batch paths. Artifact flow remains source → reference publisher → versioned package → consumers;
-engine arrows show shared calculation calls. The browser never implements a rating formula and
-never writes active configuration.
+The API is already an interactive consumer of the existing Python evaluator, alongside the batch
+paths. Artifact flow remains source → reference publisher → versioned package → consumers;
+engine arrows show shared calculation calls. EPIC-06 adds the browser consumer, which never
+implements a rating formula and never writes active configuration.
 
 ---
 
-# 16. Planned formula preview API
+# 16. Implemented formula preview API
 
-EPIC-05 introduces versioned, read-only endpoints for:
+EPIC-05 implements a FastAPI application served by Uvicorn. API-owned strict Pydantic models publish
+the version 1 OpenAPI contract and expose these read-only endpoints:
 
-- the active formula document and metric metadata;
-- bounded baseline results ranked by overall;
-- normalized partial-name and stable-ID player search;
-- player calculation detail and explanations;
-- temporary previews of weights, inverse direction, and percentile anchors for explicitly selected
-  player IDs.
+- `GET /api/v1/formula` and `GET /api/v1/metrics` for the active declarative formula and metric
+  metadata;
+- `GET /api/v1/players`, `GET /api/v1/players/search`, and
+  `GET /api/v1/players/{playerId}` for bounded baselines, normalized partial-name/stable-ID search,
+  and authoritative calculation detail;
+- `POST /api/v1/previews` for request-local component weight, inverse-direction, and complete
+  rating-scale anchor changes for explicitly selected player IDs.
 
-Preview responses will return baseline and preview values, deltas, rank movement, raw inputs,
-percentiles, normalized weights, contributions, and structured field-level errors.
+Preview responses return baseline and preview values, deltas, rank movement, raw inputs,
+percentiles, normalized weights, contributions, and structured field-level errors. Every successful
+response identifies API version, reference-package identity, active formula identity, configured
+season, and cohort size. Preview requests must echo those package, formula, and season context
+tokens, so stale clients fail before recalculation.
 
-Design strategies:
+Implemented strategies and bounds:
 
-- load an explicitly identified reference package and formula version;
-- return a bounded baseline/result sample while keeping enough in-memory reference data for
-  responsive recalculation;
-- allow requested pinned players to augment the default top-overall sample;
-- hold the baseline and preview evaluation cohort fixed so rank changes are comparable—the bounded
-  display sample is not assumed to define that percentile cohort;
-- reject invalid requests without partial results;
-- perform no writes to formulas, presets, or reference data;
-- define and test an explicit latency budget before the story is complete;
-- contract-test missing players, package mismatches, invalid edits, and write prevention.
-
-The Python HTTP framework, accepted reference-package versions, exact routes, API model ownership,
-baseline sourcing and cache/parity strategy, sample size, evaluation-cohort policy, and latency
-target are intentionally undecided until US-010 starts.
+- load one integrity-checked version 2 reference package and one explicitly configured season;
+- recalculate and cache the active baseline over the complete season cohort, verifying published
+  attributes when the package's published formula version and hash match the active formula exactly;
+- reject more than 1,000 cohort rows, then bound default samples and pins to 25, selected preview
+  players to 25, and search results to 20;
+- hold the baseline and preview cohort fixed so percentiles and rank movement remain comparable;
+- materialize temporary explanation trees only for selected players, without filtering the metric,
+  eligibility, percentile, rating, or rank populations;
+- reject invalid or stale requests with no partial results and perform no writes to formulas,
+  presets, or reference data;
+- dispatch CPU-bound previews through an application-owned two-worker executor so lightweight
+  reads remain responsive;
+- enforce a 3,000 ms warm budget for the exact 1,000-player synthetic cohort.
 
 ---
 
@@ -407,28 +424,27 @@ target are intentionally undecided until US-010 starts.
 ```mermaid
 sequenceDiagram
     actor Designer
-    participant UI as React workbench
-    participant API as Preview API
+    participant UI as Planned React workbench
+    participant API as Implemented preview API
     participant Engine as Attribute engine
 
     Designer->>UI: Inspect formula and select players
-    UI->>API: Load versioned baseline + explanations
-    API->>Engine: Resolve declared comparison cohort
-    Engine-->>API: Ratings + calculation details
-    API-->>UI: Baseline state
+    UI->>API: Load formula, bounded baseline, and detail
+    API-->>UI: Cached baseline + authoritative explanation
     Designer->>UI: Change weight, direction, or anchor
     UI->>UI: Provisional validation + debounce
-    UI->>API: Submit temporary preview
-    API->>API: Authoritative request validation
-    API->>Engine: Recalculate same declared cohort
-    Engine-->>API: Preview + explanations
+    UI->>API: Submit temporary preview + context tokens
+    API->>API: Validate strict request and stale context
+    API->>Engine: Recalculate fixed full cohort in worker
+    Engine-->>API: Full results + selected explanations
     API-->>UI: Deltas and rank movement
     UI->>UI: Ignore or cancel superseded responses
     Designer->>UI: Reset or export proposal
 ```
 
-This is a conceptual sequence; US-010 must decide whether baseline ratings are read from reference
-v2, recalculated, or verified against both. EPIC-06 then adds three increments:
+This sequence combines implemented server behavior with the planned browser client. US-010 now
+recalculates the active baseline and verifies it against reference v2 attributes only when the
+published and active formula identities match exactly. EPIC-06 adds the following client behavior:
 
 - inspect formula eligibility, cohorts, anchors, scales, versions, and calculation explanations;
 - distinguish missing, excluded, unsupported, loading, empty, stale-version, and API-error states;
@@ -474,10 +490,11 @@ Delivered dependency path
                                           ├─→ US-009  (completes EPIC-04)
                                           └─→ US-015  (completes EPIC-03)
 
+Delivered interactive service
+  EPIC-05 / US-010  read-only preview API
+
 Next interactive lane
-  EPIC-05 / US-010  preview API
-          ↓
-  EPIC-06           inspect → preview → compare
+  EPIC-06  inspect → preview → compare
 
 Independent contract lane
   EPIC-07 / US-014  team and coach schemas only
@@ -487,10 +504,10 @@ Epic numbering is roadmap grouping, not a strict chronological dependency graph:
 the EPIC-04 package-consumer seam, while EPIC-07 does not depend on the API or workbench.
 
 Migration has proceeded seam by seam: establish boundaries, replace the roster generator's
-raw/wide-data coupling with a published package, extract calculations into a shared engine before
-adding its API consumer, then add new consumers. The plan permits a deliberate clean v2 break while
-keeping additive reference v1 readable after v2 added attributes. Remaining work continues that
-sequence rather than introducing parallel formula logic or premature domains.
+raw/wide-data coupling with a published package, extract calculations into a shared engine, and add
+the read-only API consumer. The plan permits a deliberate clean v2 break while keeping additive
+reference v1 readable after v2 added attributes. Remaining work adds the browser consumer rather
+than introducing parallel formula logic or premature domains.
 
 ---
 
@@ -504,18 +521,18 @@ sequence rather than introducing parallel formula logic or premature domains.
 | Broken statistical relationships | Mutate primitives; derive dependents; semantic contract validation |
 | Non-reproducible output | Seed, config and package hashes, stable rows/content hashes; deterministic roster manifest; reference timestamp excluded from content hash |
 | Upstream data redistribution | Local ignored inputs; provenance/license metadata; no committed third-party data |
-| Slow previews | Bounded in-memory sample and explicit latency tests |
-| Full-cohort accuracy versus preview latency | Explicitly separate evaluation-cohort policy from bounded result size |
-| Baseline drift | Define parity checks between published attributes and any API recalculation |
-| Duplicate API contracts | Assign model ownership and central versioning during US-010 |
+| Slow previews | 1,000-row cohort cap, bounded responses, selected-only explanation materialization, and a 3,000 ms warm test |
+| Full-cohort accuracy versus preview latency | Fixed complete calculation cohort; only unreturned explanation objects are omitted |
+| Baseline drift | Explicit package/formula/season tokens and published-attribute parity checks for exact formula matches |
+| Duplicate API contracts | API-owned strict Pydantic models and one generated version 1 OpenAPI contract |
 | Stale UI results | Version-aware states; request debounce/cancellation; fixed comparison cohorts |
 | Unsafe formula editing | Session-only controls; server validation; proposal export; no active writes |
 | Premature domain coupling | Team/coach contracts only; generation requires new approved scope |
 | Premature domain detail | Validate contract semantics without inventing future population policy |
 
-US-010 must select an implementation framework; define and test versioned request/response,
-package-compatibility, cohort, and sample-size contracts; establish a latency budget; and retain the
-shared evaluator as the authoritative calculation path.
+EPIC-06 must consume the versioned API contract, preserve server-authoritative calculations and
+context-token handling, and add responsive client state without turning session edits into active
+configuration writes.
 
 ---
 
@@ -534,6 +551,10 @@ roster-generator generate --output /path/to/roster-v1 --seed 42
 
 # Workbench shell
 npm run workbench:dev
+
+# Formula preview API (requires an ignored local reference v2 package)
+formula-preview-api --config apps/formula-workbench/api/config/default.yaml
+# equivalent: make formula-api
 
 # Standalone legacy compatibility path
 reference-data download --force
@@ -565,6 +586,7 @@ Repository sources used for this presentation:
 - [Roster-generator application](../../apps/roster-generator/README.md)
 - [Attribute-engine package](../../packages/attribute-engine/README.md)
 - [Data-contracts package](../../packages/data-contracts/README.md)
+- [Formula preview API contract](../../apps/formula-workbench/api/README.md)
 - [Formula API epic](../planning/epics/EPIC-05-formula-api.md)
 - [Formula workbench epic](../planning/epics/EPIC-06-workbench.md)
 - [Future domain-contract epic](../planning/epics/EPIC-07-domain-contracts.md)

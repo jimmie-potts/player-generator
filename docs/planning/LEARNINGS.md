@@ -195,6 +195,45 @@ its completion notes.
   attribute rows with empty calculations instead of broad-catching evaluator failures or silently
   inventing schedule policy; other evaluation errors must still fail publication.
 
+### 2026-07-13 — US-010
+
+- Interactive response bounds must not become calculation-population bounds. Formula priors,
+  percentiles, and rank movement remain correct only when baseline and preview evaluate the same
+  complete configured season cohort before selecting response rows.
+- A published attribute table is a useful parity oracle only when its formula version and exact
+  document hash match the active evaluator input. Otherwise its provenance remains valid package
+  context, while the consumer must label and recalculate its own active baseline.
+- Reference-package integrity is consumer-independent, but joining, formula compatibility, identity
+  exposure, and selection policy are application concerns. Sharing the former prevents duplicated
+  mutation-window checks without coupling applications through one consumer's policy.
+- Package and active-formula hashes plus the configured season are practical optimistic context
+  tokens for a stateless preview API. Rejecting stale tokens before recalculation prevents a client
+  from presenting results against a package, formula, or cohort baseline it did not request.
+- Strict transport models should reject field aliases and scalar coercion even when internal Python
+  models use snake_case names. One published camelCase shape keeps browser behavior and structured
+  field errors deterministic.
+- Calling shared-engine Pandas evaluation directly from an async FastAPI handler would block the
+  event loop. The sync-route/AnyIO threadpool path hung under the repository's Python 3.14 and current
+  Starlette/httpx2 stack, and the runtime's asyncio default executor also hung in isolation. An
+  application-owned bounded executor kept lightweight inspection and search endpoints responsive
+  during recalculation.
+- A performance acceptance gate needs margin across supported runners, not only a developer
+  workstation. Preserve the workload and data bounds, record the observed slower environment, and
+  revise the documented budget explicitly when the original target is not portable.
+
+### 2026-07-14 — US-010 review optimization
+
+- Calculation population and explanation materialization are separate concerns. A preview must
+  evaluate the complete fixed cohort for ratings, percentiles, and ranks, but it can build nested
+  explanation trees only for selected player IDs when the response contract cannot expose any other
+  player's explanation.
+- Selective explanation materialization is safe only when it does not filter metric preparation,
+  eligibility, percentile cohorts, composites, ratings, or rank inputs. Tests should prove full-cohort
+  result parity as well as the absence of unselected temporary explanations.
+- Type annotations do not protect a shared Python API at runtime. Optional public filters should
+  validate both their collection shape and every element, then report malformed values through the
+  package's domain error instead of leaking `TypeError`.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:

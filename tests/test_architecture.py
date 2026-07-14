@@ -7,6 +7,9 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOTS = {
     "reference_data_app": ROOT / "apps" / "reference-data" / "src" / "reference_data_app",
     "roster_generator": ROOT / "apps" / "roster-generator" / "src" / "roster_generator",
+    "formula_preview_api": (
+        ROOT / "apps" / "formula-workbench" / "api" / "src" / "formula_preview_api"
+    ),
     "player_data_contracts": (
         ROOT / "packages" / "data-contracts" / "src" / "player_data_contracts"
     ),
@@ -39,6 +42,13 @@ def test_reference_and_roster_apps_do_not_import_each_other() -> None:
     assert "reference_data_app" not in roster_imports
 
 
+def test_preview_api_uses_shared_packages_without_importing_data_applications() -> None:
+    preview_imports = _import_roots(PACKAGE_ROOTS["formula_preview_api"])
+
+    assert "reference_data_app" not in preview_imports
+    assert "roster_generator" not in preview_imports
+
+
 def test_roster_application_has_no_parquet_or_source_adapter_dependency() -> None:
     roster_root = PACKAGE_ROOTS["roster_generator"]
     imports = _import_roots(roster_root)
@@ -53,6 +63,7 @@ def test_shared_packages_do_not_import_applications() -> None:
         imports = _import_roots(PACKAGE_ROOTS[name])
         assert "reference_data_app" not in imports
         assert "roster_generator" not in imports
+        assert "formula_preview_api" not in imports
 
 
 def test_removed_coupled_package_is_not_imported() -> None:

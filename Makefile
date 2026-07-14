@@ -1,9 +1,10 @@
 PYTHON ?= python3
 REFERENCE_CONFIG ?= apps/reference-data/config/default.yaml
 ROSTER_CONFIG ?= apps/roster-generator/config/default.yaml
+FORMULA_API_CONFIG ?= apps/formula-workbench/api/config/default.yaml
 
 .PHONY: install reference-download reference-build reference-publish roster-generate all \
-	workbench workbench-build test test-python test-web manifest clean
+	formula-api workbench workbench-build test test-python test-web manifest clean
 
 install:
 	$(PYTHON) -m pip install -e '.[dev]'
@@ -20,6 +21,9 @@ reference-publish:
 
 roster-generate:
 	$(PYTHON) -m roster_generator --config $(ROSTER_CONFIG) generate
+
+formula-api:
+	$(PYTHON) -m formula_preview_api --config $(FORMULA_API_CONFIG)
 
 all:
 	$(MAKE) reference-publish
@@ -47,5 +51,6 @@ manifest:
 clean:
 	rm -rf build dist coverage .pytest_cache .ruff_cache .mypy_cache *.egg-info
 	rm -rf apps/formula-workbench/dist roster_data/packages __pycache__
-	find apps/reference-data apps/roster-generator packages scripts tests -type d -name __pycache__ \
+	find apps/reference-data apps/roster-generator apps/formula-workbench/api packages scripts tests \
+		-type d -name __pycache__ \
 		-prune -exec rm -rf {} +

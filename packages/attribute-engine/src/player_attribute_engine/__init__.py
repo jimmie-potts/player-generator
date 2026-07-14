@@ -23,6 +23,7 @@ from player_attribute_engine.formula import (
     FORMULA_SCHEMA_VERSION,
     formula_content_hash,
     load_formula,
+    load_formula_payload_snapshot,
     load_formula_snapshot,
 )
 from player_attribute_engine.ratings import (
@@ -49,6 +50,7 @@ __all__ = [
     "evaluate_player_attributes",
     "formula_content_hash",
     "load_formula",
+    "load_formula_payload_snapshot",
     "load_formula_snapshot",
     "parse_formula_document",
     "rate_player_seasons",

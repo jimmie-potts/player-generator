@@ -305,6 +305,94 @@ def test_explanations_reconstruct_composites_and_are_json_serializable() -> None
     json.dumps(batch.explanations)
 
 
+def test_explanation_filter_preserves_rows_and_uses_cohort_order() -> None:
+    frame = pd.DataFrame(
+        [
+            _row("player-a", impact=0.3),
+            _row("player-b", impact=0.2),
+            _row("player-c", impact=0.1),
+        ]
+    )
+
+    unfiltered = evaluate_player_attributes(frame, _formula())
+    filtered = evaluate_player_attributes(
+        frame,
+        _formula(),
+        explanation_player_ids=("player-c", "player-a"),
+    )
+
+    assert filtered.rows == unfiltered.rows
+    assert filtered.explanations == [
+        unfiltered.explanations[0],
+        unfiltered.explanations[2],
+    ]
+    assert [item["playerId"] for item in filtered.explanations] == [
+        "player-a",
+        "player-c",
+    ]
+
+
+def test_explanation_filter_supports_default_all_explicit_all_and_empty() -> None:
+    frame = pd.DataFrame(
+        [
+            _row("player-a", impact=0.3),
+            _row("player-b", impact=0.2),
+            _row("player-c", impact=0.1),
+        ]
+    )
+
+    unfiltered = evaluate_player_attributes(frame, _formula())
+    explicit_all = evaluate_player_attributes(
+        frame,
+        _formula(),
+        explanation_player_ids=("player-c", "player-a", "player-b"),
+    )
+    empty = evaluate_player_attributes(
+        frame,
+        _formula(),
+        explanation_player_ids=(),
+    )
+
+    assert explicit_all.rows == unfiltered.rows
+    assert explicit_all.explanations == unfiltered.explanations
+    assert empty.rows == unfiltered.rows
+    assert empty.explanations == []
+
+
+def test_explanation_filter_rejects_unknown_player_ids() -> None:
+    frame = pd.DataFrame([_row("player-a"), _row("player-b")])
+
+    with pytest.raises(EvaluationError, match="missing-player"):
+        evaluate_player_attributes(
+            frame,
+            _formula(),
+            explanation_player_ids=("player-a", "missing-player"),
+        )
+
+
+@pytest.mark.parametrize(
+    "explanation_player_ids",
+    [
+        "player-a",
+        b"player-a",
+        ("player-a", 1),
+        ("player-a", " "),
+        (["player-a"],),
+    ],
+)
+def test_explanation_filter_rejects_invalid_collections(
+    explanation_player_ids: object,
+) -> None:
+    frame = pd.DataFrame([_row("player-a"), _row("player-b")])
+
+    with pytest.raises(EvaluationError, match="non-empty strings"):
+        evaluate_player_attributes(
+            frame,
+            _formula(),
+            explanation_player_ids=explanation_player_ids,  # type: ignore[arg-type]
+        )
+
+
 def test_large_finite_weights_normalize_stably_during_evaluation() -> None:
     formula = _formula()
     formula.attributes[0].components = (
