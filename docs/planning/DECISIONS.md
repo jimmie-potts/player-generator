@@ -253,7 +253,9 @@ changes one; do not rewrite history without recording the replacement.
   anchors, and the proposed formula version. The preview API returns the exact validated temporary
   formula document and calculates selected-attribute ranks over the same complete cohort as overall
   ranks. The default comparison contains three highest-ranked eligible players from each populated
-  talent tier, leaving capacity for ten session-only pins within the 25-player preview limit.
+  talent tier. The reusable representative endpoint accepts one through five per tier, while the
+  workbench exposes one through three, leaving capacity for ten session-only pins within the
+  25-player preview limit at its 15-player default.
 - **Reason:** Returning the validated document avoids reproducing formula-merge behavior in
   TypeScript and makes the exported JSON directly usable by batch consumers. Attribute ranks remain
   population-relative and therefore belong beside the shared evaluator, not in the bounded browser

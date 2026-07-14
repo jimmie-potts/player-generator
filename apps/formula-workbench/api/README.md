@@ -51,7 +51,8 @@ applies to that in-memory cohort; the smaller sample, pin, and search limits bou
 
 ## Version and context tokens
 
-Every successful response contains a `context` object:
+Every successful response contains a `context` object. This example uses the local validation
+package; `cohortSize` counts every loaded row for the configured season, not only eligible players:
 
 ```json
 {
@@ -68,7 +69,7 @@ Every successful response contains a `context` object:
     "documentHash": "<active formula SHA-256>"
   },
   "season": 2026,
-  "cohortSize": 376
+  "cohortSize": 582
 }
 ```
 
@@ -127,6 +128,10 @@ and players within each tier are the highest baseline-overall ranks followed by 
 tie order. Empty tiers are omitted. Each player uses the same baseline summary contract as
 `GET /api/v1/players`, with `pinned: false`. Source IDs and reconciliation mappings are never
 exposed.
+
+The endpoint's `1..5` range is a reusable API bound. The current workbench intentionally exposes
+only `1..3`: its default 15 representatives then leave ten of the preview endpoint's 25 selected-
+player slots available for session pins.
 
 ### `GET /api/v1/players/search`
 

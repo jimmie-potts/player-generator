@@ -421,6 +421,8 @@ Implemented strategies and bounds:
   attributes when the package's published formula version and hash match the active formula exactly;
 - reject more than 1,000 cohort rows, then bound representatives to at most five per tier, selected
   preview players and request pins to 25, and search results to 20;
+- expose one through three representatives per tier in the workbench, preserving ten pin slots at
+  the 15-player default while the reusable API retains its one-through-five bound;
 - hold the baseline and preview cohort fixed so percentiles, selected-attribute rank, and overall rank
   movement remain comparable;
 - materialize temporary explanation trees only for selected players, without filtering the metric,

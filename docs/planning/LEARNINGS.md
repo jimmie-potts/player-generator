@@ -255,6 +255,10 @@ its completion notes.
 - Request cancellation is part of calculation correctness, not only a performance optimization.
   Debouncing reduces work, while aborting superseded requests prevents an older response from
   replacing the result for newer controls.
+- In an npm workspace with a hoisted test runner, the runner's environment package must be
+  resolvable from the hoist location. Declare the Node-compatible `jsdom` version at the repository
+  root and validate with a clean `npm ci`; a populated local dependency tree can otherwise mask the
+  same resolution failure that a clean CI runner exposes.
 
 ### 2026-07-14 — US-013
 

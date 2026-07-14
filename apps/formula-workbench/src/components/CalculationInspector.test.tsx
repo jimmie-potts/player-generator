@@ -1,10 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { makeCalculation } from "../test/fixtures";
 import {
+  CalculationInspector,
   buildCalculationComponentRows,
   buildCalculationRawMetricRows,
 } from "./CalculationInspector";
+
+afterEach(cleanup);
 
 function overallCalculation() {
   return makeCalculation("player-test").attributes.overall;
@@ -74,5 +78,47 @@ describe("CalculationInspector row builders", () => {
       state: "missing",
     });
     expect(component?.state).not.toBe("unsupported");
+  });
+
+  it("explains an excluded calculation with its authoritative reason", () => {
+    const baseline = overallCalculation();
+    baseline.eligible = false;
+    baseline.ineligibilityReasons = [
+      { kind: "minimumSample", metric: "gamesPlayed", minimum: 10, actual: 4 },
+    ];
+
+    render(
+      <CalculationInspector
+        player={{ playerId: "player-test", displayName: "Test Player", season: 2026 }}
+        attributeName="overall"
+        baseline={baseline}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Excluded from this attribute cohort" }),
+    ).toBeTruthy();
+    expect(screen.getByText("Games Played: 4 observed; 10 required.")).toBeTruthy();
+    expect(screen.getByText("Excluded", { selector: ".eligibility-badge" })).toBeTruthy();
+  });
+
+  it("renders an explicit unsupported status without calculation tables", () => {
+    render(
+      <CalculationInspector
+        player={{ playerId: "player-test", displayName: "Test Player", season: 2026 }}
+        attributeName="futureAttribute"
+        baseline={null}
+        status="unsupported"
+        statusMessage="The API does not support this attribute for the loaded formula."
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Attribute unsupported" })).toBeTruthy();
+    expect(
+      screen.getByText("The API does not support this attribute for the loaded formula."),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("region", { name: "Component calculation breakdown" }),
+    ).toBeNull();
   });
 });

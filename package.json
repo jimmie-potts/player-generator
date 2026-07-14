@@ -9,6 +9,9 @@
     "workbench:build": "npm run build --workspace @player-generator/formula-workbench",
     "workbench:test": "npm run test --workspace @player-generator/formula-workbench"
   },
+  "devDependencies": {
+    "jsdom": "^28.1.0"
+  },
   "engines": {
     "node": ">=22.12.0"
   }

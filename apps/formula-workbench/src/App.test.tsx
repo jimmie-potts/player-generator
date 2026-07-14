@@ -12,8 +12,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PreviewResponse } from "./api/types";
 import { App } from "./App";
 import {
+  CONTEXT,
   FakePreviewApiClient,
   FORMULA_DOCUMENT,
+  METRICS,
   makePreviewResponse,
 } from "./test/fixtures";
 
@@ -93,6 +95,26 @@ describe("Formula Workbench", () => {
       "0.54",
       "0.54",
     ]);
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Players per tier" }), {
+      target: { value: "1" },
+    });
+
+    await waitFor(() => {
+      expect(client.getTierRepresentatives).toHaveBeenLastCalledWith(
+        expect.objectContaining({ perTier: 1, signal: expect.any(AbortSignal) }),
+      );
+    });
+    await waitFor(
+      () => {
+        const superstarComparison = screen.getByRole("region", {
+          name: "Superstar · 90–99 player comparison",
+        });
+        expect(within(superstarComparison).getAllByRole("row")).toHaveLength(2);
+      },
+      { timeout: 2_500 },
+    );
+    expect(screen.getAllByText("1 representative")).toHaveLength(5);
   });
 
   it("debounces formula edits and renders the server-owned preview breakdown", async () => {
@@ -124,6 +146,18 @@ describe("Formula Workbench", () => {
     ]);
     expect(screen.getAllByText("Largest gain").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Largest loss").length).toBeGreaterThan(0);
+  });
+
+  it("selects another supported attribute and requests its authoritative preview", async () => {
+    const client = await renderReadyWorkbench();
+    const previousCallCount = client.preview.mock.calls.length;
+
+    fireEvent.click(screen.getByRole("button", { name: /^Shooting/ }));
+
+    expect(await screen.findByRole("heading", { name: "Shooting" })).toBeTruthy();
+    await waitForNextPreview(client, previousCallCount);
+    expect(client.preview.mock.calls.at(-1)?.[0].selectedAttribute).toBe("shooting");
+    expect(screen.getAllByRole("columnheader", { name: "Shooting" }).length).toBe(5);
   });
 
   it("cancels a superseded preview and prevents its late response replacing the latest result", async () => {
@@ -294,6 +328,83 @@ describe("Formula Workbench", () => {
         { timeout: 2_500 },
       ),
     ).toBeTruthy();
+  });
+
+  it("starts a fresh browser session without edits or pins after the workbench is remounted", async () => {
+    const client = new FakePreviewApiClient();
+    const firstSession = render(<App client={client} />);
+    await screen.findByRole("heading", { name: "Overall" });
+    await screen.findByText("Preview current", {}, { timeout: 2_000 });
+
+    const previousCallCount = client.preview.mock.calls.length;
+    fireEvent.change(screen.getByRole("textbox", { name: /^Formula version/ }), {
+      target: { value: "session-only-proposal" },
+    });
+    fireEvent.change(overallWeightInput(), { target: { value: "0.75" } });
+    await waitForNextPreview(client, previousCallCount);
+    expect(
+      (screen.getByRole("textbox", { name: /^Formula version/ }) as HTMLInputElement).value,
+    ).toBe("session-only-proposal");
+    expect(overallWeightInput().value).toBe("0.75");
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Player search" }), {
+      target: { value: "Special" },
+    });
+    await screen.findByText("Bench Specialist", {}, { timeout: 1_500 });
+    fireEvent.click(screen.getByRole("button", { name: "Pin Bench Specialist" }));
+    expect(
+      await screen.findByRole("heading", { name: "Session pins" }, { timeout: 2_500 }),
+    ).toBeTruthy();
+    expect(screen.getByText("1/10 pinned")).toBeTruthy();
+
+    firstSession.unmount();
+    render(<App client={client} />);
+    await screen.findByRole("heading", { name: "Overall" });
+    await screen.findByText("Preview current", {}, { timeout: 2_000 });
+
+    expect(
+      (screen.getByRole("textbox", { name: /^Formula version/ }) as HTMLInputElement).value,
+    ).toBe("attributes-2026.1-proposal.1");
+    expect(overallWeightInput().value).toBe("0.6");
+    expect(
+      (screen.getByRole("button", { name: "Reset all" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(screen.getByText("0/10 pinned")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Session pins" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Unpin Bench Specialist" })).toBeNull();
+  });
+
+  it("stops at a stale state when initial formula and metric contexts disagree", async () => {
+    const client = new FakePreviewApiClient();
+    const staleContext = structuredClone(CONTEXT);
+    staleContext.referencePackage.contentHash = "different-reference-package";
+    client.getMetrics.mockResolvedValueOnce({
+      context: staleContext,
+      metrics: structuredClone(METRICS),
+    });
+
+    render(<App client={client} />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Workbench context changed" }),
+    ).toBeTruthy();
+    expect(screen.getByText(/referencePackage.contentHash/)).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Overall" })).toBeNull();
+    expect(client.getTierRepresentatives).not.toHaveBeenCalled();
+  });
+
+  it("shows an initial API failure without rendering partial formula data", async () => {
+    const client = new FakePreviewApiClient();
+    client.getFormula.mockRejectedValueOnce(new Error("formula service unavailable"));
+
+    render(<App client={client} />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Formula workbench unavailable" }),
+    ).toBeTruthy();
+    expect(screen.getByText("formula service unavailable")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Overall" })).toBeNull();
+    expect(client.getTierRepresentatives).not.toHaveBeenCalled();
   });
 
   it("clears prior comparison results and labels an authoritative preview failure", async () => {
