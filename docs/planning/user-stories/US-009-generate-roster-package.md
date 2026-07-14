@@ -85,5 +85,7 @@ statistics, and attributes can be loaded independently.
   smaller, auditable generation surface than independently perturbing rates or ratings.
 - **Review follow-up:** Contract and semantic regressions cover shooting efficiencies above `1.0`,
   and zero-turnover generated lines retain finite assist-to-turnover values and complete
-  attributes. The focused generator/contract/publication suites passed 60 tests; the full Python
-  suite passed 308 tests.
+  attributes. Roster contract version 1 also rejects multiple stat seasons for one player so its
+  player-grain attribute row is never ambiguous under D-022. The focused data-contract and
+  roster-generator suites passed 96 tests; the full Python suite passed 309 tests. Ruff, the
+  workbench test/build, manifest verification, and diff checks also passed.

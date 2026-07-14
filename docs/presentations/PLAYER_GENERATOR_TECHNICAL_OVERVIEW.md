@@ -175,6 +175,8 @@ Validation covers:
 - exact directory entries and ordered headers;
 - scalar types, finite values, null rules, bounds, dates, enums, and unique keys;
 - foreign keys and exact cross-file key sets;
+- exactly one traditional-stat row and one advanced-stat row per roster player, both for the same
+  generated season, because attributes remain player-grain;
 - manifest versions, row counts, file hashes, and aggregate content hashes;
 - roster statistical identities and reference-identity leak prevention.
 
