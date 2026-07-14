@@ -93,6 +93,19 @@ class BaselineResponse(APIModel):
     players: list[PlayerSummary]
 
 
+class RepresentativeTier(APIModel):
+    tier: str
+    minimum: int
+    maximum: int
+    players: list[PlayerSummary]
+
+
+class RepresentativesResponse(APIModel):
+    context: APIContext
+    per_tier: int
+    tiers: list[RepresentativeTier]
+
+
 class SearchHit(APIModel):
     player_id: str
     display_name: str
@@ -138,6 +151,7 @@ class RatingScaleAdjustment(APIInputModel):
 
 
 class PreviewAdjustments(APIInputModel):
+    formula_version: str | None = Field(default=None, min_length=1)
     components: list[ComponentAdjustment] = Field(default_factory=list, max_length=100)
     rating_scales: list[RatingScaleAdjustment] = Field(default_factory=list, max_length=16)
 
@@ -149,6 +163,7 @@ class PreviewRequest(APIInputModel):
     formula_document_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     season: int = Field(ge=1)
     selected_player_ids: list[str] = Field(min_length=1, max_length=25)
+    selected_attribute: str = Field(default="overall", min_length=1)
     adjustments: PreviewAdjustments = Field(default_factory=PreviewAdjustments)
 
 
@@ -158,6 +173,13 @@ class ValueChange(APIModel):
     delta: float | None
 
 
+class AttributeRank(APIModel):
+    attribute: str
+    baseline_rank: int | None
+    preview_rank: int | None
+    rank_movement: int | None
+
+
 class PreviewPlayerResult(APIModel):
     player_id: str
     display_name: str
@@ -165,6 +187,7 @@ class PreviewPlayerResult(APIModel):
     baseline_rank: int | None
     preview_rank: int | None
     rank_movement: int | None
+    attribute_rank: AttributeRank
     baseline: dict[str, Any]
     preview: dict[str, Any]
     changes: dict[str, ValueChange]
@@ -175,6 +198,7 @@ class PreviewPlayerResult(APIModel):
 class PreviewResponse(APIModel):
     context: APIContext
     preview_formula_hash: str
+    preview_document: dict[str, Any]
     elapsed_ms: float
     players: list[PreviewPlayerResult]
 

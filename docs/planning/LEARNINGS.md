@@ -234,6 +234,39 @@ its completion notes.
   validate both their collection shape and every element, then report malformed values through the
   package's domain error instead of leaking `TypeError`.
 
+### 2026-07-14 — US-011
+
+- The browser can explain a formula without duplicating its evaluator when the API exposes both
+  declarative metadata and the shared engine's calculation tree. Treat unsupported attributes,
+  missing inputs, and eligibility exclusions as different states because each calls for a different
+  design response.
+- Cross-endpoint context checks belong in the typed client boundary. Combining individually valid
+  responses without comparing API, package, formula, season, and cohort identities can produce a
+  plausible but internally inconsistent inspection view.
+
+### 2026-07-14 — US-012
+
+- Client-side validation improves editing feedback but cannot define formula validity. Send only
+  supported adjustments to the API, clear failed or superseded results, and display only the latest
+  server-authoritative preview.
+- A proposal export should use the exact fully merged document returned after server validation.
+  Reconstructing it from client deltas can miss shared rating-scale effects, contract fields, or
+  future contract defaults even when the visible preview is correct.
+- Request cancellation is part of calculation correctness, not only a performance optimization.
+  Debouncing reduces work, while aborting superseded requests prevents an older response from
+  replacing the result for newer controls.
+
+### 2026-07-14 — US-013
+
+- A top-overall sample overrepresents elite tiers and hides sensitivity elsewhere in the rating
+  curve. Three deterministic representatives per populated tier provide a more useful default design
+  cohort while preserving full-cohort percentile and rank calculation on the server.
+- Keep representative selection and user pins separate: the former is reproducible from the loaded
+  baseline, while the latter is a session-only investigation aid. A fixed ten-pin limit keeps the
+  combined 15-player default within the API's 25-player preview bound.
+- Rank movement must be calculated over the fixed complete cohort with explicit tie semantics.
+  Ranking only the displayed comparison players makes the apparent impact depend on UI sampling.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:

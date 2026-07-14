@@ -1,6 +1,6 @@
 # US-011: Inspect formulas and calculations
 
-- **Status:** ready
+- **Status:** in_progress
 - **Epic:** [EPIC-06](../epics/EPIC-06-workbench.md)
 - **Dependencies:** US-010
 
@@ -32,7 +32,10 @@ outcomes are explainable.
 
 ## Implementation notes
 
-Append dated notes here while the story is active.
+- **2026-07-14:** Dependency US-010 is complete. Started the API-backed React inspection surface
+  with API-owned data as the only source for formula metadata, player calculations, and context
+  identity. Loading, empty, stale-context, and request failures will clear or label prior data rather
+  than presenting it as current.
 
 ## Completion notes
 

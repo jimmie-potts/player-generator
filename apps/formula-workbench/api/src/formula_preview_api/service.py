@@ -30,6 +30,7 @@ from formula_preview_api.config import PreviewSettings
 from formula_preview_api.errors import FieldError, PreviewAPIError
 from formula_preview_api.models import (
     APIContext,
+    AttributeRank,
     BaselineResponse,
     ComponentUsage,
     FormulaIdentity,
@@ -42,6 +43,8 @@ from formula_preview_api.models import (
     PreviewRequest,
     PreviewResponse,
     ReferencePackageIdentity,
+    RepresentativesResponse,
+    RepresentativeTier,
     SearchHit,
     SearchResponse,
     ValueChange,
@@ -78,9 +81,12 @@ def _metric_description(metric: MetricDefinition) -> str:
     return f"Formula metric {_label(metric.name)}."
 
 
-def _rank_by_overall(rows: Sequence[Mapping[str, Any]]) -> dict[str, int | None]:
+def _rank_by_attribute(
+    rows: Sequence[Mapping[str, Any]],
+    attribute: str,
+) -> dict[str, int | None]:
     values = pd.Series(
-        {str(row["playerId"]): row.get("overall") for row in rows},
+        {str(row["playerId"]): row.get(attribute) for row in rows},
         dtype="Float64",
     )
     ranked = values.rank(method="min", ascending=False, na_option="keep")
@@ -179,7 +185,14 @@ class PreviewService:
         self._baseline_explanations = {
             str(row["playerId"]): copy.deepcopy(row) for row in batch.explanations
         }
-        self._baseline_ranks = _rank_by_overall(batch.rows)
+        self._attribute_names = frozenset(
+            attribute.name for attribute in self._formula.attributes
+        )
+        self._baseline_attribute_ranks = {
+            attribute: _rank_by_attribute(batch.rows, attribute)
+            for attribute in self._attribute_names
+        }
+        self._baseline_ranks = self._baseline_attribute_ranks["overall"]
         self._display_names = {
             str(row.playerId): str(row.displayName)
             for row in cohort[["playerId", "displayName"]].itertuples(index=False)
@@ -417,6 +430,60 @@ class PreviewService:
             players=players,
         )
 
+    def representatives(self, *, per_tier: int = 3) -> RepresentativesResponse:
+        if per_tier < 1 or per_tier > 5:
+            raise PreviewAPIError(
+                status_code=422,
+                code="invalid_request",
+                message="Representative-player request validation failed.",
+                fields=[
+                    FieldError(
+                        "perTier",
+                        "out_of_range",
+                        "perTier must be between 1 and 5.",
+                    )
+                ],
+            )
+
+        groups: list[RepresentativeTier] = []
+        ordered_tiers = sorted(
+            self._formula.talent_tiers,
+            key=lambda tier: (tier.minimum, tier.maximum, tier.name),
+            reverse=True,
+        )
+        for tier in ordered_tiers:
+            player_ids = [
+                player_id
+                for player_id in self._ordered_player_ids
+                if self._baseline_rows[player_id].get("talentTier") == tier.name
+                and self._baseline_ranks[player_id] is not None
+            ][:per_tier]
+            if not player_ids:
+                continue
+            groups.append(
+                RepresentativeTier(
+                    tier=tier.name,
+                    minimum=tier.minimum,
+                    maximum=tier.maximum,
+                    players=[
+                        PlayerSummary(
+                            player_id=player_id,
+                            display_name=self._display_names[player_id],
+                            season=self.settings.season,
+                            baseline_rank=self._baseline_ranks[player_id],
+                            baseline=copy.deepcopy(self._baseline_rows[player_id]),
+                            pinned=False,
+                        )
+                        for player_id in player_ids
+                    ],
+                )
+            )
+        return RepresentativesResponse(
+            context=self.context(),
+            per_tier=per_tier,
+            tiers=groups,
+        )
+
     def search(self, query: str, *, limit: int | None = None) -> SearchResponse:
         normalized = _normalized_search_text(query)
         if not normalized:
@@ -555,8 +622,28 @@ class PreviewService:
                 fields=fields,
             )
 
-    def _preview_formula(self, request: PreviewRequest) -> tuple[FormulaDocument, str]:
+    def _validate_selected_attribute(self, attribute: str) -> None:
+        if attribute not in self._attribute_names:
+            raise PreviewAPIError(
+                status_code=422,
+                code="invalid_request",
+                message="Preview request validation failed.",
+                fields=[
+                    FieldError(
+                        "selectedAttribute",
+                        "unknown_attribute",
+                        f"Unknown formula attribute {attribute!r}.",
+                    )
+                ],
+            )
+
+    def _preview_formula(
+        self,
+        request: PreviewRequest,
+    ) -> tuple[FormulaDocument, str, dict[str, Any]]:
         payload = copy.deepcopy(self._formula_payload)
+        if request.adjustments.formula_version is not None:
+            payload["formulaVersion"] = request.adjustments.formula_version
         attributes = {
             str(attribute["name"]): attribute for attribute in payload["attributes"]
         }
@@ -643,12 +730,17 @@ class PreviewService:
                 message="Preview adjustments do not produce a valid formula.",
                 fields=[FieldError("adjustments", "invalid_formula", str(error))],
             ) from error
-        return formula, _formula_hash(payload, self._formula_payload, self._formula_hash)
+        return (
+            formula,
+            _formula_hash(payload, self._formula_payload, self._formula_hash),
+            payload,
+        )
 
     def preview(self, request: PreviewRequest) -> PreviewResponse:
         self._validate_preview_context(request)
         self._validate_selected_players(request.selected_player_ids)
-        formula, preview_hash = self._preview_formula(request)
+        self._validate_selected_attribute(request.selected_attribute)
+        formula, preview_hash, preview_document = self._preview_formula(request)
         started = perf_counter()
         try:
             batch = evaluate_player_attributes(
@@ -667,7 +759,15 @@ class PreviewService:
         preview_explanations = {
             str(row["playerId"]): row for row in batch.explanations
         }
-        preview_ranks = _rank_by_overall(batch.rows)
+        preview_ranks = _rank_by_attribute(batch.rows, "overall")
+        baseline_attribute_ranks = self._baseline_attribute_ranks[
+            request.selected_attribute
+        ]
+        preview_attribute_ranks = (
+            preview_ranks
+            if request.selected_attribute == "overall"
+            else _rank_by_attribute(batch.rows, request.selected_attribute)
+        )
         elapsed_ms = (perf_counter() - started) * 1000
 
         output_fields = [
@@ -683,6 +783,13 @@ class PreviewService:
                 None
                 if baseline_rank is None or preview_rank is None
                 else baseline_rank - preview_rank
+            )
+            baseline_attribute_rank = baseline_attribute_ranks[player_id]
+            preview_attribute_rank = preview_attribute_ranks[player_id]
+            attribute_rank_movement = (
+                None
+                if baseline_attribute_rank is None or preview_attribute_rank is None
+                else baseline_attribute_rank - preview_attribute_rank
             )
             changes = {
                 field: ValueChange(
@@ -700,6 +807,12 @@ class PreviewService:
                     baseline_rank=baseline_rank,
                     preview_rank=preview_rank,
                     rank_movement=rank_movement,
+                    attribute_rank=AttributeRank(
+                        attribute=request.selected_attribute,
+                        baseline_rank=baseline_attribute_rank,
+                        preview_rank=preview_attribute_rank,
+                        rank_movement=attribute_rank_movement,
+                    ),
                     baseline=copy.deepcopy(baseline),
                     preview=copy.deepcopy(preview),
                     changes=changes,
@@ -712,6 +825,7 @@ class PreviewService:
         return PreviewResponse(
             context=self.context(),
             preview_formula_hash=preview_hash,
+            preview_document=copy.deepcopy(preview_document),
             elapsed_ms=elapsed_ms,
             players=players,
         )

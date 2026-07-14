@@ -49,7 +49,7 @@ team or coach generation.
 | US-008 | [Consume a published reference package](user-stories/US-008-consume-reference-package.md) | EPIC-04 | complete |
 | US-009 | [Generate the normalized roster package](user-stories/US-009-generate-roster-package.md) | EPIC-04 | complete |
 | US-010 | [Provide formula and player preview endpoints](user-stories/US-010-formula-preview-api.md) | EPIC-05 | complete |
-| US-011 | [Inspect formulas and calculations](user-stories/US-011-inspect-formulas.md) | EPIC-06 | ready |
+| US-011 | [Inspect formulas and calculations](user-stories/US-011-inspect-formulas.md) | EPIC-06 | in_progress |
 | US-012 | [Preview formula adjustments](user-stories/US-012-preview-adjustments.md) | EPIC-06 | ready |
 | US-013 | [Compare representative players](user-stories/US-013-compare-players.md) | EPIC-06 | ready |
 | US-014 | [Define coach and team contracts](user-stories/US-014-coach-team-contracts.md) | EPIC-07 | ready |

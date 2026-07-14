@@ -71,6 +71,24 @@ async def test_missing_player_errors_are_structured_and_return_no_results(
     )
 
 
+@pytest.mark.parametrize("per_tier", [0, 6, "1.5", "three"])
+async def test_representative_player_bound_is_strict(
+    client: httpx2.AsyncClient,
+    per_tier: object,
+) -> None:
+    response = await client.get(
+        "/api/v1/players/representatives",
+        params={"perTier": per_tier},
+    )
+
+    payload = _assert_error_without_results(
+        response,
+        status=422,
+        code="invalid_request",
+    )
+    assert [field["path"] for field in payload["error"]["fields"]] == ["perTier"]
+
+
 async def test_stale_preview_context_reports_every_mismatched_identity(
     client: httpx2.AsyncClient,
     request_payload: Any,
@@ -213,6 +231,62 @@ async def test_invalid_adjustments_have_field_errors_and_no_partial_results(
     assert payload["error"]["fields"][0]["path"] == path
 
 
+async def test_unknown_selected_attribute_is_rejected_before_recalculation(
+    client: httpx2.AsyncClient,
+    request_payload: Any,
+) -> None:
+    request = request_payload(["player-star"], {})
+    request["selectedAttribute"] = "unknownAttribute"
+
+    response = await client.post("/api/v1/previews", json=request)
+
+    payload = _assert_error_without_results(
+        response,
+        status=422,
+        code="invalid_request",
+        field_codes={"unknown_attribute"},
+    )
+    assert payload["error"]["fields"] == [
+        {
+            "path": "selectedAttribute",
+            "code": "unknown_attribute",
+            "message": "Unknown formula attribute 'unknownAttribute'.",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("formula_version", "error_code", "path"),
+    [
+        ("   ", "invalid_formula", "adjustments"),
+        ("", "invalid_request", "adjustments.formulaVersion"),
+        (2, "invalid_request", "adjustments.formulaVersion"),
+    ],
+    ids=["blank", "empty", "non-string"],
+)
+async def test_proposal_formula_version_is_validated_strictly(
+    client: httpx2.AsyncClient,
+    request_payload: Any,
+    formula_version: object,
+    error_code: str,
+    path: str,
+) -> None:
+    response = await client.post(
+        "/api/v1/previews",
+        json=request_payload(
+            ["player-star"],
+            {"formulaVersion": formula_version},
+        ),
+    )
+
+    payload = _assert_error_without_results(
+        response,
+        status=422,
+        code=error_code,
+    )
+    assert [field["path"] for field in payload["error"]["fields"]] == [path]
+
+
 async def test_zero_weight_formula_and_schema_validation_errors_are_structured(
     client: httpx2.AsyncClient,
     request_payload: Any,
@@ -353,6 +427,25 @@ async def test_preview_adjustments_reject_string_coercion(
     assert [item["path"] for item in payload["error"]["fields"]] == [path]
 
 
+async def test_selected_attribute_rejects_non_string_coercion(
+    client: httpx2.AsyncClient,
+    request_payload: Any,
+) -> None:
+    request = request_payload(["player-star"], {})
+    request["selectedAttribute"] = 1
+
+    response = await client.post("/api/v1/previews", json=request)
+
+    payload = _assert_error_without_results(
+        response,
+        status=422,
+        code="invalid_request",
+    )
+    assert [item["path"] for item in payload["error"]["fields"]] == [
+        "selectedAttribute"
+    ]
+
+
 @pytest.mark.parametrize(
     ("snake_name", "camel_name", "value", "expected_paths"),
     [
@@ -422,6 +515,23 @@ async def test_nested_preview_adjustments_reject_snake_case_wire_names(
         "adjustments.components.0.inverse_direction"
     ]
 
+    proposal_request = request_payload(
+        ["player-star"],
+        {"formula_version": "designer-proposal"},
+    )
+    proposal_response = await client.post(
+        "/api/v1/previews",
+        json=proposal_request,
+    )
+    proposal_payload = _assert_error_without_results(
+        proposal_response,
+        status=422,
+        code="invalid_request",
+    )
+    assert [item["path"] for item in proposal_payload["error"]["fields"]] == [
+        "adjustments.formula_version"
+    ]
+
 
 @pytest.mark.parametrize("method", ["post", "put", "patch", "delete"])
 async def test_formula_endpoint_prevents_write_methods(
@@ -453,6 +563,7 @@ async def test_valid_invalid_and_write_attempts_do_not_modify_formula_or_package
         json=request_payload(
             ["player-star"],
             {
+                "formulaVersion": "no-write-proposal",
                 "components": [
                     {
                         "attribute": "overall",

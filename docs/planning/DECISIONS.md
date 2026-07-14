@@ -245,3 +245,33 @@ changes one; do not rewrite history without recording the replacement.
   attributes describe the package's calibration snapshot rather than constraining a later consumer's
   selected formula, while explicit identities prevent stale browser requests from mixing package,
   baseline, and formula state.
+
+## D-026: Server-authoritative designer proposals and tiered comparison
+
+- **Status:** accepted
+- **Decision:** EPIC-06 edits only existing formula component weights, component directions, rating
+  anchors, and the proposed formula version. The preview API returns the exact validated temporary
+  formula document and calculates selected-attribute ranks over the same complete cohort as overall
+  ranks. The default comparison contains three highest-ranked eligible players from each populated
+  talent tier, leaving capacity for ten session-only pins within the 25-player preview limit.
+- **Reason:** Returning the validated document avoids reproducing formula-merge behavior in
+  TypeScript and makes the exported JSON directly usable by batch consumers. Attribute ranks remain
+  population-relative and therefore belong beside the shared evaluator, not in the bounded browser
+  sample. Tier-stratified defaults expose tuning effects beyond the top two tiers while explicit
+  limits preserve interactive response bounds.
+
+## D-027: Session-scoped client state with cancellable authoritative previews
+
+- **Status:** accepted
+- **Decision:** Keep workbench edits, the selected player and attribute, and at most ten pins in
+  React memory for the current page session. Load all formula, metric, player, and calculation data
+  through a typed `/api/v1` client, verify response context identities before combining data, debounce
+  preview requests, abort superseded requests, and clear results that are stale or failed. Client
+  validation may provide immediate form feedback but cannot produce ratings. Enable proposal export
+  only from the latest successful response and serialize its exact `previewDocument` as formatted
+  JSON.
+- **Reason:** A local, reversible design loop needs responsive controls without creating a second
+  formula engine or an implicit persistence layer. Context verification and cancellation prevent
+  asynchronous responses from mixing formula, package, or season state. Exporting the server-owned
+  document preserves shared-validator semantics and makes the handoff directly consumable by the
+  roster generator without reconstructing merge behavior in TypeScript.
