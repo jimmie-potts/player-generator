@@ -16,15 +16,15 @@ values remain empty rather than being inferred without an approved rule.
 | `player_advanced_stats.csv` | one row per player-season | `playerSeasonId,playerId,season` | Usage, efficiency, rebound, assist, rating, PIE, and win-share metrics |
 | `player_attributes.csv` | one row per player-season | `playerSeasonId,playerId,season` | Calculated attributes, overall, tier, and formula version (version 2) |
 | `player_source_ids.csv` | one row per player and source | `playerId,sourceType,sourcePlayerId` | Source reconciliation without exposing IDs downstream |
-| `sources.csv` | one row per input | `sourceId` | Source type, input filename, hash, schema version, row count, and processing time |
+| `sources.csv` | one row per input | `sourceId` | Source type, input filename, hash, schema version, row count, and processing timestamp |
 
-Proposed `players.csv` header:
+Version 1 `players.csv` header:
 
 ```text
 playerId,displayName,firstName,lastName,birthDate,heightInches,weightPounds,country,college,draftYear,draftRound,draftNumber
 ```
 
-Proposed `player_seasons.csv` header:
+Version 1 `player_seasons.csv` header:
 
 ```text
 playerSeasonId,playerId,season,teamId,teamAbbreviation,age,games,starts,wins,losses,minutes

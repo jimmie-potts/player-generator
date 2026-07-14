@@ -1,0 +1,572 @@
+# Player Generator
+
+## Current implementation and projected architecture
+
+Technical presentation for engineers, architects, and product stakeholders
+
+Implementation baseline: 2026-07-13, `agent/implement-epic-04` at `28ca3ab`
+
+> **Scope of “projected final state”:** the end of the currently approved seven-epic roadmap. It is
+> not a projection of a complete league simulator.
+
+---
+
+# 1. Executive state
+
+The batch-data foundation is implemented and validated. The interactive formula experience and
+future team/coach contracts remain planned.
+
+| Capability | Current state | Roadmap state |
+|---|---|---|
+| Application boundaries and neutral domain language | Implemented | EPIC-01 complete |
+| Local source registration and normalized reference package | Implemented | EPIC-02 complete |
+| Declarative player attributes and reference attributes | Implemented | EPIC-03 complete |
+| Deterministic player-only roster package | Implemented | EPIC-04 complete |
+| Read-only formula preview API | Not implemented | EPIC-05 ready |
+| Interactive formula workbench | Static React shell only | EPIC-06 ready |
+| Team and coach contract definitions | Proposed headers only | EPIC-07 ready |
+
+**Delivery:** 10 of 15 user stories are complete. US-010 through US-014 are ready and unstarted.
+
+---
+
+# 2. Architectural intent
+
+The design separates three concerns that were previously coupled:
+
+1. **Reference data** owns actual-player ingestion, identity reconciliation, normalization,
+   provenance, and calibration data.
+2. **Roster generation** owns independent generated identities, controlled statistical mutation,
+   attribute calculation, and player-only publication.
+3. **Formula exploration** will provide non-persistent interactive inspection and previews over the
+   same evaluator used by both batch paths.
+
+The governing principles are:
+
+- published packages, not application internals, are integration boundaries;
+- contracts and formulas are versioned data rather than implicit code conventions;
+- one Python engine owns every rating calculation;
+- deterministic inputs produce deterministic rows and content hashes;
+- identity provenance never crosses from reference packages into roster packages;
+- unsupported values and future domains remain absent rather than fabricated.
+
+---
+
+# 3. Monorepo and technology map
+
+| Boundary | Current technology | Responsibility |
+|---|---|---|
+| `apps/reference-data` | Python 3.10+, pandas, PyArrow, PyYAML | Source registration, adapters, reconciliation, publication |
+| `apps/roster-generator` | Python 3.10+, NumPy, pandas, Faker, PyYAML | Selection, mutation, generated identity, publication |
+| `packages/data-contracts` | Python + packaged JSON schemas | CSV, formula, key, relationship, and semantic validation |
+| `packages/attribute-engine` | Python, pandas, NumPy, declarative JSON | Metric derivation, percentile evaluation, ratings, explanations |
+| `apps/formula-workbench` | Node 22.12+, React 19, TypeScript 5.8, Vite 7 | Current static shell; future formula exploration client |
+| Repository tooling | setuptools, npm workspaces, pytest, Ruff, mypy, Vitest | Build, packaging, tests, linting, type/build checks |
+
+The four Python source roots install through one setuptools distribution while import-boundary tests
+preserve their logical independence. Mypy is installed but is not currently an enforced check.
+
+---
+
+# 4. Current implemented architecture
+
+```mermaid
+flowchart LR
+    local["Caller-owned local Parquet"]
+    reference["reference-data CLI"]
+    refpkg["Reference package v2<br/>7 CSVs + audit + manifest"]
+    roster["roster-generator CLI"]
+    rosterpkg["Roster package v1<br/>4 CSVs + manifest"]
+    contracts["data-contracts<br/>schemas + validators"]
+    engine["attribute-engine<br/>formula v1.0.0"]
+    shell["React workbench<br/>isolated static shell; no API/data behavior"]
+    legacy["Pinned download + wide build<br/>standalone legacy path"]
+
+    local --> reference --> refpkg --> roster --> rosterpkg
+    contracts -. governs .-> reference
+    contracts -. governs .-> roster
+    contracts -. validates .-> engine
+    engine -->|calculates for| reference
+    engine -->|calculates for| roster
+    reference -. standalone compatibility .-> legacy
+```
+
+Solid left-to-right edges carry data artifacts. Engine edges identify a calculation service called
+by each application; they do not reverse the applications' import direction.
+
+Enforced dependency direction:
+
+- applications may import shared packages;
+- shared packages never import applications;
+- reference and roster applications never import each other;
+- the roster generator never reads Parquet or imports a source adapter.
+
+---
+
+# 5. Reference-data pipeline
+
+```mermaid
+flowchart LR
+    register["Register local input"]
+    registry["Ignored provenance registry"]
+    verify1["Verify hash, rows, adapter"]
+    adapt["Versioned source adapters"]
+    reconcile["Reconcile identities"]
+    canonical["Canonical relational model"]
+    evaluate["Evaluate supported season cohorts<br/>nullable attributes for unsupported schedules"]
+    stage["Stage + validate + hash"]
+    publish["Atomic reference v2 publish"]
+
+    register --> registry --> verify1 --> adapt --> reconcile --> canonical --> evaluate --> stage --> publish
+```
+
+Key strategies:
+
+- files are referenced in place, never copied into the repository;
+- registration records path, source type and ID, upstream metadata, license status, adapter version,
+  SHA-256, row count, and processing timestamp;
+- the file is reverified both before and after normalization to detect drift during a run;
+- adapters are versioned anti-corruption layers for NBA and ESPN Parquet schemas;
+- rows are sorted deterministically and written as UTF-8, LF-terminated, camelCase CSVs;
+- source IDs and reconciliation evidence remain in reference data and never appear in roster
+  output.
+
+---
+
+# 6. Identity reconciliation and canonicalization
+
+Reference identity is deliberately conservative:
+
+1. Group records by `(sourceType, sourcePlayerId)`.
+2. Treat NBA identities as primary anchors.
+3. Apply only manual links explicitly marked `reviewed: true`.
+4. Otherwise normalize display names with Unicode NFKC, case folding, and alphanumeric filtering.
+5. Match a non-primary identity only when the normalized name has exactly one primary candidate.
+6. Audit ambiguous and unmatched identities instead of guessing.
+
+Implementation details:
+
+- a disjoint-set/union-find structure builds reconciliation groups;
+- deterministic UUIDv5 values derive `playerId` from the prioritized identity anchor;
+- another UUIDv5 derives `playerSeasonId` from `(playerId, season)`;
+- configured per-field source precedence chooses canonical bio values;
+- conflicting candidates, the selected value, and the applied rule remain in `audit.json`;
+- every season-grain table must contain the exact same canonical key set.
+
+This is a **fail-closed identity strategy**: lower match coverage is preferred to silent corruption.
+
+---
+
+# 7. Package contracts, provenance, and atomicity
+
+The data exchange layer uses **package-as-interface** and **content-addressed provenance**.
+
+| Package | Published content | Integrity metadata |
+|---|---|---|
+| Reference v2 | 7 contracted CSVs + audit + manifest; audit is manifest-governed | source hashes, adapter versions, formula version/hash, per-file rows/hashes, aggregate hash |
+| Roster v1 | 4 contracted CSVs + manifest | reference package hash, formula version/hash, seed, configuration hash, per-file rows/hashes, aggregate hash |
+
+The current producer publishes reference v2. The roster consumer accepts reference v1 and v2; it
+validates v2's published attributes but recalculates roster attributes from generated statistics
+using the requested formula.
+
+Validation covers:
+
+- exact directory entries and ordered headers;
+- scalar types, finite values, null rules, bounds, dates, enums, and unique keys;
+- foreign keys and exact cross-file key sets;
+- exactly one traditional-stat row and one advanced-stat row per roster player, both for the same
+  generated season, because attributes remain player-grain;
+- manifest versions, row counts, file hashes, and aggregate content hashes;
+- roster statistical identities and reference-identity leak prevention.
+
+Publishers write contracted files to a same-parent staging directory, validate them, construct and
+hash integrity metadata, then swap the package into place atomically with backup rollback. Roster
+publication also revalidates the complete staged package. A partial or invalid package is never
+published.
+
+---
+
+# 8. Declarative attribute engine
+
+The engine is an application-independent functional core:
+
+- formula schema version `1`; active formula version `1.0.0`;
+- whitelisted metric kinds: input, ratio, stabilized percentage, and scheduled ratio;
+- no arbitrary expressions or executable user code;
+- finite real inputs or null only—no string, Boolean, complex, or temporal coercion;
+- one season cohort per evaluation call;
+- exact formula-document bytes are validated and hashed as one immutable snapshot;
+- batch outputs and detailed explanations come from the same calculation.
+
+Current outputs:
+
+- 12 skill ratings: scoring, shooting, playmaking, ball security, rebounding, defense, stamina, and
+  durability;
+- `overall`, `impactPercentile`, `talentTier`, and `formulaVersion`;
+- structured explanations containing raw and derived values, eligibility, cohort size, percentiles,
+  normalized weights, contributions, composites, and final ratings.
+
+That explanation model is the calculation-detail source the planned API must expose and version;
+there is no separate “UI calculation.”
+
+---
+
+# 9. Rating algorithm
+
+For each season cohort:
+
+1. Derive declared ratios, schedules, and stabilized shooting metrics.
+2. Exclude an attribute row when games `< 20`, minutes `< 500`, or a required input is null.
+3. Rank each component using `pandas.rank(method="average", pct=True)`.
+4. Reverse only the percentile direction for lower-is-better metrics.
+5. Normalize finite, nonnegative component weights and sum their contributions.
+6. Rank the weighted composite within the same eligible cohort.
+7. Piecewise-linearly interpolate the composite percentile through declared rating anchors.
+8. Round half-even, clamp to `25..99`, and map overall to a versioned talent tier.
+
+Shooting stabilization uses the full season before eligibility filtering:
+
+```text
+stabilizedPercentage =
+  (made + leaguePercentage * priorAttempts) / (attempted + priorAttempts)
+```
+
+Current priors are 150 two-point attempts, 100 three-point attempts, and 75 free-throw attempts.
+Nulls are excluded rather than median-filled, and ties receive their average rank.
+
+---
+
+# 10. Roster selection and mutation algorithm
+
+The generator preserves statistical relationships by mutating **templates and primitives**, not
+independent output columns.
+
+1. Validate the exact reference package, formula compatibility, and input stability.
+2. Evaluate complete season cohorts, then filter by configured seasons, games, minutes, complete
+   formula output, and generation viability.
+3. Sample templates with a seeded NumPy generator:
+
+```text
+samplingWeight = recencyWeight * minutes ** minutesWeightExponent
+```
+
+4. Infer one possession basis as the median of available positive total/per-100 implied values for
+   points, assists, turnovers, steals, and blocks.
+5. Apply one clipped lognormal volume factor to attempts and possessions.
+6. Perturb shooting accuracy within `0..1` and event totals with configured lognormal noise.
+7. Derive makes, points, rebounds, percentages, per-game, per-36, per-100, and advanced identities.
+8. Generate seed-scoped names and IDs that do not reuse reference identities.
+9. Recalculate attributes through the shared engine and publish only after all validation succeeds.
+
+Default configuration selects 450 templates from 2022–2026 with replacement and favors recent,
+higher-minute player-seasons.
+
+---
+
+# 11. Statistical consistency and privacy boundary
+
+Semantic validation recomputes, among other relationships:
+
+- `FGM = 2PM + 3PM`, `FGA = 2PA + 3PA`, and `PTS = 2*2PM + 3*3PM + FTM`;
+- rebound totals, shooting percentages, per-game, per-36, and per-100 rates;
+- net ratings from their offensive/defensive operands and defensive win shares per 36;
+- effective field-goal and true-shooting percentages, valid through `1.5`;
+- `assistTurnoverRatio = AST / max(TOV, 1)`;
+- assist ratio and estimated turnover percentage using
+  `FGA + 0.44*FTA + AST + TOV` as the shared play-ending denominator.
+
+The roster publisher also rejects:
+
+- provenance-like fields, source IDs, reference IDs, template IDs, team IDs, or row indexes;
+- generated names or IDs that reuse a reference identity;
+- a source-to-roster crosswalk of any kind.
+
+The roster resembles calibrated reference statistics without claiming the identity of a sampled
+reference player.
+
+---
+
+# 12. Patterns and engineering strategies
+
+| Pattern or strategy | Concrete use |
+|---|---|
+| Bounded applications in a monorepo | Independent CLIs and frontend with coordinated contract versions |
+| Shared kernel | `data-contracts` and `attribute-engine` contain cross-application invariants |
+| Adapter / anti-corruption layer | Source schemas terminate inside versioned reference adapters |
+| Contract-first integration | Machine-readable schemas govern package shape and relationships |
+| Functional core, imperative shell | Pure metric/rating logic inside orchestrated I/O pipelines |
+| Declarative strategy | Formula documents select metrics, directions, weights, eligibility, and anchors |
+| Fail-fast / fail-closed | Unknown fields, incompatible versions, ambiguity, and invalid math stop publication |
+| Deterministic simulation | Seeded RNG, stable ordering, immutable inputs, and recorded semantic configuration |
+| Transaction-like publication | Stage, validate, hash, atomic swap, rollback |
+| Content addressing | SHA-256 links sources, formulas, configuration, files, and packages |
+| Privacy by boundary | Provenance remains reference-only; generated identity is independent |
+
+These patterns make a data pipeline auditable without coupling the applications back together.
+
+---
+
+# 13. Quality and delivery controls
+
+Current automated checks:
+
+- **308 Python tests** across applications, contracts, engine, architecture, entrypoints, and
+  repository integrity;
+- **Ruff** linting and import/order checks;
+- **Vitest** component smoke coverage for the current workbench shell;
+- **TypeScript `--noEmit` + Vite production build**;
+- AST-based dependency tests that enforce application/package boundaries;
+- deterministic package, failure-mode, semantic relationship, and identity-leak tests;
+- `FILE_MANIFEST.sha256` coverage and hash verification for every other tracked file.
+
+GitHub Actions runs Python 3.12 and Node 22.12 on every push and pull request. The repository
+workflow requires each logical unit to be committed, pushed, and opened as a ready-for-review PR.
+
+---
+
+# 14. Current limitations and deliberate seams
+
+| Current seam | Why it remains |
+|---|---|
+| Pinned remote download and wide processed build | Standalone legacy compatibility; not part of normalized roster flow |
+| Reference formula input contract remains v1 | Reference v2 is additive and adds published attributes without changing statistical inputs |
+| Aggregate player-season grain | Team stints and traded-player team identity are intentionally deferred |
+| Conservative exact-name reconciliation | Avoids probabilistic identity corruption; ambiguous cases require review |
+| Formula schedules cover 2021–2026 | Direct evaluation rejects unlisted schedules; reference publication preserves keys with nullable attributes |
+| Defense is an estimate | Available inputs retain material team and context effects |
+| Static workbench shell | API and interactive stories have not started |
+| Player-only roster package | No approved generation rules exist for teams, coaches, contracts, or assignments |
+
+Unsupported play-style and tendency ratings, speed/strength ratings, injury detail beyond
+availability-based durability, personality, and finer defensive subskills remain absent rather than
+populated with placeholders.
+
+---
+
+# 15. Projected end-of-roadmap architecture
+
+```mermaid
+flowchart LR
+    sources["Caller-owned Parquet"] --> reference["reference-data"]
+    reference --> refpkg["Versioned reference package<br/>v2 is current; API support is TBD"]
+    refpkg --> roster["roster-generator"] --> rosterpkg["Player-only roster v1"]
+    refpkg --> frame["Loaded in-memory reference data"]
+    frame --> api["Versioned read-only Python preview API<br/>bounded results; framework TBD"]
+    workbench["React + TypeScript workbench"] --> api
+    engine["Shared attribute-engine"] -->|calculates for| reference
+    engine -->|calculates for| roster
+    engine -->|calculates for| api
+    contracts["data-contracts"] -. governs .-> reference
+    contracts -. governs .-> roster
+    contracts -. future team/coach schemas .-> future["Contract targets only"]
+```
+
+The API becomes the interactive consumer of the existing Python evaluator, alongside the current
+batch paths. Artifact flow remains source → reference publisher → versioned package → consumers;
+engine arrows show shared calculation calls. The browser never implements a rating formula and
+never writes active configuration.
+
+---
+
+# 16. Planned formula preview API
+
+EPIC-05 introduces versioned, read-only endpoints for:
+
+- the active formula document and metric metadata;
+- bounded baseline results ranked by overall;
+- normalized partial-name and stable-ID player search;
+- player calculation detail and explanations;
+- temporary previews of weights, inverse direction, and percentile anchors for explicitly selected
+  player IDs.
+
+Preview responses will return baseline and preview values, deltas, rank movement, raw inputs,
+percentiles, normalized weights, contributions, and structured field-level errors.
+
+Design strategies:
+
+- load an explicitly identified reference package and formula version;
+- return a bounded baseline/result sample while keeping enough in-memory reference data for
+  responsive recalculation;
+- allow requested pinned players to augment the default top-overall sample;
+- hold the baseline and preview evaluation cohort fixed so rank changes are comparable—the bounded
+  display sample is not assumed to define that percentile cohort;
+- reject invalid requests without partial results;
+- perform no writes to formulas, presets, or reference data;
+- define and test an explicit latency budget before the story is complete;
+- contract-test missing players, package mismatches, invalid edits, and write prevention.
+
+The Python HTTP framework, accepted reference-package versions, exact routes, API model ownership,
+baseline sourcing and cache/parity strategy, sample size, evaluation-cohort policy, and latency
+target are intentionally undecided until US-010 starts.
+
+---
+
+# 17. Planned workbench interaction
+
+```mermaid
+sequenceDiagram
+    actor Designer
+    participant UI as React workbench
+    participant API as Preview API
+    participant Engine as Attribute engine
+
+    Designer->>UI: Inspect formula and select players
+    UI->>API: Load versioned baseline + explanations
+    API->>Engine: Resolve declared comparison cohort
+    Engine-->>API: Ratings + calculation details
+    API-->>UI: Baseline state
+    Designer->>UI: Change weight, direction, or anchor
+    UI->>UI: Provisional validation + debounce
+    UI->>API: Submit temporary preview
+    API->>API: Authoritative request validation
+    API->>Engine: Recalculate same declared cohort
+    Engine-->>API: Preview + explanations
+    API-->>UI: Deltas and rank movement
+    UI->>UI: Ignore or cancel superseded responses
+    Designer->>UI: Reset or export proposal
+```
+
+This is a conceptual sequence; US-010 must decide whether baseline ratings are read from reference
+v2, recalculated, or verified against both. EPIC-06 then adds three increments:
+
+- inspect formula eligibility, cohorts, anchors, scales, versions, and calculation explanations;
+- distinguish missing, excluded, unsupported, loading, empty, stale-version, and API-error states;
+- preview session-only changes with reset-per-attribute, reset-all, and a versioned proposal export
+  that passes API validation;
+- compare the persistent default top-player sample with pinned players while distinguishing no
+  change, missing input, exclusion, and recalculation failure.
+
+Closing or reloading discards edits. Export produces a proposal, not a deployment.
+
+---
+
+# 18. Projected final state—and its boundary
+
+At the end of the approved roadmap, the project will provide:
+
+- reproducible reference and player-only roster packages;
+- one explainable formula engine across reference publication, roster generation, and previews;
+- a read-only Python API for versioned formulas, search, calculation detail, and temporary previews;
+- a React workbench for inspection, reversible tuning, player comparison, and proposal export;
+- machine-validatable `teams.csv` and `coaches.csv` contract targets with stable IDs, membership by
+  `teamId`, ISO 8601 dates, and 0–100 coach rating/preference scales.
+
+It will **still not provide**:
+
+- team or coach population, player-team assignment, contracts, salary, cap, or scheduling;
+- authentication, multi-user state, named presets, or persistent formula editing;
+- formula deployment or approval governance;
+- production hosting or operations infrastructure;
+- arbitrary expressions executed from the browser.
+
+EPIC-07 is schema design only, and those files are not emitted by the player-only generator. Any
+broader simulation capability requires new approved stories and, where it changes architecture or
+policy, a new decision record.
+
+---
+
+# 19. Delivery sequence and migration strategy
+
+```text
+Delivered dependency path
+  EPIC-01 → EPIC-02 → US-006 → US-007 → US-008
+                                          ├─→ US-009  (completes EPIC-04)
+                                          └─→ US-015  (completes EPIC-03)
+
+Next interactive lane
+  EPIC-05 / US-010  preview API
+          ↓
+  EPIC-06           inspect → preview → compare
+
+Independent contract lane
+  EPIC-07 / US-014  team and coach schemas only
+```
+
+Epic numbering is roadmap grouping, not a strict chronological dependency graph: US-015 followed
+the EPIC-04 package-consumer seam, while EPIC-07 does not depend on the API or workbench.
+
+Migration has proceeded seam by seam: establish boundaries, replace the roster generator's
+raw/wide-data coupling with a published package, extract calculations into a shared engine before
+adding its API consumer, then add new consumers. The plan permits a deliberate clean v2 break while
+keeping additive reference v1 readable after v2 added attributes. Remaining work continues that
+sequence rather than introducing parallel formula logic or premature domains.
+
+---
+
+# 20. Risk controls and decision points
+
+| Risk | Existing or planned control |
+|---|---|
+| Source schema or file drift | Versioned adapters; registration hashes and row counts; pre/post verification |
+| Incorrect identity merges | Exact conservative matching; reviewed overrides; complete reconciliation audit |
+| Formula drift across consumers | One engine; versioned document; exact byte hash; explanation regressions |
+| Broken statistical relationships | Mutate primitives; derive dependents; semantic contract validation |
+| Non-reproducible output | Seed, config and package hashes, stable rows/content hashes; deterministic roster manifest; reference timestamp excluded from content hash |
+| Upstream data redistribution | Local ignored inputs; provenance/license metadata; no committed third-party data |
+| Slow previews | Bounded in-memory sample and explicit latency tests |
+| Full-cohort accuracy versus preview latency | Explicitly separate evaluation-cohort policy from bounded result size |
+| Baseline drift | Define parity checks between published attributes and any API recalculation |
+| Duplicate API contracts | Assign model ownership and central versioning during US-010 |
+| Stale UI results | Version-aware states; request debounce/cancellation; fixed comparison cohorts |
+| Unsafe formula editing | Session-only controls; server validation; proposal export; no active writes |
+| Premature domain coupling | Team/coach contracts only; generation requires new approved scope |
+| Premature domain detail | Validate contract semantics without inventing future population policy |
+
+US-010 must select an implementation framework; define and test versioned request/response,
+package-compatibility, cohort, and sample-size contracts; establish a latency budget; and retain the
+shared evaluator as the authoritative calculation path.
+
+---
+
+# Appendix A. Current public surfaces
+
+```bash
+# Reference data
+reference-data register --source-type nba_playerstats /path/to/playerstats.parquet
+reference-data register --source-type espn_player_details /path/to/player-details.parquet
+reference-data publish --output /path/to/reference-v2
+reference-data publish --formula /path/to/formula.json
+
+# Roster data
+roster-generator generate --reference-package /path/to/reference-v2
+roster-generator generate --output /path/to/roster-v1 --seed 42
+
+# Workbench shell
+npm run workbench:dev
+
+# Standalone legacy compatibility path
+reference-data download --force
+reference-data build
+
+# Full validation
+python -m pytest
+python -m ruff check .
+npm run workbench:test
+npm run workbench:build
+```
+
+The normalized end-to-end batch path is `make all`. It publishes from already registered local
+sources and then generates the roster; it does not download or register inputs automatically.
+
+---
+
+# Appendix B. Architecture records
+
+Repository sources used for this presentation:
+
+- [Project overview](../../README.md)
+- [Version 2 plan and live story status](../planning/README.md)
+- [Accepted architecture decisions](../planning/DECISIONS.md)
+- [Current data contracts](../planning/DATA_CONTRACTS.md)
+- [Current rating model](../RATING_MODEL.md)
+- [Current player attribute formulas](../planning/ATTRIBUTE_FORMULAS.md)
+- [Reference-data application](../../apps/reference-data/README.md)
+- [Roster-generator application](../../apps/roster-generator/README.md)
+- [Attribute-engine package](../../packages/attribute-engine/README.md)
+- [Data-contracts package](../../packages/data-contracts/README.md)
+- [Formula API epic](../planning/epics/EPIC-05-formula-api.md)
+- [Formula workbench epic](../planning/epics/EPIC-06-workbench.md)
+- [Future domain-contract epic](../planning/epics/EPIC-07-domain-contracts.md)
+
+Status labels in the deck are implementation claims only when their stories are marked `complete`.

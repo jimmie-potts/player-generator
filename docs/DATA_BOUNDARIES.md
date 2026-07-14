@@ -40,8 +40,9 @@ Forbidden contents:
 
 ## Application boundary
 
-The reference-data application publishes a validated version 1 normalized package and retains its
-wide processed tables only as a standalone legacy interface. The roster generator validates and
-consumes the normalized package and versioned manifest without importing the reference application
+The reference-data application publishes a validated version 2 normalized package with
+season-relative attributes and retains its wide processed tables only as a standalone legacy
+interface. The roster generator validates and consumes the normalized package and versioned
+manifest without importing the reference application
 or reading raw Parquet. It never publishes a template crosswalk. See the
 [version 2 plan](planning/README.md).

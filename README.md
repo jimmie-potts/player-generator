@@ -29,6 +29,8 @@ The batch-data foundation is implemented, while the interactive phases remain pl
 - The workbench currently renders a static application shell without data or formula behavior.
 
 See the [version 2 planning index](docs/planning/README.md) for the remaining epics and story status.
+For a presentation-oriented system walkthrough, see the
+[current and projected technical architecture](docs/presentations/PLAYER_GENERATOR_TECHNICAL_OVERVIEW.md).
 
 ## Setup
 
