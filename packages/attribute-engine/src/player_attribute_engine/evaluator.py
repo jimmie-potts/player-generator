@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -173,6 +173,28 @@ def _validate_population(
             )
 
 
+def _requested_explanation_ids(
+    explanation_player_ids: Collection[str] | None,
+) -> frozenset[str] | None:
+    if explanation_player_ids is None:
+        return None
+    if isinstance(explanation_player_ids, (str, bytes)) or not isinstance(
+        explanation_player_ids, Collection
+    ):
+        raise EvaluationError(
+            "Formula explanation player IDs must be provided as a collection of "
+            "non-empty strings"
+        )
+    if any(
+        not isinstance(player_id, str) or not player_id.strip()
+        for player_id in explanation_player_ids
+    ):
+        raise EvaluationError(
+            "Formula explanation player IDs must be non-empty strings"
+        )
+    return frozenset(explanation_player_ids)
+
+
 def _eligibility(
     frame: pd.DataFrame,
     attribute: object,
@@ -260,8 +282,13 @@ def _tier_for(rating: int, tiers: Sequence[object]) -> str:
     raise EvaluationError(f"Overall rating {rating} is outside every configured talent tier")
 
 
-def evaluate_player_attributes(frame: pd.DataFrame, formula: object) -> EvaluationBatch:
-    """Evaluate one season cohort through a declarative formula document."""
+def evaluate_player_attributes(
+    frame: pd.DataFrame,
+    formula: object,
+    *,
+    explanation_player_ids: Collection[str] | None = None,
+) -> EvaluationBatch:
+    """Evaluate one cohort, optionally materializing explanations for selected players."""
     if "playerId" not in frame.columns:
         raise EvaluationError("Formula evaluation is missing required input column: playerId")
 
@@ -271,12 +298,18 @@ def evaluate_player_attributes(frame: pd.DataFrame, formula: object) -> Evaluati
     except MetricPreparationError as error:
         raise EvaluationError(str(error)) from error
 
-    return _evaluate_prepared_player_attributes(prepared, formula)
+    return _evaluate_prepared_player_attributes(
+        prepared,
+        formula,
+        explanation_player_ids=explanation_player_ids,
+    )
 
 
 def _evaluate_prepared_player_attributes(
     prepared: pd.DataFrame,
     formula: object,
+    *,
+    explanation_player_ids: Collection[str] | None = None,
 ) -> EvaluationBatch:
     """Evaluate a cohort whose formula metrics have already been materialized."""
     metrics = _value(formula, "metrics")
@@ -291,15 +324,28 @@ def _evaluate_prepared_player_attributes(
 
     _validate_population(prepared, attributes, cohorts)
 
+    requested_explanations = _requested_explanation_ids(explanation_player_ids)
+    if requested_explanations is not None:
+        available_player_ids = frozenset(str(value) for value in prepared["playerId"])
+        unknown_player_ids = sorted(requested_explanations - available_player_ids)
+        if unknown_player_ids:
+            raise EvaluationError(
+                "Formula explanations requested unknown playerId values: "
+                + ", ".join(unknown_player_ids)
+            )
+
     rows = [{field: None for field in output_fields} for _ in prepared.index]
-    details: list[dict[str, Any]] = []
+    details: dict[int, dict[str, Any]] = {}
     metric_detail_cache: dict[tuple[int, str], dict[str, Any]] = {}
     league_averages: dict[tuple[str, float], float] = {}
     for index in prepared.index:
         rows[int(index)]["playerId"] = _json_value(prepared.at[index, "playerId"])
         rows[int(index)]["formulaVersion"] = formula_version
-        details.append(
-            {
+        if (
+            requested_explanations is None
+            or rows[int(index)]["playerId"] in requested_explanations
+        ):
+            details[int(index)] = {
                 "playerId": rows[int(index)]["playerId"],
                 "season": _json_value(prepared.at[index, "season"])
                 if "season" in prepared
@@ -307,7 +353,6 @@ def _evaluate_prepared_player_attributes(
                 "formulaVersion": formula_version,
                 "attributes": {},
             }
-        )
 
     for attribute in attributes:
         name = str(_value(attribute, "name"))
@@ -380,6 +425,9 @@ def _evaluate_prepared_player_attributes(
             if name == "overall" and rating is not None:
                 rows[int(index)]["talentTier"] = _tier_for(rating, tiers)
 
+            if int(index) not in details:
+                continue
+
             cohort_values = {
                 field: _json_value(prepared.at[index, field]) for field in group_by
             }
@@ -419,4 +467,9 @@ def _evaluate_prepared_player_attributes(
                 "rating": rating,
             }
 
-    return EvaluationBatch(rows=rows, explanations=details)
+    return EvaluationBatch(
+        rows=rows,
+        explanations=[
+            details[int(index)] for index in prepared.index if int(index) in details
+        ],
+    )

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from typing import Any
 
 import httpx2
@@ -369,12 +369,29 @@ async def test_preview_recalculates_the_full_cohort_for_one_selected_player(
 ) -> None:
     import formula_preview_api.service as service_module
 
-    calls: list[tuple[int, str]] = []
+    calls: list[tuple[int, str, frozenset[str] | None]] = []
     evaluate = service_module.evaluate_player_attributes
 
-    def record(frame: pd.DataFrame, formula: Any):
-        calls.append((len(frame), str(formula.formula_version)))
-        return evaluate(frame, formula)
+    def record(
+        frame: pd.DataFrame,
+        formula: Any,
+        *,
+        explanation_player_ids: Collection[str] | None = None,
+    ):
+        calls.append(
+            (
+                len(frame),
+                str(formula.formula_version),
+                None
+                if explanation_player_ids is None
+                else frozenset(explanation_player_ids),
+            )
+        )
+        return evaluate(
+            frame,
+            formula,
+            explanation_player_ids=explanation_player_ids,
+        )
 
     monkeypatch.setattr(service_module, "evaluate_player_attributes", record)
     response = await client.post(
@@ -394,7 +411,13 @@ async def test_preview_recalculates_the_full_cohort_for_one_selected_player(
     )
 
     assert response.status_code == 200
-    assert calls == [(len(synthetic_package.cohort), synthetic_package.formula.formula_version)]
+    assert calls == [
+        (
+            len(synthetic_package.cohort),
+            synthetic_package.formula.formula_version,
+            frozenset({"player-pinned"}),
+        )
+    ]
     assert [player["playerId"] for player in response.json()["players"]] == [
         "player-pinned"
     ]

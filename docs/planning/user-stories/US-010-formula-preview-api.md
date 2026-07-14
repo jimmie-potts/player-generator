@@ -69,6 +69,10 @@ the authoritative calculations without reimplementing them.
   Python 3.12 runner. The approved warm budget was revised to 3,000 ms so the cross-environment gate
   has operating margin; the 1,000-row cohort cap and every response bound remain unchanged. This
   amendment is recorded under [D-024](../DECISIONS.md#d-024-complete-configured-preview-cohort-with-bounded-responses).
+- **2026-07-14:** Approved a D-024 optimization that retains the complete configured cohort for
+  temporary preview ratings, percentiles, and ranks while materializing preview explanation trees
+  only for `selectedPlayerIds`. The response cannot expose unselected explanations, so this reduces
+  unused nested-object work without changing calculation population or results.
 
 ## Completion notes
 
@@ -81,6 +85,10 @@ the authoritative calculations without reimplementing them.
   request-local weight, inverse-direction, and complete rating-anchor edits through the shared
   evaluator, then return selected players' baseline/preview rows, deltas, full-cohort rank movement,
   and authoritative calculation explanations without writing files.
+- **Review optimization (2026-07-14):** Temporary previews continue to calculate ratings,
+  percentiles, and ranks over the full cohort but now materialize explanation trees only for selected
+  players. Local and GitHub validation for this amendment are tracked on
+  [PR #10](https://github.com/jimmie-potts/player-generator/pull/10).
 - **Bounds and latency:** The default response contains the top 25 players; requests allow at most
   25 unique pins or selected players and 20 search results. Startup rejects a season cohort over
   1,000 rows. The exact 1,000-player synthetic regression kept both in-process evaluation and HTTP
@@ -93,7 +101,7 @@ the authoritative calculations without reimplementing them.
   extracted consumer-independent reference integrity checks and permits an active formula to differ
   from the package's published formula while exposing both identities. Runtime audit also added the
   required season token, strict camelCase/no-coercion inputs, and nonblocking preview execution.
-- **Validation:** `.venv/bin/python -m pytest` passed 356 tests; `.venv/bin/python -m ruff check .`,
+- **Validation:** `.venv/bin/python -m pytest` passed 364 tests; `.venv/bin/python -m ruff check .`,
   `npm run workbench:test`, `npm run workbench:build`, and `git diff --check` passed. The 40 API tests
   cover the complete contract, direct shared-engine parity, determinism, integrity/startup failures,
   stale context including season, invalid edits without partial results, write prevention, exact

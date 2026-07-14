@@ -28,6 +28,11 @@ formula's exact output field order, while
 percentiles, normalized weights, contributions, the weighted composite, its percentile, and the
 final rating.
 
+Callers that do not need every explanation can pass `explanation_player_ids`. The evaluator still
+calculates every cohort row, percentile, and rating, but materializes explanation objects only for
+the requested IDs and returns them in cohort order. Omitting the option preserves all explanations;
+an empty collection returns none, and an unknown ID fails evaluation.
+
 Formula schema version 1 supports only declared input metrics and three whitelisted derivations:
 ratios, shooting percentages stabilized toward the full season's league average, and scheduled-game
 ratios. Unknown fields, arbitrary expressions, unsupported schema versions, invalid weights,

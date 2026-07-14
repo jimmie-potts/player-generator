@@ -221,6 +221,19 @@ its completion notes.
   workstation. Preserve the workload and data bounds, record the observed slower environment, and
   revise the documented budget explicitly when the original target is not portable.
 
+### 2026-07-14 — US-010 review optimization
+
+- Calculation population and explanation materialization are separate concerns. A preview must
+  evaluate the complete fixed cohort for ratings, percentiles, and ranks, but it can build nested
+  explanation trees only for selected player IDs when the response contract cannot expose any other
+  player's explanation.
+- Selective explanation materialization is safe only when it does not filter metric preparation,
+  eligibility, percentile cohorts, composites, ratings, or rank inputs. Tests should prove full-cohort
+  result parity as well as the absence of unselected temporary explanations.
+- Type annotations do not protect a shared Python API at runtime. Optional public filters should
+  validate both their collection shape and every element, then report malformed values through the
+  package's domain error instead of leaking `TypeError`.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:

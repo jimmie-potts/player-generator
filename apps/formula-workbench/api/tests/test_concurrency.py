@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import threading
+from collections.abc import Collection
 from typing import Any
 
 import httpx2
@@ -25,11 +26,29 @@ async def test_blocked_preview_calculation_does_not_block_read_endpoint(
     entered = threading.Event()
     release = threading.Event()
     evaluate = service_module.evaluate_player_attributes
+    calls: list[tuple[int, frozenset[str] | None]] = []
 
-    def blocked_evaluation(frame: pd.DataFrame, formula: Any):
+    def blocked_evaluation(
+        frame: pd.DataFrame,
+        formula: Any,
+        *,
+        explanation_player_ids: Collection[str] | None = None,
+    ):
+        calls.append(
+            (
+                len(frame),
+                None
+                if explanation_player_ids is None
+                else frozenset(explanation_player_ids),
+            )
+        )
         entered.set()
         release.wait(timeout=5)
-        return evaluate(frame, formula)
+        return evaluate(
+            frame,
+            formula,
+            explanation_player_ids=explanation_player_ids,
+        )
 
     monkeypatch.setattr(service_module, "evaluate_player_attributes", blocked_evaluation)
     app = create_app(settings, service=service)
@@ -84,6 +103,9 @@ async def test_blocked_preview_calculation_does_not_block_read_endpoint(
         preview_response = await asyncio.wait_for(preview_task, timeout=5.0)
 
     assert preview_response.status_code == 200
+    assert calls == [
+        (len(synthetic_package.cohort), frozenset({"player-star"})),
+    ]
     assert [player["playerId"] for player in preview_response.json()["players"]] == [
         "player-star"
     ]

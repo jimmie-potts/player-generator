@@ -651,7 +651,11 @@ class PreviewService:
         formula, preview_hash = self._preview_formula(request)
         started = perf_counter()
         try:
-            batch = evaluate_player_attributes(self._cohort, formula)
+            batch = evaluate_player_attributes(
+                self._cohort,
+                formula,
+                explanation_player_ids=request.selected_player_ids,
+            )
         except EvaluationError as error:
             raise PreviewAPIError(
                 status_code=422,

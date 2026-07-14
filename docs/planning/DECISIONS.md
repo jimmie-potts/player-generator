@@ -226,6 +226,11 @@ changes one; do not rewrite history without recording the replacement.
 - **2026-07-13 amendment:** Set the exact 1,000-player warm preview budget to 3,000 ms after the
   GitHub Python 3.12 runner measured 2,260 ms against the initial 2,000 ms target. The revised gate
   adds cross-environment operating margin without increasing the cohort or response bounds.
+- **2026-07-14 amendment:** Continue evaluating the complete configured cohort for every temporary
+  preview rating, component and composite percentile, and overall rank, but materialize temporary
+  explanation trees only for the request's selected player IDs. Unselected explanations cannot be
+  exposed by the response contract, so constructing them adds work without changing any calculation
+  population or result.
 
 ## D-025: Shared package integrity with active-formula recalculation
 

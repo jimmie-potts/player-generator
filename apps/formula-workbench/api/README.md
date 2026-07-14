@@ -134,7 +134,8 @@ must exist in the configured season cohort.
 ### `POST /api/v1/previews`
 
 Evaluates a temporary deep copy of the active formula over the same complete season cohort and
-returns results only for the selected players. A request has this shape:
+returns results only for the selected players. Ratings, component and composite percentiles, and
+overall ranks still use every player in that cohort. A request has this shape:
 
 ```json
 {
@@ -188,6 +189,12 @@ baseline value, preview value, and numeric delta for every rating output. Baseli
 calculation details contain the raw inputs, percentiles, normalized weights, and contributions.
 Baseline rank, preview rank, and `rankMovement` are calculated over the same full cohort; positive
 movement means the player moved toward rank 1.
+
+Temporary preview explanation trees are materialized only for `selectedPlayerIds`. This changes no
+rating, percentile, or rank population: the full cohort is still calculated before the response is
+selected. It avoids building nested raw-input, metric-detail, percentile, weight, and contribution
+objects for players the response contract cannot expose. Cached baseline explanations remain
+available to the player-detail endpoint.
 
 The approved warm calculation budget is 3,000 ms for a configured cohort of at most 1,000 players.
 It measures the in-process shared-engine recalculation and excludes package loading and server
