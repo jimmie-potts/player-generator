@@ -39,6 +39,9 @@ based on one example.
 - **2026-07-14:** Kept representative selection deterministic and separate from session pins. The API
   calculates selected-attribute and overall ranks over the complete fixed cohort; the browser only
   groups and highlights the bounded response.
+- **2026-07-14 review follow-up:** Cleared prior search hits as soon as a different non-empty query
+  begins its debounce, and made both pin success and failure paths reject results from an earlier
+  session generation.
 
 ## Completion notes
 
@@ -63,7 +66,7 @@ based on one example.
   largest-change signals instead of resorting rows after each edit.
 - **Validation:** `.venv/bin/python -m pytest` passed 376 tests;
   `.venv/bin/python -m ruff check .`, `npm run workbench:build`, and `git diff --check` passed;
-  `npm run workbench:test` passed 32 tests. API tests cover tier ordering, complete-cohort selected-
+  `npm run workbench:test` passed 35 tests. API tests cover tier ordering, complete-cohort selected-
   attribute ranks and tied ranks; integration tests cover all five default groups, search, pin and
   unpin, retained defaults, largest gain/loss signals, and failure clearing. A live smoke test
   returned baseline ranks `1/2/3`, `12/12/12`, `33/33/33`, `85/85/85`, and `183/183/183` across the
@@ -71,6 +74,7 @@ based on one example.
 - **Follow-ups:** Saved comparison groups and collaborative sharing remain deliberately out of
   scope. Pins disappear with the browser session.
 - **Learnings:** Tier stratification reveals sensitivity across the rating curve without changing
-  percentile populations, and ranks must remain server-owned and cohort-wide rather than depend on
-  the displayed sample. These findings are recorded in
+  percentile populations; search results and pin errors must also be isolated to the query and
+  session that produced them. Ranks remain server-owned and cohort-wide rather than depend on the
+  displayed sample. These findings are recorded in
   [LEARNINGS.md](../LEARNINGS.md#2026-07-14--us-013).

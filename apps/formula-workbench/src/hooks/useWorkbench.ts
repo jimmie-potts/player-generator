@@ -334,9 +334,10 @@ export function useWorkbench(
       return;
     }
     const controller = new AbortController();
+    setSearchResults([]);
+    setSearchPhase("loading");
+    setSearchError(null);
     const timeout = window.setTimeout(() => {
-      setSearchPhase("loading");
-      setSearchError(null);
       void client
         .searchPlayers(query, { limit: 10, signal: controller.signal })
         .then((response) => {
@@ -483,6 +484,7 @@ export function useWorkbench(
         setSearchQuery("");
         setSearchResults([]);
       } catch (error: unknown) {
+        if (generation !== sessionGeneration.current) return;
         if (error instanceof StaleContextError) {
           makeStale(error.message);
           return;

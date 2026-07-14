@@ -61,7 +61,7 @@ outcomes are explainable.
   US-013.
 - **Validation:** `.venv/bin/python -m pytest` passed 376 tests;
   `.venv/bin/python -m ruff check .`, `npm run workbench:build`, and `git diff --check` passed;
-  `npm run workbench:test` passed 32 tests. Rendered integration coverage verifies the complete
+  `npm run workbench:test` passed 35 tests. Rendered integration coverage verifies the complete
   initial API flow and exact contribution cells, while focused tests cover context mismatches and
   missing calculation values.
 - **Follow-ups:** Authentication, persistence, proposal approval, deployment, and arbitrary formula

@@ -330,6 +330,34 @@ describe("Formula Workbench", () => {
     ).toBeTruthy();
   });
 
+  it("clears stale search hits while the next query is debounced", async () => {
+    const client = await renderReadyWorkbench();
+    const searchbox = screen.getByRole("searchbox", { name: "Player search" });
+
+    fireEvent.change(searchbox, { target: { value: "Spec" } });
+    expect(await screen.findByText("Bench Specialist", {}, { timeout: 1_500 })).toBeTruthy();
+    const previousCallCount = client.searchPlayers.mock.calls.length;
+
+    fireEvent.change(searchbox, { target: { value: "Nobody" } });
+
+    expect(screen.queryByText("Bench Specialist")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pin Bench Specialist" })).toBeNull();
+    expect(
+      screen.getByRole("heading", { name: "Searching the loaded cohort" }),
+    ).toBeTruthy();
+    expect(client.searchPlayers).toHaveBeenCalledTimes(previousCallCount);
+
+    await waitFor(
+      () => expect(client.searchPlayers).toHaveBeenCalledTimes(previousCallCount + 1),
+      { timeout: 1_500 },
+    );
+    expect(client.searchPlayers).toHaveBeenLastCalledWith(
+      "Nobody",
+      expect.objectContaining({ limit: 10, signal: expect.any(AbortSignal) }),
+    );
+    expect(await screen.findByRole("heading", { name: "No matching players" })).toBeTruthy();
+  });
+
   it("starts a fresh browser session without edits or pins after the workbench is remounted", async () => {
     const client = new FakePreviewApiClient();
     const firstSession = render(<App client={client} />);

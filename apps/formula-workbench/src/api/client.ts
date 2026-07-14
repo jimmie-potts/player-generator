@@ -86,7 +86,10 @@ function isErrorResponse(value: unknown): value is ErrorResponse {
 async function responsePayload(response: Response): Promise<unknown> {
   try {
     return await response.json();
-  } catch {
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
     return null;
   }
 }

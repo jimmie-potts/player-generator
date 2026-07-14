@@ -255,6 +255,8 @@ its completion notes.
 - Request cancellation is part of calculation correctness, not only a performance optimization.
   Debouncing reduces work, while aborting superseded requests prevents an older response from
   replacing the result for newer controls.
+- Cancellation can occur after response headers arrive while JSON is still being consumed. Client
+  parsing helpers must rethrow abort errors rather than relabel them as malformed API responses.
 - In an npm workspace with a hoisted test runner, the runner's environment package must be
   resolvable from the hoist location. Declare the Node-compatible `jsdom` version at the repository
   root and validate with a clean `npm ci`; a populated local dependency tree can otherwise mask the
@@ -270,6 +272,9 @@ its completion notes.
   combined 15-player default within the API's 25-player preview bound.
 - Rank movement must be calculated over the fixed complete cohort with explicit tie semantics.
   Ranking only the displayed comparison players makes the apparent impact depend on UI sampling.
+- A debounced search must invalidate visible results at input time, not request time, or stale pin
+  actions remain available under the new query. Session-generation guards must likewise cover both
+  success and failure paths so an old request cannot mutate a reloaded session.
 
 ## Entry format
 

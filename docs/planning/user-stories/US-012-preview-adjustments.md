@@ -39,6 +39,8 @@ effect before proposing a configuration change.
 - **2026-07-14:** Kept provisional validation and delta construction in React, but retained the API
   as the only formula validator and evaluator. A successful response owns the exact full document
   offered for export.
+- **2026-07-14 review follow-up:** Preserved `AbortError` when cancellation occurs while the client
+  is reading a response body, so every cancellation point honors the same no-error contract.
 
 ## Completion notes
 
@@ -68,14 +70,13 @@ effect before proposing a configuration change.
   Arbitrary metrics and expressions were deliberately not added.
 - **Validation:** `.venv/bin/python -m pytest` passed 376 tests;
   `.venv/bin/python -m ruff check .`, `npm run workbench:build`, and `git diff --check` passed;
-  `npm run workbench:test` passed 32 tests. A clean `npm ci` verifies that the root-owned jsdom test
+  `npm run workbench:test` passed 35 tests. A clean `npm ci` verifies that the root-owned jsdom test
   environment resolves from the hoisted Vitest runner on the repository's Node 22.12 CI baseline.
-  Editor and integration tests cover valid and invalid
-  weights, direction and anchor changes, rapid edits, late responses, reset, exact export, API
-  failure, and explicit missing values.
+  Editor and integration tests cover valid and invalid weights, direction and anchor changes, rapid
+  edits, late responses, reset, exact export, API failure, and explicit missing values.
 - **Follow-ups:** Named proposals, persistence, approvals, deployment, and arbitrary expressions
   require later product scope and are not implied by the exported file.
 - **Learnings:** Cancellation is a calculation-correctness mechanism as well as a performance tool,
-  and a portable proposal should serialize the server's validated merge rather than reconstruct it
-  from browser deltas. These findings are recorded in
-  [LEARNINGS.md](../LEARNINGS.md#2026-07-14--us-012).
+  including while response bodies are being consumed, and a portable proposal should serialize the
+  server's validated merge rather than reconstruct it from browser deltas. These findings are
+  recorded in [LEARNINGS.md](../LEARNINGS.md#2026-07-14--us-012).

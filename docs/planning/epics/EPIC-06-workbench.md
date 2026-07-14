@@ -46,7 +46,7 @@
   approved session edits through the shared Python evaluator, compares deterministic players across
   the full talent curve, supports targeted session pins, and exports the exact validated proposal
   JSON. It never calculates ratings or persists active configuration in the browser.
-- **Validation:** All 376 Python tests, 32 frontend tests, Ruff, the production TypeScript/Vite
+- **Validation:** All 376 Python tests, 35 frontend tests, Ruff, the production TypeScript/Vite
   build, integrity manifest, and diff checks pass. A clean `npm ci` also verifies the Node 22.12 CI
   dependency layout. The real Vite proxy and preview API were exercised against the ignored
   582-player 2026 package; its 15-player adjusted preview completed in 191 ms.

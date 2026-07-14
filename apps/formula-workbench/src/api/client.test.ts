@@ -149,6 +149,24 @@ describe("preview API client", () => {
     await expect(pending).rejects.not.toBeInstanceOf(PreviewApiError);
   });
 
+  it("does not convert an abort while reading the response body into invalid JSON", async () => {
+    const abortError = new DOMException("Superseded", "AbortError");
+    const response = {
+      json: vi.fn().mockRejectedValue(abortError),
+      ok: true,
+      status: 200,
+    } as unknown as Response;
+    const client = createPreviewApiClient({
+      baseUrl: "/api/v1",
+      fetchImplementation: vi.fn<FetchImplementation>(async () => response) as typeof fetch,
+    });
+
+    const pending = client.getMetrics();
+
+    await expect(pending).rejects.toBe(abortError);
+    await expect(pending).rejects.not.toBeInstanceOf(PreviewApiError);
+  });
+
   it("reports non-contract and invalid JSON responses without leaking stale data", async () => {
     const httpFailure = createPreviewApiClient({
       baseUrl: "/api/v1",
