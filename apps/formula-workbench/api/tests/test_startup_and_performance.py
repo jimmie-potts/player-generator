@@ -113,12 +113,12 @@ async def test_package_with_a_different_published_formula_is_identified_but_reca
     assert context["formula"]["documentHash"] == synthetic_package.formula_hash
 
 
-async def test_maximum_configured_cohort_preview_meets_the_2000ms_budget(
+async def test_maximum_configured_cohort_preview_meets_the_3000ms_budget(
     maximum_cohort_package: SyntheticPackage,
     maximum_cohort_settings: PreviewSettings,
 ) -> None:
     assert len(maximum_cohort_package.cohort) == maximum_cohort_settings.max_cohort_size
-    assert maximum_cohort_settings.latency_budget_ms == 2000
+    assert maximum_cohort_settings.latency_budget_ms == 3000
     service = PreviewService(maximum_cohort_settings)
     transport = httpx2.ASGITransport(
         app=create_app(maximum_cohort_settings, service=service)

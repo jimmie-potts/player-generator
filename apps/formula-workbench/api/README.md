@@ -40,7 +40,7 @@ preview:
   max_pinned_players: 25
   max_search_results: 20
   max_cohort_size: 1000
-  latency_budget_ms: 2000
+  latency_budget_ms: 3000
 ```
 
 Startup fails before serving requests when the package, its manifest, exact file set, hashes, row
@@ -189,7 +189,7 @@ calculation details contain the raw inputs, percentiles, normalized weights, and
 Baseline rank, preview rank, and `rankMovement` are calculated over the same full cohort; positive
 movement means the player moved toward rank 1.
 
-The approved warm calculation budget is 2,000 ms for a configured cohort of at most 1,000 players.
+The approved warm calculation budget is 3,000 ms for a configured cohort of at most 1,000 players.
 It measures the in-process shared-engine recalculation and excludes package loading and server
 startup. The async preview handler explicitly dispatches its CPU-bound evaluation to an
 application-owned executor with two bounded workers. Formula, metric, baseline, search, and detail

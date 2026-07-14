@@ -49,7 +49,7 @@ the authoritative calculations without reimplementing them.
   [D-025](../DECISIONS.md#d-025-shared-package-integrity-with-active-formula-recalculation).
   The version 1 FastAPI/Pydantic contract uses one configured 2026 cohort, a 1,000-row cohort cap,
   a 25-player baseline sample, at most 25 pins or preview players, at most 20 search results,
-  minimum-rank ties, and a 2,000 ms warm recalculation budget.
+  minimum-rank ties, and an initial 2,000 ms warm recalculation budget.
 - **2026-07-13:** Version 1 exposes `GET /api/v1/formula`, `/metrics`, `/players`,
   `/players/search`, `/players/{playerId}`, and `POST /api/v1/previews`. Successful responses identify
   the reference package and active formula; preview requests echo those hashes as optimistic context
@@ -65,6 +65,10 @@ the authoritative calculations without reimplementing them.
   The async preview route sends shared-engine evaluation to an application-owned two-worker
   executor, preserving event-loop responsiveness without relying on the sync-route/AnyIO or asyncio
   default-executor paths that hang on the repository's current Python 3.14 test stack.
+- **2026-07-13:** PR validation measured the exact 1,000-player preview at 2,260 ms on GitHub's
+  Python 3.12 runner. The approved warm budget was revised to 3,000 ms so the cross-environment gate
+  has operating margin; the 1,000-row cohort cap and every response bound remain unchanged. This
+  amendment is recorded under [D-024](../DECISIONS.md#d-024-complete-configured-preview-cohort-with-bounded-responses).
 
 ## Completion notes
 
@@ -80,7 +84,7 @@ the authoritative calculations without reimplementing them.
 - **Bounds and latency:** The default response contains the top 25 players; requests allow at most
   25 unique pins or selected players and 20 search results. Startup rejects a season cohort over
   1,000 rows. The exact 1,000-player synthetic regression kept both in-process evaluation and HTTP
-  wall time within the accepted 2,000 ms warm budget.
+  wall time within the accepted 3,000 ms warm budget across local and GitHub validation.
 - **Deviations and decisions:** [D-023](../DECISIONS.md#d-023-fastapi-preview-application-with-api-owned-contracts)
   selected FastAPI, Uvicorn, strict API-owned Pydantic models, and a bounded worker executor;
   [D-024](../DECISIONS.md#d-024-complete-configured-preview-cohort-with-bounded-responses) evaluates

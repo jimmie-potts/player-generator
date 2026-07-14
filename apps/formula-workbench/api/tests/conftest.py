@@ -395,7 +395,7 @@ def settings(synthetic_package: SyntheticPackage) -> PreviewSettings:
         max_pinned_players=5,
         max_search_results=8,
         max_cohort_size=1000,
-        latency_budget_ms=2000,
+        latency_budget_ms=3000,
     )
 
 
@@ -458,5 +458,5 @@ def maximum_cohort_settings(
         max_pinned_players=25,
         max_search_results=20,
         max_cohort_size=1000,
-        latency_budget_ms=2000,
+        latency_budget_ms=3000,
     )

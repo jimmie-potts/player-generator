@@ -217,6 +217,9 @@ its completion notes.
   Starlette/httpx2 stack, and the runtime's asyncio default executor also hung in isolation. An
   application-owned bounded executor kept lightweight inspection and search endpoints responsive
   during recalculation.
+- A performance acceptance gate needs margin across supported runners, not only a developer
+  workstation. Preserve the workload and data bounds, record the observed slower environment, and
+  revise the documented budget explicitly when the original target is not portable.
 
 ## Entry format
 

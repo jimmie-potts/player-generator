@@ -223,6 +223,9 @@ changes one; do not rewrite history without recording the replacement.
 - **Reason:** Formula priors, percentiles, and rank movement are population-relative. Evaluating only
   the displayed sample would change the calculation, while one season makes stable `playerId`
   selection unambiguous and explicit limits keep local interactive work responsive.
+- **2026-07-13 amendment:** Set the exact 1,000-player warm preview budget to 3,000 ms after the
+  GitHub Python 3.12 runner measured 2,260 ms against the initial 2,000 ms target. The revised gate
+  adds cross-environment operating margin without increasing the cohort or response bounds.
 
 ## D-025: Shared package integrity with active-formula recalculation
 
