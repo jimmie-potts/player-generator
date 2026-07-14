@@ -11,11 +11,13 @@ requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "NBA GM contributors" }]
 dependencies = [
+  "fastapi>=0.139,<1",
   "numpy>=2.0,<3",
   "pandas>=2.2,<4",
   "pyarrow>=17,<26",
   "PyYAML>=6.0,<7",
   "Faker>=24,<41",
+  "uvicorn>=0.51,<1",
 ]
 
 [project.optional-dependencies]
@@ -23,16 +25,19 @@ dev = [
   "pytest>=8,<9",
   "ruff>=0.6,<1",
   "mypy>=1.10,<2",
+  "httpx2>=2,<3",
 ]
 
 [project.scripts]
 reference-data = "reference_data_app.cli:main"
 roster-generator = "roster_generator.cli:main"
+formula-preview-api = "formula_preview_api.cli:main"
 
 [tool.setuptools.packages.find]
 where = [
   "apps/reference-data/src",
   "apps/roster-generator/src",
+  "apps/formula-workbench/api/src",
   "packages/data-contracts/src",
   "packages/attribute-engine/src",
 ]

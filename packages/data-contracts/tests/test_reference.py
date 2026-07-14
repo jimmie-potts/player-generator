@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import csv
+import json
 import math
 from pathlib import Path
 
@@ -11,10 +12,14 @@ from player_data_contracts import (
     REFERENCE_CONTRACT_VERSION,
     SUPPORTED_REFERENCE_CONTRACT_VERSIONS,
     ContractValidationError,
+    ReferencePackageIntegrityError,
+    content_hash,
     load_reference_contract,
+    load_reference_package_tables,
     validate_reference_package,
     validate_reference_tables,
 )
+from player_data_contracts.io import sha256_file
 from reference_data_app.adapters import NBA_ADVANCED_STAT_MAP, NBA_TRADITIONAL_STAT_MAP
 
 
@@ -158,6 +163,45 @@ def _write_package(
             writer.writerows(rows)
 
 
+def _write_published_package(
+    path: Path,
+    tables: dict[str, list[dict[str, object]]],
+    *,
+    version: int = REFERENCE_CONTRACT_VERSION,
+) -> None:
+    _write_package(path, tables, version=version)
+    audit = {"unresolved": [], "duplicates": []}
+    (path / "audit.json").write_text(
+        json.dumps(audit, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    data_files = (*tables, "audit.json")
+    hashes = {filename: sha256_file(path / filename) for filename in data_files}
+    manifest = {
+        "manifestVersion": 1,
+        "packageType": "reference",
+        "packageVersion": version,
+        "createdAt": "2026-07-13T12:30:00Z",
+        "contractVersions": {filename: version for filename in tables},
+        "inputs": [],
+        "files": {
+            filename: {
+                "rowCount": len(tables[filename]) if filename in tables else 0,
+                "sha256": hashes[filename],
+            }
+            for filename in data_files
+        },
+        "contentHash": content_hash(hashes),
+    }
+    if version >= 2:
+        manifest["formulaVersion"] = "1.0.0"
+        manifest["formulaDocumentHash"] = "b" * 64
+    (path / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_reference_v1_contract_resource_has_adapter_metric_order() -> None:
     contract = load_reference_contract(1)
 
@@ -275,6 +319,60 @@ def test_valid_unicode_rows_and_optional_empty_values_are_accepted(tmp_path: Pat
     package_dir = tmp_path / "reference-package"
     _write_package(package_dir, tables)
     validate_reference_package(package_dir)
+
+
+def test_integrity_loader_returns_manifest_identity_and_normalized_typed_rows(
+    tmp_path: Path,
+) -> None:
+    tables = _valid_tables()
+    package_dir = tmp_path / "reference-package"
+    _write_published_package(package_dir, tables)
+
+    loaded = load_reference_package_tables(package_dir)
+
+    assert loaded.path == package_dir.resolve()
+    assert loaded.package_version == REFERENCE_CONTRACT_VERSION == 2
+    assert loaded.content_hash == loaded.manifest["contentHash"]
+    assert loaded.contract["contractVersion"] == loaded.package_version
+    player = loaded.tables["players.csv"][0]
+    season = loaded.tables["player_seasons.csv"][0]
+    source = loaded.tables["sources.csv"][0]
+    assert player["draftYear"] == 2020
+    assert isinstance(player["draftYear"], int)
+    assert player["weightPounds"] is None
+    assert season["minutes"] == 2160.5
+    assert isinstance(season["minutes"], float)
+    assert source["processedAt"] == "2026-07-13T12:30:00+00:00"
+
+
+def test_integrity_loader_defaults_to_v2_and_allows_explicit_v1(
+    tmp_path: Path,
+) -> None:
+    package_dir = tmp_path / "reference-v1"
+    _write_published_package(package_dir, _valid_tables(1), version=1)
+
+    with pytest.raises(ReferencePackageIntegrityError, match="unsupported packageVersion 1"):
+        load_reference_package_tables(package_dir)
+
+    loaded = load_reference_package_tables(package_dir, allowed_versions=(1, 2))
+
+    assert loaded.package_version == 1
+    assert "player_attributes.csv" not in loaded.tables
+
+
+def test_integrity_loader_rejects_manifest_row_count_mismatch(tmp_path: Path) -> None:
+    package_dir = tmp_path / "reference-package"
+    _write_published_package(package_dir, _valid_tables())
+    manifest_path = package_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"]["players.csv"]["rowCount"] += 1
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(
+        ReferencePackageIntegrityError,
+        match=r"players\.csv rowCount mismatch",
+    ):
+        load_reference_package_tables(package_dir)
 
 
 def test_package_rejects_header_order_mismatch(tmp_path: Path) -> None:

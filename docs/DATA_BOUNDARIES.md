@@ -40,8 +40,14 @@ Forbidden contents:
 
 ## Application boundary
 
-The reference-data application publishes a validated version 1 normalized package and retains its
-wide processed tables only as a standalone legacy interface. The roster generator validates and
-consumes the normalized package and versioned manifest without importing the reference application
-or reading raw Parquet. It never publishes a template crosswalk. See the
-[version 2 plan](planning/README.md).
+The reference-data application publishes a validated version 2 normalized package with
+season-relative attributes and retains its wide processed tables only as a standalone legacy
+interface. The roster generator and formula preview API validate and consume the normalized package
+and versioned manifest without importing the reference application or reading raw Parquet. The
+roster generator never publishes a template crosswalk.
+
+The local-only preview API may return the configured season's reference display names and stable
+internal player IDs for inspection. It does not expose source IDs or reconciliation mappings, write
+reference or formula files, or provide a game-client or production data interface. See the
+[version 2 plan](planning/README.md) and
+[preview API contract](../apps/formula-workbench/api/README.md).

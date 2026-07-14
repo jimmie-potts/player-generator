@@ -52,7 +52,13 @@ through 2026. An unlisted season fails before evaluation instead of silently ass
 Each evaluated attribute returns raw component values, component percentiles, normalized weights,
 contributions, their weighted composite, the composite percentile, final rating, cohort identity,
 eligible cohort size, and any ineligibility reasons. These values are JSON-serializable and are the
-single calculation detail future batch and preview consumers use.
+single calculation detail batch and preview consumers use. The version 1 preview API returns the
+same explanation for baseline and temporary request-local calculations; it does not reconstruct the
+formula in its HTTP layer.
+
+Preview rank is a presentation value separate from formula percentile evaluation. It ranks overall
+ratings across the same complete configured season cohort with minimum-rank ties, while the formula
+continues to use its declared average-rank percentile semantics for components and composites.
 
 ## Known limitations
 
@@ -62,6 +68,6 @@ single calculation detail future batch and preview consumers use.
 - The current formula supports only the attributes listed in
   [ATTRIBUTE_FORMULAS.md](planning/ATTRIBUTE_FORMULAS.md). Unsupported play-style, physical, and
   tendency attributes are absent rather than filled with placeholders.
-- The standalone wide reference build remains a legacy compatibility consumer. Normalized roster
-  generation is the second current consumer and evaluates its generated statistics through the same
-  formula engine.
+- The standalone wide reference build remains a legacy compatibility consumer. Normalized reference
+  publication, normalized roster generation, and the formula preview API evaluate their respective
+  complete season cohorts through the same formula engine.

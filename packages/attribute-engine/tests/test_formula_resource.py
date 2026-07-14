@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from importlib.resources import files
 from pathlib import Path
@@ -10,6 +11,7 @@ from player_attribute_engine import (
     FormulaContractError,
     formula_content_hash,
     load_formula,
+    load_formula_payload_snapshot,
     load_formula_snapshot,
 )
 from player_data_contracts import REFERENCE_CONTRACT_VERSION
@@ -106,4 +108,26 @@ def test_formula_snapshot_hashes_the_same_bytes_it_parses(tmp_path: Path) -> Non
     path.write_text(json.dumps({"changed": True}) + "\n", encoding="utf-8")
 
     assert snapshot == active
+    assert digest != formula_content_hash(path)
+
+
+def test_formula_payload_snapshot_returns_raw_json_and_the_same_parsed_bytes(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "formula.json"
+    content = (
+        files("player_attribute_engine")
+        .joinpath("formulas/player-attributes-v1.json")
+        .read_bytes()
+    )
+    path.write_bytes(content)
+
+    payload, document, digest = load_formula_payload_snapshot(path)
+    assert payload["formulaVersion"] == ACTIVE_FORMULA_VERSION
+    payload["formulaVersion"] = "modified-after-load"
+    path.write_text(json.dumps({"changed": True}) + "\n", encoding="utf-8")
+
+    assert document == load_formula()
+    assert document.formula_version == ACTIVE_FORMULA_VERSION
+    assert digest == hashlib.sha256(content).hexdigest()
     assert digest != formula_content_hash(path)

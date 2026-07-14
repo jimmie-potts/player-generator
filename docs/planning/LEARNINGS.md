@@ -195,6 +195,29 @@ its completion notes.
   attribute rows with empty calculations instead of broad-catching evaluator failures or silently
   inventing schedule policy; other evaluation errors must still fail publication.
 
+### 2026-07-13 — US-010 (implementation in progress)
+
+- Interactive response bounds must not become calculation-population bounds. Formula priors,
+  percentiles, and rank movement remain correct only when baseline and preview evaluate the same
+  complete configured season cohort before selecting response rows.
+- A published attribute table is a useful parity oracle only when its formula version and exact
+  document hash match the active evaluator input. Otherwise its provenance remains valid package
+  context, while the consumer must label and recalculate its own active baseline.
+- Reference-package integrity is consumer-independent, but joining, formula compatibility, identity
+  exposure, and selection policy are application concerns. Sharing the former prevents duplicated
+  mutation-window checks without coupling applications through one consumer's policy.
+- Package and active-formula hashes plus the configured season are practical optimistic context
+  tokens for a stateless preview API. Rejecting stale tokens before recalculation prevents a client
+  from presenting results against a package, formula, or cohort baseline it did not request.
+- Strict transport models should reject field aliases and scalar coercion even when internal Python
+  models use snake_case names. One published camelCase shape keeps browser behavior and structured
+  field errors deterministic.
+- Calling shared-engine Pandas evaluation directly from an async FastAPI handler would block the
+  event loop. The sync-route/AnyIO threadpool path hung under the repository's Python 3.14 and current
+  Starlette/httpx2 stack, and the runtime's asyncio default executor also hung in isolation. An
+  application-owned bounded executor kept lightweight inspection and search endpoints responsive
+  during recalculation.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:

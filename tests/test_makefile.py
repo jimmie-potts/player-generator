@@ -45,3 +45,9 @@ def test_clean_target_removes_only_ignored_roster_packages() -> None:
 
 def test_manifest_target_uses_the_deterministic_generator() -> None:
     assert _dry_run("manifest") == ["python scripts/update_file_manifest.py"]
+
+
+def test_formula_api_target_uses_its_application_configuration() -> None:
+    assert _dry_run("formula-api") == [
+        "python -m formula_preview_api --config apps/formula-workbench/api/config/default.yaml"
+    ]

@@ -24,6 +24,22 @@ validate_reference_tables(tables)
 validate_reference_package(staged_package_dir)
 ```
 
+Applications that consume a published package can load its contract-normalized rows only after the
+shared integrity boundary succeeds:
+
+```python
+from player_data_contracts import load_reference_package_tables
+
+package = load_reference_package_tables(package_dir, allowed_versions=(2,))
+```
+
+The loader verifies the manifest version and package type, exact directory and manifest file sets,
+per-file hashes and row counts, aggregate content hash, CSV contracts and relationships, audit count,
+and version 2 formula provenance. It hashes every data file before and after typed reads so a package
+that changes during loading is rejected. The returned object contains package identity, manifest,
+contract, and normalized table rows; consumer-specific joins, formula compatibility, selection, and
+identity-exposure policy remain in the consuming application.
+
 Roster-package producers use the equivalent APIs before and after serialization:
 
 ```python
@@ -46,3 +62,7 @@ shooting decompositions, points and rebound totals, derived per-game/per-36/per-
 percentages, net ratings, advanced-stat relationships, and exact player/key sets.
 Each roster player has exactly one aligned traditional-stat and advanced-stat season because the
 attribute table is player-grain.
+
+The formula preview API consumes these shared data and formula contracts but owns its version 1 HTTP
+Pydantic models and generated OpenAPI document. Transport-only context tokens, request edits, and
+error envelopes therefore do not become CSV or formula-document fields.

@@ -4,7 +4,7 @@ import hashlib
 import json
 from importlib.resources import files
 from pathlib import Path
-from typing import Final
+from typing import Any, Final
 
 from player_data_contracts import load_formula_contract
 
@@ -41,8 +41,10 @@ def formula_content_hash(path: Path | None = None) -> str:
     return hashlib.sha256(_formula_bytes(path)).hexdigest()
 
 
-def load_formula_snapshot(path: Path | None = None) -> tuple[FormulaDocument, str]:
-    """Parse and hash one immutable read of a formula document."""
+def load_formula_payload_snapshot(
+    path: Path | None = None,
+) -> tuple[dict[str, Any], FormulaDocument, str]:
+    """Return raw JSON, its parsed document, and hash from one immutable byte snapshot."""
     load_formula_contract(FORMULA_SCHEMA_VERSION)
     content = _formula_bytes(path)
     try:
@@ -62,7 +64,15 @@ def load_formula_snapshot(path: Path | None = None) -> tuple[FormulaDocument, st
             "Active formula resource version mismatch: "
             f"{document.formula_version!r} != {ACTIVE_FORMULA_VERSION!r}"
         )
-    return document, hashlib.sha256(content).hexdigest()
+    if not isinstance(payload, dict):
+        raise FormulaContractError("Formula document must be an object.")
+    return payload, document, hashlib.sha256(content).hexdigest()
+
+
+def load_formula_snapshot(path: Path | None = None) -> tuple[FormulaDocument, str]:
+    """Parse and hash one immutable read of a formula document."""
+    _payload, document, digest = load_formula_payload_snapshot(path)
+    return document, digest
 
 
 def load_formula(path: Path | None = None) -> FormulaDocument:
@@ -75,5 +85,6 @@ __all__ = [
     "FORMULA_SCHEMA_VERSION",
     "formula_content_hash",
     "load_formula",
+    "load_formula_payload_snapshot",
     "load_formula_snapshot",
 ]
