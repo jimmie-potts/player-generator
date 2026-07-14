@@ -5,8 +5,8 @@ one integrity-checked version 2 reference package, keeps one configured season c
 uses `player_attribute_engine` for both the cached baseline and every temporary preview. The API does
 not read Parquet, import source adapters, or implement rating calculations itself.
 
-US-010 is still in progress. The HTTP contract below is version 1 and is owned by the API's Pydantic
-models and generated OpenAPI document. The React client does not consume it until EPIC-06.
+US-010 is complete. The HTTP contract below is version 1 and is owned by the API's Pydantic models
+and generated OpenAPI document. The React client does not consume it until EPIC-06.
 
 ## Run locally
 

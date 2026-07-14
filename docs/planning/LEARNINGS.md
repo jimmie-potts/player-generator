@@ -195,7 +195,7 @@ its completion notes.
   attribute rows with empty calculations instead of broad-catching evaluator failures or silently
   inventing schedule policy; other evaluation errors must still fail publication.
 
-### 2026-07-13 — US-010 (implementation in progress)
+### 2026-07-13 — US-010
 
 - Interactive response bounds must not become calculation-population bounds. Formula priors,
   percentiles, and rank movement remain correct only when baseline and preview evaluate the same

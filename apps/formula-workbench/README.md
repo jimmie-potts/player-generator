@@ -12,7 +12,7 @@ npm run workbench:test
 npm run workbench:build
 ```
 
-The in-progress US-010 API can be run separately after a local version 2 reference package exists:
+The US-010 API can be run separately after a local version 2 reference package exists:
 
 ```bash
 formula-preview-api --config apps/formula-workbench/api/config/default.yaml

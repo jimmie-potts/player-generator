@@ -48,7 +48,7 @@ team or coach generation.
 | US-007 | [Calculate the initial attribute set](user-stories/US-007-initial-attributes.md) | EPIC-03 | complete |
 | US-008 | [Consume a published reference package](user-stories/US-008-consume-reference-package.md) | EPIC-04 | complete |
 | US-009 | [Generate the normalized roster package](user-stories/US-009-generate-roster-package.md) | EPIC-04 | complete |
-| US-010 | [Provide formula and player preview endpoints](user-stories/US-010-formula-preview-api.md) | EPIC-05 | in_progress |
+| US-010 | [Provide formula and player preview endpoints](user-stories/US-010-formula-preview-api.md) | EPIC-05 | complete |
 | US-011 | [Inspect formulas and calculations](user-stories/US-011-inspect-formulas.md) | EPIC-06 | ready |
 | US-012 | [Preview formula adjustments](user-stories/US-012-preview-adjustments.md) | EPIC-06 | ready |
 | US-013 | [Compare representative players](user-stories/US-013-compare-players.md) | EPIC-06 | ready |
@@ -65,11 +65,10 @@ team or coach generation.
 
 ## Current-state warning
 
-EPIC-01 through EPIC-04 and US-015 establish the application boundaries, normalized reference
-package with season-relative attributes, shared declarative attribute engine, and deterministic
-player-only roster package. The reference-data application retains its pinned download and wide
-processed build only as standalone legacy interfaces. US-010 is implementing the read-only preview
-API under the versioned contract documented in
-[`apps/formula-workbench/api/README.md`](../../apps/formula-workbench/api/README.md); it is not a
-completed interface until the story's acceptance criteria and validation pass. Interactive React
-workbench behavior remains planned in EPIC-06.
+EPIC-01 through EPIC-05 and US-015 establish the application boundaries, normalized reference
+package with season-relative attributes, shared declarative attribute engine, deterministic
+player-only roster package, and read-only formula preview API. The reference-data application
+retains its pinned download and wide processed build only as standalone legacy interfaces. The
+versioned API contract is documented in
+[`apps/formula-workbench/api/README.md`](../../apps/formula-workbench/api/README.md). Interactive
+React workbench behavior remains planned in EPIC-06.

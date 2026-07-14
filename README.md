@@ -18,7 +18,7 @@ packages/
 Reference data and roster generation are the two data subprojects. The formula workbench is a
 supporting application over the shared contracts and calculation engine.
 
-The batch-data foundation is implemented, and the read-only API phase is in progress:
+The batch-data foundation and read-only API phase are implemented:
 
 - Reference data can register and normalize local NBA and ESPN Parquet inputs and atomically publish
   a validated version 2 CSV package with season-relative attributes. The pinned download and wide
@@ -128,7 +128,7 @@ npm run workbench:test
 npm run workbench:build
 ```
 
-The in-progress US-010 API loads the ignored local version 2 reference package by default, evaluates
+The US-010 API loads the ignored local version 2 reference package by default, evaluates
 the complete configured 2026 cohort through the shared engine, and serves bounded baseline, search,
 detail, and request-local preview responses under `/api/v1`. It never writes formula configuration,
 reference data, or presets. See the [formula preview API contract](apps/formula-workbench/api/README.md)

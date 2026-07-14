@@ -1,6 +1,6 @@
 # EPIC-05: Formula preview API
 
-- **Status:** in_progress
+- **Status:** complete
 - **Outcome:** Expose read-only formula inspection and temporary recalculation through a Python API.
 - **Dependencies:** EPIC-02, EPIC-03
 

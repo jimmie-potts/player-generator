@@ -6,7 +6,7 @@ working-tree changes intact.
 ## Current state and planned state
 
 The implemented monorepo has two Python data applications under `apps/reference-data/` and
-`apps/roster-generator/`, a React shell and in-progress Python preview API under
+`apps/roster-generator/`, a React shell and Python preview API under
 `apps/formula-workbench/`, and shared Python packages under `packages/data-contracts/` and
 `packages/attribute-engine/`.
 
@@ -17,8 +17,8 @@ season-relative attributes; its pinned download and wide tables remain standalon
 interfaces. The roster generator consumes only a validated published reference package and
 atomically emits the normalized player-only roster package. Player attributes use the versioned
 declarative formula and shared Python evaluator. The preview API reads one integrity-checked
-reference cohort and exposes read-only version 1 endpoints during US-010; the React client still has
-no formula or data behavior.
+reference cohort and exposes read-only version 1 endpoints; the React client still has no formula or
+data behavior.
 
 Do not implement a later story until the user explicitly starts it. Avoid changing runtime code,
 configuration, schemas, outputs, or pipeline behavior merely to resemble an unstarted plan.
