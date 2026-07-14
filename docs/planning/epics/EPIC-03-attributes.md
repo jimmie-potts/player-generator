@@ -13,6 +13,7 @@ by a web client. Batch generation and interactive previews need the same evaluat
 
 - [US-006: Define declarative formulas](../user-stories/US-006-declarative-formulas.md)
 - [US-007: Calculate the initial attribute set](../user-stories/US-007-initial-attributes.md)
+- [US-015: Publish reference player attributes](../user-stories/US-015-reference-player-attributes.md)
 
 ## Success criteria
 
@@ -20,6 +21,8 @@ by a web client. Batch generation and interactive previews need the same evaluat
 - The engine produces deterministic 25–99 ratings and explainable intermediate values.
 - Percentile cohorts, nulls, ties, sample thresholds, overall, impact percentile, and tiers have
   regression coverage.
+- Reference package version 2 publishes the same engine's ratings for every player-season with
+  formula provenance and exact cohort keys.
 - Attributes lacking defensible inputs remain deferred.
 
 ## Non-goals

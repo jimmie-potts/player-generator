@@ -1,6 +1,6 @@
 # EPIC-04: Player roster package
 
-- **Status:** ready
+- **Status:** complete
 - **Outcome:** Generate a deterministic, normalized player-only CSV package from published
   reference data.
 - **Dependencies:** EPIC-02, EPIC-03

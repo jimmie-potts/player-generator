@@ -8,7 +8,7 @@ generating roster data, and developing an interactive formula workbench.
 ```text
 apps/
   reference-data/       Python reference-data CLI, configuration, source ingestion, and tests
-  roster-generator/     Python roster CLI, configuration, generation, comparison, and tests
+  roster-generator/     Python roster-package validation, generation, publication, and tests
   formula-workbench/    React and TypeScript application shell
 packages/
   data-contracts/       Shared versioned schemas, identifiers, and validation
@@ -18,13 +18,13 @@ packages/
 Reference data and roster generation are the two data subprojects. The formula workbench is a
 supporting application over the shared contracts and calculation engine.
 
-The architecture boundary and normalized reference-package builder are implemented, but later
-behavior remains planned:
+The batch-data foundation is implemented, while the interactive phases remain planned:
 
 - Reference data can register and normalize local NBA and ESPN Parquet inputs and atomically publish
-  a validated version 1 CSV package. The pinned download and wide build remain legacy commands for
-  the roster generator's current transitional input.
-- Roster generation still produces a combined roster JSON and flat player CSV.
+  a validated version 2 CSV package with season-relative attributes. The pinned download and wide
+  build remain standalone legacy commands.
+- Roster generation validates that published package, selects deterministic templates, applies
+  controlled statistical mutation, and atomically publishes a normalized player-only CSV package.
 - Player attributes use the validated declarative formula document and shared Python evaluator.
 - The workbench currently renders a static application shell without data or formula behavior.
 
@@ -56,14 +56,14 @@ npm run workbench:test
 npm run workbench:build
 ```
 
-Run the current data pipeline from a clean checkout with:
+After registering caller-owned local reference inputs, run the normalized package pipeline with:
 
 ```bash
 make all
 ```
 
-This downloads or verifies the pinned reference source, builds the processed reference data,
-generates the roster, and writes the comparison reports.
+This publishes the registered normalized reference package, then validates it and generates the
+normalized roster package. It does not download, repair, or register reference inputs automatically.
 
 ## Applications
 
@@ -73,7 +73,8 @@ generates the roster, and writes the comparison reports.
 reference-data --help
 reference-data register --source-type nba_playerstats /path/to/playerstats.parquet
 reference-data publish
-reference-data publish --output /path/to/reference-v1
+reference-data publish --output /path/to/reference-v2
+reference-data publish --formula /path/to/formula.json
 reference-data download
 reference-data build
 ```
@@ -81,29 +82,38 @@ reference-data build
 Registration validates and records local files without copying them into the repository. Source
 types `nba_playerstats` and `espn_player_details` use adapter schema version 1, and their ignored
 local provenance registry lives at `reference_data/registry/sources.json`. The current legacy
-download remains pinned by `reference_data/source_manifest.json`. `publish` writes the version 1
-relational CSVs, reconciliation audit, and deterministic manifest under
-`reference_data/packages/reference-v1` by default. Registry and package output remain ignored.
+download remains pinned by `reference_data/source_manifest.json`. `publish` writes the version 2
+relational CSVs, season-relative player attributes, reconciliation audit, and deterministic
+manifest under `reference_data/packages/reference-v2` by default. Registry and package output
+remain ignored.
 
 ### Roster generator
 
 ```bash
 roster-generator --help
 roster-generator generate
-roster-generator compare
+roster-generator generate --reference-package /path/to/reference-v2
+roster-generator generate --output /path/to/roster-v1 --seed 42
 ```
 
-The generator reads `reference_data/processed/player_seasons_reference.csv`; it does not import or
-invoke the reference-data application. Current outputs are:
+The generator reads only a published reference package; it does not import or invoke the
+reference-data application and never reads Parquet. Its default output is:
 
 ```text
-roster_data/default_roster.json
-roster_data/players.csv
-reports/comparison_report.json
-reports/comparison_table.csv
+roster_data/packages/roster-v1/
+  players.csv
+  player_stats.csv
+  player_advanced_stats.csv
+  player_attributes.csv
+  manifest.json
 ```
 
-The normalized player-only roster package is planned in EPIC-04.
+Selection seasons, recency weights, games/minutes thresholds, roster size, replacement policy, and
+seed are explicit YAML settings. Generated statistics share one possession basis and are validated
+for totals, shooting arithmetic, percentages, per-game, per-36, per-100, and advanced-stat
+relationships before atomic publication. Attributes are recalculated through the shared formula
+engine. The manifest makes identical reference content, formula, semantic configuration, and seed
+reproducible without exposing template identities.
 
 ### Formula workbench
 
@@ -137,7 +147,7 @@ schema lives in `packages/data-contracts/`. See the [current rating model](docs/
 
 - `reference_data_app` may use shared contracts and the attribute engine, but cannot import
   `roster_generator`.
-- `roster_generator` consumes processed reference files and cannot import `reference_data_app`.
+- `roster_generator` consumes published reference packages and cannot import `reference_data_app`.
 - `player_attribute_engine` is the authoritative Python calculation owner.
 - The React workbench must call the future Python API rather than reimplement calculations.
 - Source names, source IDs, and reconciliation mappings remain reference-only.

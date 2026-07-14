@@ -43,6 +43,11 @@ def _parser() -> argparse.ArgumentParser:
     register.add_argument("--license-status", help="Known license status for the local source.")
     publish = subparsers.add_parser("publish", help="Publish normalized reference CSVs.")
     publish.add_argument("--output", type=Path, help="Override the configured package directory.")
+    publish.add_argument(
+        "--formula",
+        type=Path,
+        help="Override the packaged player-attribute formula document.",
+    )
     return parser
 
 
@@ -77,7 +82,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Registered or verified {len(sources)} local reference source(s).")
         return 0
     if args.command == "publish":
-        package_path = publish_reference_package(config, args.output)
+        package_path = publish_reference_package(
+            config,
+            args.output,
+            formula_path=args.formula,
+        )
         print(f"Published normalized reference package to {package_path}.")
         return 0
     raise AssertionError(f"Unhandled command: {args.command}")

@@ -39,6 +39,15 @@ def test_reference_and_roster_apps_do_not_import_each_other() -> None:
     assert "reference_data_app" not in roster_imports
 
 
+def test_roster_application_has_no_parquet_or_source_adapter_dependency() -> None:
+    roster_root = PACKAGE_ROOTS["roster_generator"]
+    imports = _import_roots(roster_root)
+
+    assert "pyarrow" not in imports
+    for source_file in roster_root.rglob("*.py"):
+        assert "parquet" not in source_file.read_text(encoding="utf-8").casefold()
+
+
 def test_shared_packages_do_not_import_applications() -> None:
     for name in ("player_data_contracts", "player_attribute_engine"):
         imports = _import_roots(PACKAGE_ROOTS[name])

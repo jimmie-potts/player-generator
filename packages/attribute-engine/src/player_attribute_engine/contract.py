@@ -9,10 +9,8 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any
 
-from player_data_contracts.reference import (
-    REFERENCE_CONTRACT_VERSION,
-    load_reference_contract,
-)
+from player_data_contracts.reference import load_reference_contract
+from player_data_contracts.validation import ContractValidationError
 
 
 class FormulaContractError(ValueError):
@@ -143,6 +141,7 @@ _RESERVED_ATTRIBUTE_NAMES = {
     "talentTier",
 }
 _RESERVED_PERCENTILE_OUTPUTS = {"playerId", "formulaVersion", "talentTier"}
+_FORMULA_REFERENCE_CONTRACT_VERSION = 1
 
 
 def _mapping(value: Any, path: str) -> Mapping[str, Any]:
@@ -331,8 +330,13 @@ def _parse_metrics(raw: Any) -> Mapping[str, MetricDefinition]:
     return MappingProxyType(metrics)
 
 
-def _validate_reference_metric_fields(metrics: Mapping[str, MetricDefinition]) -> None:
-    contract = load_reference_contract(REFERENCE_CONTRACT_VERSION)
+def _validate_reference_metric_fields(
+    metrics: Mapping[str, MetricDefinition], reference_contract_version: int
+) -> None:
+    try:
+        contract = load_reference_contract(reference_contract_version)
+    except ContractValidationError as error:
+        raise FormulaContractError(str(error)) from error
     supported: set[str] = set()
     for file_name in ("player_seasons.csv", "player_stats.csv", "player_advanced_stats.csv"):
         for column in contract["files"][file_name]["columns"]:
@@ -345,7 +349,8 @@ def _validate_reference_metric_fields(metrics: Mapping[str, MetricDefinition]) -
     )
     if unknown:
         raise FormulaContractError(
-            "input metrics reference fields outside reference contract version 1: "
+            "input metrics reference fields outside reference contract version "
+            f"{reference_contract_version}: "
             f"{', '.join(unknown)}."
         )
 
@@ -647,17 +652,18 @@ def parse_formula_document(document: Mapping[str, Any]) -> FormulaDocument:
     reference_contract_version = _integer(
         root["referenceContractVersion"], "referenceContractVersion", minimum=1
     )
-    if reference_contract_version != REFERENCE_CONTRACT_VERSION:
+    if reference_contract_version != _FORMULA_REFERENCE_CONTRACT_VERSION:
         raise FormulaContractError(
             "Unsupported reference contract version "
-            f"{reference_contract_version}; supported version is {REFERENCE_CONTRACT_VERSION}."
+            f"{reference_contract_version}; supported version is "
+            f"{_FORMULA_REFERENCE_CONTRACT_VERSION}."
         )
     output_fields = _unique_names(_list(root["outputFields"], "outputFields"), "outputFields")
     if not output_fields:
         raise FormulaContractError("outputFields must not be empty.")
     rules = _parse_rules(root["rules"])
     metrics = _parse_metrics(root["metrics"])
-    _validate_reference_metric_fields(metrics)
+    _validate_reference_metric_fields(metrics, reference_contract_version)
     cohorts = _parse_cohorts(root["cohorts"], metrics)
     eligibility = _parse_eligibility(root["eligibilityRules"], metrics)
     scales = _parse_scales(root["ratingScales"])

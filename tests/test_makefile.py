@@ -27,17 +27,17 @@ def test_all_target_runs_the_pipeline_sequentially_even_with_parallel_make() -> 
         or command.startswith("python -m roster_generator")
     ]
     assert pipeline_commands == [
-        "python -m reference_data_app --config apps/reference-data/config/default.yaml download",
-        "python -m reference_data_app --config apps/reference-data/config/default.yaml build",
+        "python -m reference_data_app --config apps/reference-data/config/default.yaml publish",
         "python -m roster_generator --config apps/roster-generator/config/default.yaml generate",
-        "python -m roster_generator --config apps/roster-generator/config/default.yaml compare",
     ]
 
 
-def test_clean_target_never_removes_tracked_sample_outputs() -> None:
+def test_clean_target_removes_only_ignored_roster_packages() -> None:
     commands = "\n".join(_dry_run("clean"))
 
-    assert "roster_data" not in commands
+    assert "roster_data/packages" in commands
+    assert "roster_data/default_roster.json" not in commands
+    assert "roster_data/players.csv" not in commands
     assert "reports" not in commands
     assert "build" in commands
     assert ".pytest_cache" in commands

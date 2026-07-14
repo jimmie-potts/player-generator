@@ -1,0 +1,225 @@
+{
+  "title": "Reference CSV package contract",
+  "description": "Version 2 ordered CSV columns, scalar types, keys, and relationships for normalized reference data with formula-derived player attributes.",
+  "contractVersion": 2,
+  "encoding": "UTF-8",
+  "lineEnding": "LF",
+  "files": {
+    "players.csv": {
+      "columns": [
+        {"name": "playerId", "type": "string", "required": true, "nullable": false},
+        {"name": "displayName", "type": "string", "required": true, "nullable": false},
+        {"name": "firstName", "type": "string", "required": false, "nullable": true},
+        {"name": "lastName", "type": "string", "required": false, "nullable": true},
+        {"name": "birthDate", "type": "date", "required": false, "nullable": true},
+        {"name": "heightInches", "type": "number", "required": false, "nullable": true},
+        {"name": "weightPounds", "type": "number", "required": false, "nullable": true},
+        {"name": "country", "type": "string", "required": false, "nullable": true},
+        {"name": "college", "type": "string", "required": false, "nullable": true},
+        {"name": "draftYear", "type": "integer", "required": false, "nullable": true},
+        {"name": "draftRound", "type": "integer", "required": false, "nullable": true},
+        {"name": "draftNumber", "type": "integer", "required": false, "nullable": true}
+      ],
+      "uniqueKeys": [["playerId"]]
+    },
+    "player_seasons.csv": {
+      "columns": [
+        {"name": "playerSeasonId", "type": "string", "required": true, "nullable": false},
+        {"name": "playerId", "type": "string", "required": true, "nullable": false},
+        {"name": "season", "type": "integer", "required": true, "nullable": false},
+        {"name": "teamId", "type": "string", "required": false, "nullable": true},
+        {"name": "teamAbbreviation", "type": "string", "required": false, "nullable": true},
+        {"name": "age", "type": "number", "required": false, "nullable": true},
+        {"name": "games", "type": "integer", "required": false, "nullable": true},
+        {"name": "starts", "type": "integer", "required": false, "nullable": true},
+        {"name": "wins", "type": "integer", "required": false, "nullable": true},
+        {"name": "losses", "type": "integer", "required": false, "nullable": true},
+        {"name": "minutes", "type": "number", "required": false, "nullable": true}
+      ],
+      "uniqueKeys": [["playerSeasonId"], ["playerId", "season"]]
+    },
+    "player_stats.csv": {
+      "columns": [
+        {"name": "playerSeasonId", "type": "string", "required": true, "nullable": false},
+        {"name": "playerId", "type": "string", "required": true, "nullable": false},
+        {"name": "season", "type": "integer", "required": true, "nullable": false},
+        {"name": "fieldGoalsMade", "type": "number", "required": false, "nullable": true},
+        {"name": "fieldGoalsAttempted", "type": "number", "required": false, "nullable": true},
+        {"name": "threePointersMade", "type": "number", "required": false, "nullable": true},
+        {"name": "threePointersAttempted", "type": "number", "required": false, "nullable": true},
+        {"name": "freeThrowsMade", "type": "number", "required": false, "nullable": true},
+        {"name": "freeThrowsAttempted", "type": "number", "required": false, "nullable": true},
+        {"name": "reboundsOffensive", "type": "number", "required": false, "nullable": true},
+        {"name": "reboundsDefensive", "type": "number", "required": false, "nullable": true},
+        {"name": "reboundsTotal", "type": "number", "required": false, "nullable": true},
+        {"name": "assists", "type": "number", "required": false, "nullable": true},
+        {"name": "turnovers", "type": "number", "required": false, "nullable": true},
+        {"name": "steals", "type": "number", "required": false, "nullable": true},
+        {"name": "blocks", "type": "number", "required": false, "nullable": true},
+        {"name": "foulsPersonal", "type": "number", "required": false, "nullable": true},
+        {"name": "points", "type": "number", "required": false, "nullable": true},
+        {"name": "plusMinusPoints", "type": "number", "required": false, "nullable": true},
+        {"name": "twoPointersMade", "type": "number", "required": false, "nullable": true},
+        {"name": "twoPointersAttempted", "type": "number", "required": false, "nullable": true},
+        {"name": "twoPointPercentage", "type": "number", "required": false, "nullable": true},
+        {"name": "minutesPerGame", "type": "number", "required": false, "nullable": true},
+        {"name": "threePointAttemptsPer36", "type": "number", "required": false, "nullable": true},
+        {"name": "freeThrowAttemptsPer36", "type": "number", "required": false, "nullable": true},
+        {"name": "offensiveReboundsPer36", "type": "number", "required": false, "nullable": true},
+        {"name": "defensiveReboundsPer36", "type": "number", "required": false, "nullable": true},
+        {"name": "assistsPer36", "type": "number", "required": false, "nullable": true},
+        {"name": "turnoversPer36", "type": "number", "required": false, "nullable": true},
+        {"name": "stealsPer36", "type": "number", "required": false, "nullable": true},
+        {"name": "blocksPer36", "type": "number", "required": false, "nullable": true},
+        {"name": "pointsPer36", "type": "number", "required": false, "nullable": true},
+        {"name": "plusMinusPer36", "type": "number", "required": false, "nullable": true},
+        {"name": "pointsPer100", "type": "number", "required": false, "nullable": true},
+        {"name": "assistsPer100", "type": "number", "required": false, "nullable": true},
+        {"name": "turnoversPer100", "type": "number", "required": false, "nullable": true},
+        {"name": "stealsPer100", "type": "number", "required": false, "nullable": true},
+        {"name": "blocksPer100", "type": "number", "required": false, "nullable": true},
+        {"name": "twoPointAttemptFrequency", "type": "number", "required": false, "nullable": true},
+        {"name": "threePointAttemptFrequency", "type": "number", "required": false, "nullable": true}
+      ],
+      "uniqueKeys": [["playerSeasonId"]]
+    },
+    "player_advanced_stats.csv": {
+      "columns": [
+        {"name": "playerSeasonId", "type": "string", "required": true, "nullable": false},
+        {"name": "playerId", "type": "string", "required": true, "nullable": false},
+        {"name": "season", "type": "integer", "required": true, "nullable": false},
+        {"name": "estimatedOffensiveRating", "type": "number", "required": false, "nullable": true},
+        {"name": "offensiveRating", "type": "number", "required": false, "nullable": true},
+        {"name": "estimatedDefensiveRating", "type": "number", "required": false, "nullable": true},
+        {"name": "defensiveRating", "type": "number", "required": false, "nullable": true},
+        {"name": "estimatedNetRating", "type": "number", "required": false, "nullable": true},
+        {"name": "netRating", "type": "number", "required": false, "nullable": true},
+        {"name": "assistPercentage", "type": "number", "required": false, "nullable": true},
+        {"name": "assistTurnoverRatio", "type": "number", "required": false, "nullable": true},
+        {"name": "assistRatio", "type": "number", "required": false, "nullable": true},
+        {"name": "offensiveReboundPercentage", "type": "number", "required": false, "nullable": true},
+        {"name": "defensiveReboundPercentage", "type": "number", "required": false, "nullable": true},
+        {"name": "reboundPercentage", "type": "number", "required": false, "nullable": true},
+        {"name": "estimatedTurnoverPercentage", "type": "number", "required": false, "nullable": true},
+        {"name": "effectiveFieldGoalPercentage", "type": "number", "required": false, "nullable": true},
+        {"name": "trueShootingPercentage", "type": "number", "required": false, "nullable": true},
+        {"name": "usagePercentage", "type": "number", "required": false, "nullable": true},
+        {"name": "playerImpactEstimate", "type": "number", "required": false, "nullable": true},
+        {"name": "defensiveWinShares", "type": "number", "required": false, "nullable": true},
+        {"name": "defensiveWinSharesPer36", "type": "number", "required": false, "nullable": true}
+      ],
+      "uniqueKeys": [["playerSeasonId"]]
+    },
+    "player_attributes.csv": {
+      "columns": [
+        {"name": "playerSeasonId", "type": "string", "required": true, "nullable": false},
+        {"name": "playerId", "type": "string", "required": true, "nullable": false},
+        {"name": "season", "type": "integer", "required": true, "nullable": false},
+        {"name": "insideScoring", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "threePointShooting", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "freeThrowShooting", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "scoringVolume", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "playmaking", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "ballSecurity", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "offensiveRebounding", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "defensiveRebounding", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "perimeterDefense", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "interiorDefense", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "stamina", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "durability", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "overall", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
+        {"name": "impactPercentile", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "talentTier", "type": "string", "required": false, "nullable": true, "enum": ["superstar", "all_star", "starter", "rotation", "fringe"]},
+        {"name": "formulaVersion", "type": "string", "required": true, "nullable": false}
+      ],
+      "uniqueKeys": [["playerSeasonId"], ["playerId", "season"]]
+    },
+    "player_source_ids.csv": {
+      "columns": [
+        {"name": "playerId", "type": "string", "required": true, "nullable": false},
+        {"name": "sourceType", "type": "string", "required": true, "nullable": false},
+        {"name": "sourcePlayerId", "type": "string", "required": true, "nullable": false}
+      ],
+      "uniqueKeys": [
+        ["playerId", "sourceType"],
+        ["sourceType", "sourcePlayerId"]
+      ]
+    },
+    "sources.csv": {
+      "columns": [
+        {"name": "sourceId", "type": "string", "required": true, "nullable": false},
+        {"name": "sourceType", "type": "string", "required": true, "nullable": false},
+        {"name": "originalFilename", "type": "string", "required": true, "nullable": false},
+        {"name": "sha256", "type": "sha256", "required": true, "nullable": false},
+        {"name": "adapterVersion", "type": "integer", "required": true, "nullable": false},
+        {"name": "upstreamVersion", "type": "string", "required": false, "nullable": true},
+        {"name": "rowCount", "type": "integer", "required": true, "nullable": false},
+        {"name": "processedAt", "type": "datetime", "required": true, "nullable": false},
+        {"name": "licenseStatus", "type": "string", "required": true, "nullable": false}
+      ],
+      "uniqueKeys": [["sourceId"]]
+    }
+  },
+  "relationships": [
+    {
+      "name": "playerSeasonsReferencePlayers",
+      "kind": "foreignKey",
+      "from": {"file": "player_seasons.csv", "columns": ["playerId"]},
+      "to": {"file": "players.csv", "columns": ["playerId"]}
+    },
+    {
+      "name": "playerStatsReferencePlayers",
+      "kind": "foreignKey",
+      "from": {"file": "player_stats.csv", "columns": ["playerId"]},
+      "to": {"file": "players.csv", "columns": ["playerId"]}
+    },
+    {
+      "name": "playerAdvancedStatsReferencePlayers",
+      "kind": "foreignKey",
+      "from": {"file": "player_advanced_stats.csv", "columns": ["playerId"]},
+      "to": {"file": "players.csv", "columns": ["playerId"]}
+    },
+    {
+      "name": "playerAttributesReferencePlayers",
+      "kind": "foreignKey",
+      "from": {"file": "player_attributes.csv", "columns": ["playerId"]},
+      "to": {"file": "players.csv", "columns": ["playerId"]}
+    },
+    {
+      "name": "playerSourceIdsReferencePlayers",
+      "kind": "foreignKey",
+      "from": {"file": "player_source_ids.csv", "columns": ["playerId"]},
+      "to": {"file": "players.csv", "columns": ["playerId"]}
+    },
+    {
+      "name": "playerStatsReferencePlayerSeasons",
+      "kind": "foreignKey",
+      "from": {"file": "player_stats.csv", "columns": ["playerSeasonId"]},
+      "to": {"file": "player_seasons.csv", "columns": ["playerSeasonId"]}
+    },
+    {
+      "name": "playerAdvancedStatsReferencePlayerSeasons",
+      "kind": "foreignKey",
+      "from": {"file": "player_advanced_stats.csv", "columns": ["playerSeasonId"]},
+      "to": {"file": "player_seasons.csv", "columns": ["playerSeasonId"]}
+    },
+    {
+      "name": "playerAttributesReferencePlayerSeasons",
+      "kind": "foreignKey",
+      "from": {"file": "player_attributes.csv", "columns": ["playerSeasonId"]},
+      "to": {"file": "player_seasons.csv", "columns": ["playerSeasonId"]}
+    },
+    {
+      "name": "playerSourceTypesReferenceSources",
+      "kind": "foreignKey",
+      "from": {"file": "player_source_ids.csv", "columns": ["sourceType"]},
+      "to": {"file": "sources.csv", "columns": ["sourceType"]}
+    },
+    {
+      "name": "aggregatePlayerSeasonGrain",
+      "kind": "exactKeySet",
+      "files": ["player_seasons.csv", "player_stats.csv", "player_advanced_stats.csv", "player_attributes.csv"],
+      "columns": ["playerSeasonId", "playerId", "season"]
+    }
+  ]
+}

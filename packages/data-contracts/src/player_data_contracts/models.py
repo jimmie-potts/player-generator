@@ -18,13 +18,3 @@ RATING_FIELDS: Final[tuple[str, ...]] = (
     "stamina",
     "durability",
 )
-
-ALL_RATING_FIELDS: Final[tuple[str, ...]] = (*RATING_FIELDS, "overall", "potential")
-
-TIER_ORDER: Final[tuple[str, ...]] = (
-    "superstar",
-    "all_star",
-    "starter",
-    "rotation",
-    "fringe",
-)

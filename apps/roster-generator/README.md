@@ -1,17 +1,27 @@
 # Roster-generator application
 
-This Python application owns the current template sampling, player and team generation, roster
-serialization, and population comparison reports.
+This Python application owns published-reference validation, deterministic template selection,
+controlled statistics mutation, generated player identity, shared-engine attribute evaluation, and
+atomic roster-package publication.
 
 ```bash
 roster-generator --help
 roster-generator generate
-roster-generator compare
+roster-generator generate --reference-package /path/to/reference-v2
+roster-generator generate --output /path/to/roster-v1 --seed 42
 ```
 
-Its configuration boundary is `config/default.yaml` within this application. The current generator
-reads the processed player-season CSV published by the reference-data application and never imports
-its source adapters or pipeline. A versioned normalized reference package and player-only roster
-package are planned in later stories.
+Its YAML configuration makes eligible seasons, recency weights, games/minutes thresholds, roster
+size, sampling replacement, seed, and mutation controls explicit. CLI options may override the
+reference package, formula document, output directory, and seed.
 
-The application may import shared data-contract code. It must never import `reference_data_app`.
+The application accepts reference package versions 1 and 2 and validates the complete manifest,
+files, hashes, row counts, contract versions, relationships, and formula compatibility before
+sampling. Published reference attributes are validated but roster selection and output evaluate the
+requested formula from statistical inputs. The application mutates primitive totals,
+derives dependent statistics, calculates attributes through `player_attribute_engine`, validates
+the four version 1 roster CSVs, scans for reference identity leakage, and replaces the destination
+only after staging succeeds.
+
+The application may import shared data-contract and attribute-engine code. It must never import
+`reference_data_app`, read Parquet, generate teams or coaches, or publish a template crosswalk.

@@ -10,10 +10,11 @@ loading.
 
 - `raw/playerstats.parquet`: pinned 2.43 MB upstream snapshot; downloaded locally and Git-ignored.
 - `registry/sources.json`: ignored local paths and provenance for registered Parquet inputs.
-- `packages/reference-v1/`: ignored normalized version 1 CSV package, audit, and manifest.
+- `packages/reference-v2/`: ignored normalized version 2 CSV package, attributes, audit, and
+  manifest. Existing version 1 packages remain readable.
 - `processed/player_seasons_reference.csv`: named, rated player-season pool for end-season years
-  2021 through 2026. This is the current legacy input sampled by the roster generator.
-- `processed/reference_players.csv`: latest-season named comparison snapshot.
+  2021 through 2026. This belongs only to the standalone legacy wide build.
+- `processed/reference_players.csv`: latest-season named legacy snapshot.
 - `processed/reference_distribution.json`: compact distribution summary.
 - `source_manifest.json`: pinned URL, checksum, size, provenance and license-status notes.
 
@@ -22,15 +23,17 @@ The source has no position field, so the pipeline infers replaceable guard/wing/
 height and role metrics.
 
 Raw, registered, normalized-package, and processed named data are ignored by Git. To build a version
-1 reference package from caller-owned local inputs:
+2 reference package from caller-owned local inputs and the active formula:
 
 ```bash
 reference-data register --source-type nba_playerstats /path/to/playerstats.parquet
 reference-data register --source-type espn_player_details /path/to/player-details.parquet
 reference-data publish
+reference-data publish --formula /path/to/formula.json
 ```
 
-The separate legacy path remains available until US-008 migrates roster generation:
+The separate legacy path remains available for compatibility but is not consumed by normalized
+roster generation:
 
 ```bash
 reference-data download
@@ -44,5 +47,7 @@ observed root license file; see `THIRD_PARTY_NOTICES.md`.
 
 [EPIC-02](../docs/planning/epics/EPIC-02-reference-data.md) implements local registration,
 source-specific normalization, reconciliation, relational CSV contracts, and atomic publication.
-The legacy downloader and wide processed tables remain only for the current roster seam; US-008
-replaces that consumer without allowing it to read Parquet or import source adapters.
+[US-015](../docs/planning/user-stories/US-015-reference-player-attributes.md) adds governed,
+season-relative reference attributes through the shared formula engine.
+[EPIC-04](../docs/planning/epics/EPIC-04-roster-package.md) consumes only the published package;
+the legacy downloader and wide processed tables are not part of that boundary.

@@ -140,3 +140,57 @@ changes one; do not rewrite history without recording the replacement.
   second consumer.
 - **Reason:** This satisfies the single-evaluator architecture without violating the dependency
   order or expanding declarative-formula work into the later API epic.
+
+## D-018: Published roster possession basis
+
+- **Status:** accepted
+- **Decision:** Roster contract version 1 includes `season`, `games`, `minutes`, and `possessions`
+  in `player_stats.csv`. Generation infers a template's possession total as the median of its
+  available positive total/per-100 pairs, applies the controlled volume mutation once, and derives
+  every roster per-100 field from that one published possession value.
+- **Reason:** The reference contract publishes per-100 rates but no possession total. One explicit,
+  reproducible inference rule preserves cross-stat consistency without adding a separate roster
+  season table or independently jittering related rate fields.
+
+## D-019: Roster advanced-stat identities
+
+- **Status:** accepted
+- **Decision:** Derive roster `assistRatio` and `estimatedTurnoverPercentage` from mutated event
+  operands using the shared play-ending denominator `FGA + 0.44 * FTA + AST + TOV`. Keep
+  `reboundPercentage` as a separately mapped, bounded source metric rather than forcing it to equal
+  the mean of offensive and defensive rebound percentages.
+- **Reason:** The reference adapter maps per-100 rates, assist ratio, estimated turnover percentage,
+  and rebound percentage as distinct upstream metrics. Preserving their domain definitions avoids
+  silently collapsing separate statistics while still making derived roster values reproducible.
+
+## D-020: Versioned reference player attributes
+
+- **Status:** accepted
+- **Decision:** Reference package version 2 adds `player_attributes.csv` at the aggregate
+  player-season grain. Every season is evaluated independently through the shared declarative
+  engine, and the manifest records the formula version and exact document hash. Version 1 remains
+  readable, while new publication defaults to version 2.
+- **Reason:** Reference ratings are season-relative derived data. Publishing them with the inputs,
+  cohort keys, formula provenance, and package integrity metadata makes the results inspectable and
+  reproducible without weakening formula ownership or copying reference identities into roster
+  output.
+
+## D-021: Finite turnover-free ratios and shooting-efficiency bounds
+
+- **Status:** accepted
+- **Decision:** Derive roster `assistTurnoverRatio` as `AST / max(TOV, 1)` so zero-turnover lines
+  remain finite and formula-eligible. Permit roster effective field-goal and true-shooting rates in
+  the mathematically valid range 0–1.5.
+- **Reason:** Leaving a zero-turnover ratio empty makes otherwise valid generated attributes fail,
+  while infinity cannot be represented by the finite-number contract. A one-turnover denominator
+  floor preserves the benefit of a turnover-free line. A made three on one attempt yields `1.5`
+  effective field-goal and true-shooting rates, so a 0–1 proportion bound rejects valid arithmetic.
+
+## D-022: One generated season per roster player
+
+- **Status:** accepted
+- **Decision:** Roster contract version 1 permits exactly one `player_stats.csv` row and one aligned
+  `player_advanced_stats.csv` row per `playerId`. `player_attributes.csv` remains at player grain.
+- **Reason:** Generation samples one reference player-season for each roster player. Allowing more
+  than one generated season would leave the player-grain attribute row unable to identify which
+  season it rates, even when the two stat tables share the same multi-season key set.

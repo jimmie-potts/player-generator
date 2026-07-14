@@ -28,7 +28,5 @@ reference_data/registry/*
 reference_data/packages/*
 !reference_data/source_manifest.json
 
-# Generated files may be regenerated. Keep the starter examples unless you
-# choose to track new outputs.
-roster_data/*.tmp
-reports/*.tmp
+# Generated roster packages remain local and reproducible from their manifest inputs.
+roster_data/packages/*

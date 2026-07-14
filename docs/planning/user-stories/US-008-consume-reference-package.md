@@ -1,6 +1,6 @@
 # US-008: Consume a published reference package
 
-- **Status:** ready
+- **Status:** complete
 - **Epic:** [EPIC-04](../epics/EPIC-04-roster-package.md)
 - **Dependencies:** US-005, US-007
 
@@ -32,9 +32,33 @@ does not depend on raw sources or adapter internals.
 
 ## Implementation notes
 
-Append dated notes here while the story is active.
+- **2026-07-13:** Confirmed US-005 and US-007 are complete. The implementation will keep package
+  loading in `roster_generator`, validate the published manifest and normalized CSV relationships
+  before template selection, and pass joined rows to the shared attribute engine without importing
+  reference-data application code.
 
 ## Completion notes
 
-Pending. Record accepted contract versions, CLI behavior, determinism evidence, and validation
-results before changing status to `complete`.
+- **Completed:** 2026-07-13
+- **Pull request:** [PR #7](https://github.com/jimmie-potts/player-generator/pull/7)
+- **Delivered:** The roster CLI accepts config plus reference-package, formula, output, and seed
+  overrides. `roster_generator.reference_package` verifies reference manifest/package version 1,
+  all six CSV contract versions, exact required files, per-file hashes and row counts, the audit row
+  count, aggregate content hash, normalized table relationships, and formula reference-contract
+  and roster-output compatibility before returning a typed player-season join. Selection evaluates
+  complete season cohorts before applying explicit season, recency, games, minutes,
+  generation-viability, size, replacement, and seed controls.
+- **Deviations:** None. The story remains a consumer only and never builds or repairs a reference
+  package.
+- **Validation:** `.venv/bin/python -m pytest
+  apps/roster-generator/tests/test_reference_selection.py` passed 24 tests, including missing
+  files, hash/row/version/relationship failures, formula output compatibility, mutation viability,
+  empty populations, deterministic selection, and end-to-end CLI publication; focused Ruff passed.
+- **Follow-up:** US-009 consumes the selected internal templates and must not serialize their
+  reference identities or any crosswalk.
+- **Learning:** Validate the full published package, then recheck its hashes after typed reads so a
+  mutable package path cannot change between manifest validation and sampling.
+- **Review follow-up:** The consumer now rejects every unexpected package entry, including extra
+  directories or symlinks, and validates that a selected formula's direct inputs are available in
+  the generated roster attribute frame before any package rows are read or sampled. The focused
+  reference-selection suite passed 35 tests; the full Python suite passed 308 tests.

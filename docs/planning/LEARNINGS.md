@@ -131,6 +131,70 @@ its completion notes.
   only uniformly high and low players. The core evaluator preserves valid per-attribute results;
   the current legacy wide adapter deliberately keeps only complete rating vectors.
 
+### 2026-07-13 — US-008
+
+- A normalized CSV contract is not a complete package-integrity contract. Consumers must also
+  verify the package manifest, exact file set, per-file hashes and row counts, aggregate content
+  hash, and compatible formula reference-contract version before using validated rows.
+- A published package path can change after its first hash check. Rechecking every manifest file
+  after typed reads closes the consumer-side mutation window before template selection.
+- Formula-derived priors and percentiles require the whole configured season cohort. Evaluate that
+  cohort before applying generator-specific games and minutes filters, then sample only complete
+  outputs with explicit recency and minutes weights.
+- Formula completeness does not prove that a row has the primitive shooting, event, and
+  total/per-100 inputs required for controlled mutation. Apply generation-viability checks before
+  weighted sampling so unsupported templates cannot fail only for particular seeds.
+- An exact package boundary must compare every directory entry, not only regular files; otherwise
+  an unmanifested source-data directory can bypass the file-set check.
+- Formula compatibility must cover the inputs available to every evaluation stage. A formula can
+  be valid against reference data and still be unusable after roster mutation if it requires a
+  season or provenance field that is absent from the generated evaluation frame.
+
+### 2026-07-13 — US-009
+
+- The player-only roster package still needs `season`, `games`, and `minutes` beside traditional
+  stats because the formula engine evaluates season cohorts and enforces availability thresholds.
+- Reference per-100 rates do not expose a possession total. Infer one deterministic template basis,
+  mutate it once with volume, publish it, and derive all roster per-100 values from it instead of
+  allowing each rate to drift independently.
+- Generate attributes after statistics mutation. Direct rating mutation bypasses formula
+  governance and can make published attributes impossible to reproduce from the roster package.
+- Validate native mappings, serialized CSVs, semantic statistical identities, integrity metadata,
+  and identity leakage before atomic replacement. Each layer catches a different partial-package or
+  cross-domain failure mode.
+- A deterministic manifest should omit wall-clock creation time and separately pin reference
+  content, exact formula bytes, semantic configuration, seed, individual files, and aggregate
+  content.
+- Similar metric names do not imply interchangeable formulas. Assist ratio and estimated turnover
+  percentage use a play-ending denominator rather than the roster possession total, while rebound
+  percentage remains distinct from its offensive and defensive components.
+- Derived shooting efficiencies are not ordinary 0–1 proportions: a made three on one attempt
+  yields `1.5` effective field-goal percentage. Contract bounds must reflect the arithmetic that
+  semantic validation recomputes.
+- A zero-turnover assist ratio cannot be published as infinity, but leaving it empty makes an
+  otherwise valid generated player formula-ineligible. Use the explicit finite denominator floor
+  `max(turnovers, 1)` in both generation and semantic validation.
+- Parse and hash a custom formula from the same immutable byte snapshot. Reading the path again
+  after generation can make the manifest describe bytes that were not used for evaluation.
+- Exact key-set validation removes duplicates before comparing sets. When a related table has a
+  coarser grain, enforce uniqueness at that projection too; otherwise multiple stat seasons can
+  collapse to one `playerId` and appear compatible with a player-grain attribute table.
+
+### 2026-07-13 — US-015
+
+- Adding a deterministic derived CSV to a package with an exact-file-set contract requires a new
+  package and contract version even when every existing input header remains unchanged. Preserve
+  the older schema explicitly when downstream readers still need to consume prior packages.
+- Season-relative ratings must evaluate each complete season cohort before attaching
+  `playerSeasonId` to the ordered results. Verify evaluator row identity before enrichment so a
+  reordered result cannot silently assign one player's ratings to another player-season.
+- A reference package's formula metadata describes its published calibration snapshot, not a
+  mandatory formula for later roster generation. Validate and hash the published attributes, but
+  recompute roster selection and output when the consumer requests a different formula document.
+- Historical source seasons can predate a formula's explicit schedule. Preserve their contracted
+  attribute rows with empty calculations instead of broad-catching evaluator failures or silently
+  inventing schedule policy; other evaluation errors must still fail publication.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:

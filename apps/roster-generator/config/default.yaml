@@ -1,67 +1,33 @@
 project:
-  schema_version: 1
-  league_name: Continental Basketball Association
-  season_label: 2026-27
+  roster_contract_version: 1
 
 paths:
-  reference_data_dir: reference_data/processed
-  roster_dir: roster_data
-  reports_dir: reports
+  reference_package_dir: reference_data/packages/reference-v2
+  roster_package_dir: roster_data/packages/roster-v1
+  formula_path:
 
-ratings:
-  minimum: 25
-  maximum: 99
-  volatility:
-    insideScoring: 4.0
-    threePointShooting: 3.0
-    freeThrowShooting: 2.0
-    scoringVolume: 3.5
-    playmaking: 4.0
-    ballSecurity: 4.0
-    offensiveRebounding: 4.0
-    defensiveRebounding: 4.0
-    perimeterDefense: 6.0
-    interiorDefense: 6.0
-    stamina: 3.0
-    durability: 5.0
-
-league_generation:
+generation:
   seed: 20260712
-  team_count: 30
-  roster_size: 15
-  talent_targets:
-    superstar: 13
-    all_star: 26
-    starter: 62
-    rotation: 117
-    fringe: 232
-  position_targets:
-    guard: 180
-    wing: 180
-    big: 90
-  roster_position_targets:
-    guard: 6
-    wing: 6
-    big: 3
-  tier_bounds:
-    superstar: [90, 99]
-    all_star: [84, 89]
-    starter: [76, 83]
-    rotation: [68, 75]
-    fringe: [50, 67]
-  physical_profiles:
-    guard:
-      height_mean: 75
-      height_std: 2.0
-      weight_mean: 195
-      weight_std: 17
-    wing:
-      height_mean: 79
-      height_std: 1.8
-      weight_mean: 220
-      weight_std: 18
-    big:
-      height_mean: 82
-      height_std: 1.7
-      weight_mean: 246
-      weight_std: 22
+
+selection:
+  seasons: [2022, 2023, 2024, 2025, 2026]
+  season_weights:
+    2022: 0.35
+    2023: 0.50
+    2024: 0.70
+    2025: 0.85
+    2026: 1.00
+  minimum_games: 20
+  minimum_minutes: 500
+  roster_size: 450
+  minutes_weight_exponent: 0.5
+  with_replacement: true
+
+mutation:
+  count_log_sigma: 0.08
+  shooting_percentage_sigma: 0.015
+  advanced_fraction_sigma: 0.015
+  advanced_rating_sigma: 2.0
+  age_sigma: 1.5
+  height_sigma: 1.0
+  weight_sigma: 6.0

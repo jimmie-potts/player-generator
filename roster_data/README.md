@@ -1,15 +1,18 @@
 # Roster output
 
-This directory contains the current game-facing sample output:
+Generated player-only packages are written to the ignored
+`roster_data/packages/roster-v1/` directory by default. Each package contains:
 
-- `default_roster.json`: combined league roster JSON.
-- `players.csv`: flat player table used for inspection and tests.
+- `players.csv`
+- `player_stats.csv`
+- `player_advanced_stats.csv`
+- `player_attributes.csv`
+- `manifest.json`
 
-No source player ID, source player name, or direct reference-row identifier is written here. Use the
-comparison report under `reports/` to assess distribution accuracy without linking roster players to
-individual reference players.
+The four CSVs share stable generated `playerId` values. The manifest pins roster contract version
+1, the reference-package content hash, formula version and document hash, seed, semantic
+configuration hash, row counts, per-file hashes, and aggregate content hash.
 
-The normalized player-only package described by
-[EPIC-04](../docs/planning/epics/EPIC-04-roster-package.md) remains future work. Until then, these
-files retain the current version 1 combined roster and flattened-player contracts under the neutral
-roster path.
+No source player or team identity, source-row index, template identifier, or source-to-roster
+crosswalk may appear here. Regenerate the package with `roster-generator generate`; do not hand-edit
+its files.

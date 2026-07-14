@@ -1,103 +1,155 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.invalid/nba-gm/roster-v1.schema.json",
-  "title": "NBA GM roster",
-  "type": "object",
-  "required": ["schemaVersion", "generationSeed", "league", "teams", "players"],
-  "properties": {
-    "schemaVersion": {"type": "integer", "minimum": 1},
-    "generatedAt": {"type": "string", "format": "date"},
-    "generationSeed": {"type": "integer"},
-    "league": {
-      "type": "object",
-      "required": ["name", "season", "teamCount", "playerCount"],
-      "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "season": {"type": "string", "minLength": 1},
-        "teamCount": {"type": "integer", "minimum": 1},
-        "playerCount": {"type": "integer", "minimum": 1}
-      },
-      "additionalProperties": false
+  "title": "Roster CSV package contract",
+  "description": "Version 1 ordered CSV columns, scalar types, keys, and relationships for generated player-only roster data.",
+  "contractVersion": 1,
+  "encoding": "UTF-8",
+  "lineEnding": "LF",
+  "files": {
+    "players.csv": {
+      "columns": [
+        {"name": "playerId", "type": "string", "required": true, "nullable": false, "pattern": "^player_[0-9a-f]{16}$"},
+        {"name": "displayName", "type": "string", "required": true, "nullable": false},
+        {"name": "firstName", "type": "string", "required": true, "nullable": false},
+        {"name": "lastName", "type": "string", "required": true, "nullable": false},
+        {"name": "age", "type": "integer", "required": false, "nullable": true, "minimum": 18, "maximum": 45},
+        {"name": "heightInches", "type": "integer", "required": false, "nullable": true, "minimum": 60, "maximum": 96},
+        {"name": "weightPounds", "type": "integer", "required": false, "nullable": true, "minimum": 140, "maximum": 350}
+      ],
+      "uniqueKeys": [["playerId"]]
     },
-    "teams": {
-      "type": "array",
-      "items": {"$ref": "#/$defs/team"}
+    "player_stats.csv": {
+      "columns": [
+        {"name": "playerId", "type": "string", "required": true, "nullable": false, "pattern": "^player_[0-9a-f]{16}$"},
+        {"name": "season", "type": "integer", "required": true, "nullable": false, "minimum": 1},
+        {"name": "games", "type": "integer", "required": true, "nullable": false, "minimum": 1},
+        {"name": "minutes", "type": "number", "required": true, "nullable": false},
+        {"name": "possessions", "type": "number", "required": true, "nullable": false},
+        {"name": "fieldGoalsMade", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "fieldGoalsAttempted", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "twoPointersMade", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "twoPointersAttempted", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "threePointersMade", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "threePointersAttempted", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "freeThrowsMade", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "freeThrowsAttempted", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "reboundsOffensive", "type": "integer", "required": false, "nullable": true, "minimum": 0},
+        {"name": "reboundsDefensive", "type": "integer", "required": false, "nullable": true, "minimum": 0},
+        {"name": "reboundsTotal", "type": "integer", "required": false, "nullable": true, "minimum": 0},
+        {"name": "assists", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "turnovers", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "steals", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "blocks", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "foulsPersonal", "type": "integer", "required": false, "nullable": true, "minimum": 0},
+        {"name": "points", "type": "integer", "required": true, "nullable": false, "minimum": 0},
+        {"name": "plusMinusPoints", "type": "integer", "required": false, "nullable": true},
+        {"name": "fieldGoalPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "twoPointPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "threePointPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "freeThrowPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "minutesPerGame", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "pointsPerGame", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "reboundsPerGame", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "assistsPerGame", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "turnoversPerGame", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "threePointAttemptsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "freeThrowAttemptsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "offensiveReboundsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "defensiveReboundsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "assistsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "turnoversPer36", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "stealsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "blocksPer36", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "pointsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "plusMinusPer36", "type": "number", "required": false, "nullable": true},
+        {"name": "pointsPer100", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "assistsPer100", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "turnoversPer100", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "stealsPer100", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "blocksPer100", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "twoPointAttemptFrequency", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "threePointAttemptFrequency", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1}
+      ],
+      "uniqueKeys": [["playerId"], ["playerId", "season"]]
     },
-    "players": {
-      "type": "array",
-      "items": {"$ref": "#/$defs/player"}
+    "player_advanced_stats.csv": {
+      "columns": [
+        {"name": "playerId", "type": "string", "required": true, "nullable": false, "pattern": "^player_[0-9a-f]{16}$"},
+        {"name": "season", "type": "integer", "required": true, "nullable": false, "minimum": 1},
+        {"name": "estimatedOffensiveRating", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 200},
+        {"name": "offensiveRating", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 200},
+        {"name": "estimatedDefensiveRating", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 200},
+        {"name": "defensiveRating", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 200},
+        {"name": "estimatedNetRating", "type": "number", "required": false, "nullable": true, "minimum": -200, "maximum": 200},
+        {"name": "netRating", "type": "number", "required": false, "nullable": true, "minimum": -200, "maximum": 200},
+        {"name": "assistPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "assistTurnoverRatio", "type": "number", "required": false, "nullable": true, "minimum": 0},
+        {"name": "assistRatio", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 100},
+        {"name": "offensiveReboundPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "defensiveReboundPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "reboundPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "estimatedTurnoverPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 100},
+        {"name": "effectiveFieldGoalPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1.5},
+        {"name": "trueShootingPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1.5},
+        {"name": "usagePercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "playerImpactEstimate", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
+        {"name": "defensiveWinShares", "type": "number", "required": false, "nullable": true},
+        {"name": "defensiveWinSharesPer36", "type": "number", "required": false, "nullable": true}
+      ],
+      "uniqueKeys": [["playerId"], ["playerId", "season"]]
+    },
+    "player_attributes.csv": {
+      "columns": [
+        {"name": "playerId", "type": "string", "required": true, "nullable": false, "pattern": "^player_[0-9a-f]{16}$"},
+        {"name": "insideScoring", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "threePointShooting", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "freeThrowShooting", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "scoringVolume", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "playmaking", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "ballSecurity", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "offensiveRebounding", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "defensiveRebounding", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "perimeterDefense", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "interiorDefense", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "stamina", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "durability", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "overall", "type": "integer", "required": true, "nullable": false, "minimum": 25, "maximum": 99},
+        {"name": "impactPercentile", "type": "number", "required": true, "nullable": false, "minimum": 0, "maximum": 1},
+        {"name": "talentTier", "type": "string", "required": true, "nullable": false, "enum": ["superstar", "all_star", "starter", "rotation", "fringe"]},
+        {"name": "formulaVersion", "type": "string", "required": true, "nullable": false}
+      ],
+      "uniqueKeys": [["playerId"]]
     }
   },
-  "additionalProperties": false,
-  "$defs": {
-    "rating": {"type": "integer", "minimum": 25, "maximum": 99},
-    "ratings": {
-      "type": "object",
-      "required": [
-        "insideScoring", "threePointShooting", "freeThrowShooting", "scoringVolume",
-        "playmaking", "ballSecurity", "offensiveRebounding", "defensiveRebounding",
-        "perimeterDefense", "interiorDefense", "stamina", "durability", "overall",
-        "potential"
-      ],
-      "properties": {
-        "insideScoring": {"$ref": "#/$defs/rating"},
-        "threePointShooting": {"$ref": "#/$defs/rating"},
-        "freeThrowShooting": {"$ref": "#/$defs/rating"},
-        "scoringVolume": {"$ref": "#/$defs/rating"},
-        "playmaking": {"$ref": "#/$defs/rating"},
-        "ballSecurity": {"$ref": "#/$defs/rating"},
-        "offensiveRebounding": {"$ref": "#/$defs/rating"},
-        "defensiveRebounding": {"$ref": "#/$defs/rating"},
-        "perimeterDefense": {"$ref": "#/$defs/rating"},
-        "interiorDefense": {"$ref": "#/$defs/rating"},
-        "stamina": {"$ref": "#/$defs/rating"},
-        "durability": {"$ref": "#/$defs/rating"},
-        "overall": {"$ref": "#/$defs/rating"},
-        "potential": {"$ref": "#/$defs/rating"}
-      },
-      "additionalProperties": false
+  "relationships": [
+    {
+      "name": "playerStatsReferencePlayers",
+      "kind": "foreignKey",
+      "from": {"file": "player_stats.csv", "columns": ["playerId"]},
+      "to": {"file": "players.csv", "columns": ["playerId"]}
     },
-    "player": {
-      "type": "object",
-      "required": [
-        "id", "firstName", "lastName", "displayName", "age", "primaryPosition",
-        "positionGroup", "heightInches", "weightPounds", "archetype", "talentTier",
-        "ratings", "development", "teamId", "jerseyNumber"
-      ],
-      "properties": {
-        "id": {"type": "string", "pattern": "^player_[0-9]{6}$"},
-        "firstName": {"type": "string", "minLength": 1},
-        "lastName": {"type": "string", "minLength": 1},
-        "displayName": {"type": "string", "minLength": 3},
-        "age": {"type": "integer", "minimum": 18, "maximum": 45},
-        "primaryPosition": {"enum": ["PG", "SG", "SF", "PF", "C"]},
-        "secondaryPosition": {"type": ["string", "null"]},
-        "positionGroup": {"enum": ["guard", "wing", "big"]},
-        "heightInches": {"type": "integer", "minimum": 60, "maximum": 96},
-        "weightPounds": {"type": "integer", "minimum": 140, "maximum": 350},
-        "archetype": {"type": "string", "minLength": 1},
-        "talentTier": {"enum": ["superstar", "all_star", "starter", "rotation", "fringe"]},
-        "ratings": {"$ref": "#/$defs/ratings"},
-        "development": {"type": "object"},
-        "teamId": {"type": "string"},
-        "jerseyNumber": {"type": "integer", "minimum": 0, "maximum": 99}
-      },
-      "additionalProperties": false
+    {
+      "name": "playerAdvancedStatsReferencePlayers",
+      "kind": "foreignKey",
+      "from": {"file": "player_advanced_stats.csv", "columns": ["playerId"]},
+      "to": {"file": "players.csv", "columns": ["playerId"]}
     },
-    "team": {
-      "type": "object",
-      "required": ["id", "city", "nickname", "name", "abbreviation", "conference", "roster"],
-      "properties": {
-        "id": {"type": "string"},
-        "city": {"type": "string"},
-        "nickname": {"type": "string"},
-        "name": {"type": "string"},
-        "abbreviation": {"type": "string", "minLength": 3, "maxLength": 3},
-        "conference": {"enum": ["East", "West"]},
-        "roster": {"type": "array", "items": {"type": "string"}},
-        "averageOverall": {"type": "number"}
-      },
-      "additionalProperties": false
+    {
+      "name": "playerAttributesReferencePlayers",
+      "kind": "foreignKey",
+      "from": {"file": "player_attributes.csv", "columns": ["playerId"]},
+      "to": {"file": "players.csv", "columns": ["playerId"]}
+    },
+    {
+      "name": "rosterPlayerSet",
+      "kind": "exactKeySet",
+      "files": ["players.csv", "player_stats.csv", "player_advanced_stats.csv", "player_attributes.csv"],
+      "columns": ["playerId"]
+    },
+    {
+      "name": "rosterPlayerSeasonGrain",
+      "kind": "exactKeySet",
+      "files": ["player_stats.csv", "player_advanced_stats.csv"],
+      "columns": ["playerId", "season"]
     }
-  }
+  ]
 }
