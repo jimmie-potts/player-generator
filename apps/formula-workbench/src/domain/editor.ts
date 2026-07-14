@@ -50,6 +50,10 @@ export interface EditorValidationIssue {
   message: string;
 }
 
+const COMPONENT_WEIGHT_UNITS = 100;
+const WEIGHT_TOTAL_TOLERANCE = 1e-9;
+const REMAINDER_TIE_TOLERANCE = 1e-12;
+
 function cloneAnchors(anchors: readonly PercentileAnchor[]): PercentileAnchor[] {
   return anchors.map((anchor) => ({ ...anchor }));
 }
@@ -143,6 +147,111 @@ export function setComponentWeight(
   }));
 }
 
+function usableWeight(weight: number): number {
+  return Number.isFinite(weight) && weight >= 0 ? weight : 0;
+}
+
+function stableProportions(weights: readonly number[]): number[] | null {
+  const values = weights.map(usableWeight);
+  const maximum = Math.max(...values);
+  return maximum > 0 ? values.map((value) => value / maximum) : null;
+}
+
+/** Return the normalized shares shown by the authoring controls without changing source weights. */
+export function normalizedComponentWeights(weights: readonly number[]): number[] {
+  const proportions = stableProportions(weights);
+  if (!proportions) return weights.map(() => 0);
+  const total = proportions.reduce((sum, value) => sum + value, 0);
+  return proportions.map((value) => value / total);
+}
+
+/**
+ * Set one component's percentage and deterministically distribute the remainder.
+ *
+ * The editor exposes weights in one-percentage-point increments. Working in integer
+ * percentage units ensures that every result totals exactly 100 units before it is
+ * converted back to the formula's zero-to-one representation. Other components keep
+ * their current proportions whenever possible; baseline proportions and then equal
+ * shares provide deterministic recovery when every other current weight is zero.
+ */
+export function rebalanceComponentWeight(
+  state: FormulaEditorState,
+  attributeName: string,
+  metric: string,
+  weight: number,
+): FormulaEditorState {
+  if (!Number.isFinite(weight)) {
+    throw new Error("Component weight must be a finite number.");
+  }
+
+  const targetUnits = Math.max(
+    0,
+    Math.min(COMPONENT_WEIGHT_UNITS, Math.round(weight * COMPONENT_WEIGHT_UNITS)),
+  );
+
+  return updateAttribute(state, attributeName, (attribute) => {
+    const targetIndex = attribute.components.findIndex(
+      (component) => component.metric === metric,
+    );
+    if (targetIndex < 0) {
+      throw new Error(`Metric ${metric} is not a component of ${attributeName}.`);
+    }
+    if (attribute.components.length === 1) {
+      return {
+        ...attribute,
+        components: [{ ...attribute.components[0]!, weight: 1 }],
+      };
+    }
+
+    const otherIndexes = attribute.components.flatMap((_, index) =>
+      index === targetIndex ? [] : [index],
+    );
+    let proportions = stableProportions(
+      otherIndexes.map((index) => attribute.components[index]!.weight),
+    );
+    if (!proportions) {
+      proportions = stableProportions(
+        otherIndexes.map((index) => attribute.components[index]!.baselineWeight),
+      );
+    }
+    if (!proportions) {
+      proportions = otherIndexes.map(() => 1);
+    }
+    const proportionTotal = proportions.reduce((total, value) => total + value, 0);
+
+    const remainingUnits = COMPONENT_WEIGHT_UNITS - targetUnits;
+    const allocations = otherIndexes.map((index, position) => {
+      const quota = (remainingUnits * proportions[position]!) / proportionTotal;
+      const units = Math.floor(quota);
+      return { index, units, remainder: quota - units };
+    });
+    const unallocatedUnits =
+      remainingUnits - allocations.reduce((total, allocation) => total + allocation.units, 0);
+    const remainderOrder = [...allocations].sort((left, right) => {
+      const remainderDifference = right.remainder - left.remainder;
+      return Math.abs(remainderDifference) > REMAINDER_TIE_TOLERANCE
+        ? remainderDifference
+        : left.index - right.index;
+    });
+    for (let index = 0; index < unallocatedUnits; index += 1) {
+      remainderOrder[index]!.units += 1;
+    }
+
+    const unitsByIndex = new Map(
+      allocations.map((allocation) => [allocation.index, allocation.units]),
+    );
+    return {
+      ...attribute,
+      components: attribute.components.map((component, index) => ({
+        ...component,
+        weight:
+          (index === targetIndex ? targetUnits : unitsByIndex.get(index)!) /
+          COMPONENT_WEIGHT_UNITS,
+      })),
+    };
+  });
+}
+
 export function setComponentDirection(
   state: FormulaEditorState,
   attributeName: string,
@@ -222,6 +331,7 @@ export function validateFormulaEditorState(
   for (const attribute of state.attributes) {
     let allWeightsValid = true;
     let weightSum = 0;
+    let weightsChanged = false;
     for (const component of attribute.components) {
       const path = `attributes.${attribute.name}.components.${component.metric}`;
       if (!Number.isFinite(component.weight) || component.weight < 0) {
@@ -234,6 +344,7 @@ export function validateFormulaEditorState(
       } else {
         weightSum += component.weight;
       }
+      weightsChanged ||= component.weight !== component.baselineWeight;
       if (component.direction !== "higher" && component.direction !== "lower") {
         issues.push({
           path: `${path}.direction`,
@@ -247,6 +358,16 @@ export function validateFormulaEditorState(
         path: `attributes.${attribute.name}.components`,
         code: "invalid_weight_sum",
         message: "At least one component weight must be greater than zero.",
+      });
+    } else if (
+      allWeightsValid &&
+      weightsChanged &&
+      Math.abs(weightSum - 1) > WEIGHT_TOTAL_TOLERANCE
+    ) {
+      issues.push({
+        path: `attributes.${attribute.name}.components`,
+        code: "invalid_weight_sum",
+        message: "Edited component weights must total 1.",
       });
     }
   }

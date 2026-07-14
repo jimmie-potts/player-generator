@@ -41,6 +41,16 @@ effect before proposing a configuration change.
   offered for export.
 - **2026-07-14 review follow-up:** Preserved `AbortError` when cancellation occurs while the client
   is reading a response body, so every cancellation point honors the same no-error contract.
+- **2026-07-14 refinement:** Replaced component weight number fields with native range sliders in
+  one-percentage-point steps and added a stacked, non-editing allocation bar for the selected
+  attribute. Moving one slider assigns its requested integer percentage and redistributes the
+  remaining percentage across peers in their current proportions. Allocation uses integer units and
+  stable largest-remainder rounding, with ties resolved in formula document order; baseline
+  proportions and then equal shares are deterministic fallbacks when all current peer weights are
+  zero. A one-component attribute stays fixed at 100%, and every multi-component edit totals exactly
+  `1.00`. This is a client authoring constraint only: the preview API still validates the proposal
+  and the shared Python engine remains the only evaluator. The allocation policy is recorded in
+  [D-028](../DECISIONS.md#d-028-accessible-exact-allocation-editing-and-persistent-explanation).
 
 ## Completion notes
 
@@ -74,6 +84,10 @@ effect before proposing a configuration change.
   environment resolves from the hoisted Vitest runner on the repository's Node 22.12 CI baseline.
   Editor and integration tests cover valid and invalid weights, direction and anchor changes, rapid
   edits, late responses, reset, exact export, API failure, and explicit missing values.
+- **2026-07-14 refinement validation:** `npm run workbench:test` now passes 50 tests, including
+  deterministic proportional redistribution, rounding and zero-share fallbacks, exact request
+  deltas, accessible slider names, stacked allocation output, and fixed 100% singleton controls;
+  the production workbench build and diff checks also pass.
 - **Follow-ups:** Named proposals, persistence, approvals, deployment, and arbitrary expressions
   require later product scope and are not implied by the exported file.
 - **Learnings:** Cancellation is a calculation-correctness mechanism as well as a performance tool,

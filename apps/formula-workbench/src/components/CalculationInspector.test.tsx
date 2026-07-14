@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { makeCalculation } from "../test/fixtures";
@@ -100,6 +100,69 @@ describe("CalculationInspector row builders", () => {
     ).toBeTruthy();
     expect(screen.getByText("Games Played: 4 observed; 10 required.")).toBeTruthy();
     expect(screen.getByText("Excluded", { selector: ".eligibility-badge" })).toBeTruthy();
+  });
+
+  it("keeps the result summary separate from native collapsible calculation details", () => {
+    const { container } = render(
+      <CalculationInspector
+        player={{ playerId: "player-test", displayName: "Test Player", season: 2026 }}
+        attributeName="overall"
+        baseline={overallCalculation()}
+      />,
+    );
+
+    const summary = container.querySelector(".calculation-inspector__summary");
+    const inspector = screen.getByRole("region", {
+      name: "Overall authoritative explanation for Test Player",
+    });
+    expect(inspector.getAttribute("tabindex")).toBe("0");
+    expect(summary).toBeTruthy();
+    expect(summary?.querySelector('[aria-label="Calculation summary"]')).toBeTruthy();
+    expect(summary?.textContent).toContain("How to read this authoritative explanation");
+
+    const rawHeading = screen.getByRole("heading", { name: "Raw metrics", level: 3 });
+    const rawDetails = rawHeading.closest("details") as HTMLDetailsElement | null;
+    expect(rawDetails?.open).toBe(true);
+    expect(rawDetails?.querySelector("summary")).toBeTruthy();
+    expect(rawDetails?.textContent).toContain("How to read raw metrics");
+
+    const componentHeading = screen.getByRole("heading", {
+      name: "Component breakdown",
+      level: 3,
+    });
+    const componentDetails = componentHeading.closest("details") as HTMLDetailsElement | null;
+    expect(componentDetails?.open).toBe(true);
+    expect(componentDetails?.querySelector("summary")).toBeTruthy();
+    expect(componentDetails?.textContent).toContain("How to read the component breakdown");
+
+    fireEvent.click(rawDetails!.querySelector("summary")!);
+    expect(rawDetails?.open).toBe(false);
+  });
+
+  it("keeps baseline stats visible while authoritative preview values are pending", () => {
+    const { container } = render(
+      <CalculationInspector
+        player={{ playerId: "player-test", displayName: "Test Player", season: 2026 }}
+        attributeName="overall"
+        baseline={overallCalculation()}
+        pending
+      />,
+    );
+
+    const inspector = container.querySelector(".calculation-inspector");
+    expect(inspector?.getAttribute("aria-busy")).toBe("true");
+    expect(screen.getByRole("heading", { name: "Test Player" })).toBeTruthy();
+    expect(screen.getByText(/Baseline stats remain visible/)).toBeTruthy();
+    expect(screen.getByText("90", { selector: ".calculation-scoreboard strong" })).toBeTruthy();
+    expect(screen.getAllByText("Preview updating…")).toHaveLength(3);
+
+    const rawTable = screen.getByRole("region", { name: "Raw metric values" });
+    expect(within(rawTable).getAllByText("Updating…").length).toBeGreaterThan(0);
+    const componentTable = screen.getByRole("region", {
+      name: "Component calculation breakdown",
+    });
+    expect(within(componentTable).getAllByText("Updating…").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("heading", { name: "Loading calculation" })).toBeNull();
   });
 
   it("renders an explicit unsupported status without calculation tables", () => {

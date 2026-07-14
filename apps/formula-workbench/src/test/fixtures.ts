@@ -163,6 +163,29 @@ export const REPRESENTATIVE_GROUPS: TierRepresentativeGroup[] = TIER_SPECS.map(
   }),
 );
 
+function tierForRating(rating: number): string {
+  return (
+    TIER_SPECS.find(([, minimum, maximum]) => rating >= minimum && rating <= maximum)?.[0] ??
+    "fringe"
+  );
+}
+
+export const TOP_PLAYERS: PlayerSummary[] = Array.from({ length: 25 }, (_, index) => {
+  const rating = 99 - index;
+  return {
+    playerId: `top-${String(index + 1).padStart(2, "0")}`,
+    displayName: `Top player ${index + 1}`,
+    season: 2026,
+    baselineRank: index + 1,
+    baseline: {
+      overall: rating,
+      shooting: rating - 2,
+      talentTier: tierForRating(rating),
+    },
+    pinned: false,
+  };
+});
+
 export const SPECIAL_PLAYER: SearchHit = {
   playerId: "player-special-42",
   displayName: "Bench Specialist",
@@ -219,7 +242,7 @@ export function makeCalculation(
 }
 
 function allPlayers(): PlayerSummary[] {
-  return REPRESENTATIVE_GROUPS.flatMap((group) => group.players);
+  return [...TOP_PLAYERS, ...REPRESENTATIVE_GROUPS.flatMap((group) => group.players)];
 }
 
 export function makePlayerDetail(playerId: string): PlayerDetailResponse {
@@ -376,8 +399,8 @@ export class FakePreviewApiClient implements PreviewApiClient {
 
   getPlayers = vi.fn<PreviewApiClient["getPlayers"]>(async (options = {}) => ({
     context: CONTEXT,
-    defaultSampleSize: options.limit ?? 15,
-    players: allPlayers().slice(0, options.limit ?? 15),
+    defaultSampleSize: 25,
+    players: structuredClone(TOP_PLAYERS.slice(0, options.limit ?? 25)),
   }));
 
   getTierRepresentatives = vi.fn<PreviewApiClient["getTierRepresentatives"]>(

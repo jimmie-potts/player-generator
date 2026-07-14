@@ -113,7 +113,7 @@ async def test_package_with_a_different_published_formula_is_identified_but_reca
     assert context["formula"]["documentHash"] == synthetic_package.formula_hash
 
 
-async def test_maximum_configured_cohort_preview_meets_the_3000ms_budget(
+async def test_maximum_cohort_top_25_preview_meets_the_3000ms_budget(
     maximum_cohort_package: SyntheticPackage,
     maximum_cohort_settings: PreviewSettings,
 ) -> None:
@@ -123,9 +123,13 @@ async def test_maximum_configured_cohort_preview_meets_the_3000ms_budget(
     transport = httpx2.ASGITransport(
         app=create_app(maximum_cohort_settings, service=service)
     )
+    top_player_ids = [
+        player.player_id for player in service.baseline(limit=25).players
+    ]
+    assert len(top_player_ids) == 25
     request = preview_request(
         maximum_cohort_package,
-        ["performance-0001"],
+        top_player_ids,
         adjustments={
             "components": [
                 {
@@ -148,5 +152,6 @@ async def test_maximum_configured_cohort_preview_meets_the_3000ms_budget(
     assert response.status_code == 200
     payload = response.json()
     assert payload["context"]["cohortSize"] == maximum_cohort_settings.max_cohort_size
+    assert [player["playerId"] for player in payload["players"]] == top_player_ids
     assert payload["elapsedMs"] <= maximum_cohort_settings.latency_budget_ms
     assert wall_elapsed_ms <= maximum_cohort_settings.latency_budget_ms

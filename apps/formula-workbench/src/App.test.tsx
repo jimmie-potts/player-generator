@@ -16,6 +16,9 @@ import {
   FakePreviewApiClient,
   FORMULA_DOCUMENT,
   METRICS,
+  REPRESENTATIVE_GROUPS,
+  SPECIAL_PLAYER,
+  TOP_PLAYERS,
   makePreviewResponse,
 } from "./test/fixtures";
 
@@ -32,8 +35,14 @@ async function renderReadyWorkbench(client = new FakePreviewApiClient()) {
   return client;
 }
 
-function overallWeightInput(index = 0): HTMLInputElement {
-  return screen.getAllByRole("spinbutton", { name: "Weight" })[index] as HTMLInputElement;
+function weightSlider(metricLabel: string): HTMLInputElement {
+  return screen.getByRole("slider", {
+    name: `${metricLabel} weight`,
+  }) as HTMLInputElement;
+}
+
+function overallWeightSlider(): HTMLInputElement {
+  return weightSlider("Points scored per game");
 }
 
 async function waitForNextPreview(
@@ -45,6 +54,31 @@ async function waitForNextPreview(
     { timeout: 1_500 },
   );
   await screen.findByText("Preview current", {}, { timeout: 1_500 });
+}
+
+function tierPlayerIds(perTier = 3): string[] {
+  return REPRESENTATIVE_GROUPS.flatMap((group) =>
+    group.players.slice(0, perTier).map(({ playerId }) => playerId),
+  );
+}
+
+function selectComparisonMode(name: "Tier sample" | "Top 25" | "Custom list") {
+  fireEvent.click(screen.getByRole("tab", { name }));
+  expect(screen.getByRole("tab", { name }).getAttribute("aria-selected")).toBe("true");
+}
+
+async function addSpecialPlayer(client: FakePreviewApiClient) {
+  fireEvent.change(screen.getByRole("searchbox", { name: "Player search" }), {
+    target: { value: "Spec" },
+  });
+  expect(await screen.findByText("Bench Specialist", {}, { timeout: 1_500 })).toBeTruthy();
+  expect(client.searchPlayers).toHaveBeenLastCalledWith(
+    "Spec",
+    expect.objectContaining({ limit: 10, signal: expect.any(AbortSignal) }),
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Add Bench Specialist to custom list" }),
+  );
 }
 
 async function readBlob(blob: Blob): Promise<string> {
@@ -78,6 +112,12 @@ describe("Formula Workbench", () => {
     expect(screen.getByRole("heading", { name: "Fringe · 25–59" })).toBeTruthy();
     expect(client.getTierRepresentatives).toHaveBeenCalledWith(
       expect.objectContaining({ perTier: 3, signal: expect.any(AbortSignal) }),
+    );
+    expect(
+      screen.getByRole("tab", { name: "Tier sample" }).getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(client.preview.mock.calls.at(-1)?.[0].selectedPlayerIds).toEqual(
+      tierPlayerIds(),
     );
 
     const breakdown = screen.getByRole("region", {
@@ -121,7 +161,7 @@ describe("Formula Workbench", () => {
     const client = await renderReadyWorkbench();
     const previousCallCount = client.preview.mock.calls.length;
 
-    fireEvent.change(overallWeightInput(), { target: { value: "0.7" } });
+    fireEvent.change(overallWeightSlider(), { target: { value: "0.7" } });
 
     expect(client.preview).toHaveBeenCalledTimes(previousCallCount);
     await waitForNextPreview(client, previousCallCount);
@@ -129,6 +169,7 @@ describe("Formula Workbench", () => {
     const latestRequest = client.preview.mock.calls.at(-1)?.[0];
     expect(latestRequest?.adjustments.components).toEqual([
       { attribute: "overall", metric: "pointsPerGame", weight: 0.7 },
+      { attribute: "overall", metric: "assistsPerGame", weight: 0.3 },
     ]);
     const breakdown = screen.getByRole("region", {
       name: "Component calculation breakdown",
@@ -148,6 +189,42 @@ describe("Formula Workbench", () => {
     expect(screen.getAllByText("Largest loss").length).toBeGreaterThan(0);
   });
 
+  it("keeps the selected attribute at an exact 100 percent allocation while a slider moves", async () => {
+    const client = await renderReadyWorkbench();
+    const previousCallCount = client.preview.mock.calls.length;
+
+    const allocation = screen.getByRole("img", {
+      name: "Overall component allocation totals 100 percent",
+    });
+    expect(
+      Array.from(allocation.children).map(
+        (segment) => (segment as HTMLElement).style.width,
+      ),
+    ).toEqual(["60%", "40%"]);
+
+    fireEvent.change(weightSlider("Assists per game"), {
+      target: { value: "0.65" },
+    });
+
+    expect(Number(overallWeightSlider().value)).toBeCloseTo(0.35);
+    expect(weightSlider("Assists per game").value).toBe("0.65");
+    expect(
+      Number(overallWeightSlider().value) +
+        Number(weightSlider("Assists per game").value),
+    ).toBe(1);
+    expect(
+      Array.from(allocation.children).map(
+        (segment) => (segment as HTMLElement).style.width,
+      ),
+    ).toEqual(["35%", "65%"]);
+
+    await waitForNextPreview(client, previousCallCount);
+    expect(client.preview.mock.calls.at(-1)?.[0].adjustments.components).toEqual([
+      { attribute: "overall", metric: "pointsPerGame", weight: 0.35 },
+      { attribute: "overall", metric: "assistsPerGame", weight: 0.65 },
+    ]);
+  });
+
   it("selects another supported attribute and requests its authoritative preview", async () => {
     const client = await renderReadyWorkbench();
     const previousCallCount = client.preview.mock.calls.length;
@@ -158,6 +235,26 @@ describe("Formula Workbench", () => {
     await waitForNextPreview(client, previousCallCount);
     expect(client.preview.mock.calls.at(-1)?.[0].selectedAttribute).toBe("shooting");
     expect(screen.getAllByRole("columnheader", { name: "Shooting" }).length).toBe(5);
+  });
+
+  it("fixes a single-component attribute at a disabled 100 percent slider", async () => {
+    const client = await renderReadyWorkbench();
+    const previousCallCount = client.preview.mock.calls.length;
+
+    fireEvent.click(screen.getByRole("button", { name: /^Shooting/ }));
+    await screen.findByRole("heading", { name: "Shooting" });
+    await waitForNextPreview(client, previousCallCount);
+
+    const slider = weightSlider("Points scored per game");
+    expect(slider.value).toBe("1");
+    expect(slider.disabled).toBe(true);
+    expect(slider.getAttribute("aria-valuetext")).toBe("100 percent");
+    expect(
+      screen.getByRole("img", {
+        name: "Shooting component allocation totals 100 percent",
+      }),
+    ).toBeTruthy();
+    expect(screen.getAllByText("The only component remains fixed at 100%.")).toHaveLength(1);
   });
 
   it("cancels a superseded preview and prevents its late response replacing the latest result", async () => {
@@ -179,7 +276,7 @@ describe("Formula Workbench", () => {
       return { ...response, elapsedMs: 222 };
     };
 
-    const firstWeightInput = overallWeightInput();
+    const firstWeightInput = overallWeightSlider();
     fireEvent.change(firstWeightInput, { target: { value: "0.7" } });
     await waitFor(() => expect(editRequestIndex).toBe(1), { timeout: 1_500 });
 
@@ -196,17 +293,22 @@ describe("Formula Workbench", () => {
 
     expect(screen.getByText("Validated in 222 ms")).toBeTruthy();
     const latestRequest = client.preview.mock.calls.at(-1)?.[0];
-    expect(latestRequest?.adjustments.components[0]?.weight).toBe(0.8);
+    expect(latestRequest?.adjustments.components).toEqual([
+      { attribute: "overall", metric: "pointsPerGame", weight: 0.8 },
+      { attribute: "overall", metric: "assistsPerGame", weight: 0.2 },
+    ]);
   });
 
   it("blocks invalid client input immediately without sending it to the preview API", async () => {
     const client = await renderReadyWorkbench();
     const previousCallCount = client.preview.mock.calls.length;
 
-    fireEvent.change(overallWeightInput(), { target: { value: "-1" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /^Formula version/ }), {
+      target: { value: "   " },
+    });
 
     expect(
-      (await screen.findAllByText("Weight must be a finite, nonnegative number.")).length,
+      (await screen.findAllByText("A proposed formula version is required.")).length,
     ).toBeGreaterThan(0);
     expect(
       screen.getAllByText("Resolve formula validation issues to request a preview.").length,
@@ -223,7 +325,7 @@ describe("Formula Workbench", () => {
     const client = await renderReadyWorkbench();
     let previousCallCount = client.preview.mock.calls.length;
 
-    fireEvent.change(overallWeightInput(), { target: { value: "0.7" } });
+    fireEvent.change(overallWeightSlider(), { target: { value: "0.7" } });
     await waitForNextPreview(client, previousCallCount);
     expect(
       (screen.getByRole("button", { name: "Reset attribute" }) as HTMLButtonElement)
@@ -236,19 +338,19 @@ describe("Formula Workbench", () => {
     previousCallCount = client.preview.mock.calls.length;
     fireEvent.click(screen.getByRole("button", { name: "Reset attribute" }));
     await waitForNextPreview(client, previousCallCount);
-    expect(overallWeightInput().value).toBe("0.6");
+    expect(overallWeightSlider().value).toBe("0.6");
     expect(client.preview.mock.calls.at(-1)?.[0].adjustments.components).toEqual([]);
     expect(
       (screen.getByRole("button", { name: "Reset all" }) as HTMLButtonElement).disabled,
     ).toBe(true);
 
     previousCallCount = client.preview.mock.calls.length;
-    fireEvent.change(overallWeightInput(), { target: { value: "0.75" } });
+    fireEvent.change(overallWeightSlider(), { target: { value: "0.75" } });
     await waitForNextPreview(client, previousCallCount);
     previousCallCount = client.preview.mock.calls.length;
     fireEvent.click(screen.getByRole("button", { name: "Reset all" }));
     await waitForNextPreview(client, previousCallCount);
-    expect(overallWeightInput().value).toBe("0.6");
+    expect(overallWeightSlider().value).toBe("0.6");
     expect(
       (screen.getByRole("button", { name: "Reset all" }) as HTMLButtonElement).disabled,
     ).toBe(true);
@@ -261,7 +363,7 @@ describe("Formula Workbench", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /^Formula version/ }), {
       target: { value: "designer-balance-v2" },
     });
-    fireEvent.change(overallWeightInput(), { target: { value: "0.75" } });
+    fireEvent.change(overallWeightSlider(), { target: { value: "0.75" } });
     await waitForNextPreview(client, previousCallCount);
 
     let exportedBlob: Blob | undefined;
@@ -292,8 +394,181 @@ describe("Formula Workbench", () => {
     expect(expectedDocument).not.toEqual(FORMULA_DOCUMENT);
   });
 
-  it("searches by a partial name and pins and unpins a player without replacing tier samples", async () => {
+  it("loads the fixed top 25 and previews exactly those baseline-ranked players", async () => {
     const client = await renderReadyWorkbench();
+    const previousCallCount = client.preview.mock.calls.length;
+
+    selectComparisonMode("Top 25");
+
+    await waitFor(() => {
+      expect(client.getPlayers).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 25, signal: expect.any(AbortSignal) }),
+      );
+    });
+    await waitForNextPreview(client, previousCallCount);
+
+    const topComparison = await screen.findByRole("region", {
+      name: "Top 25 by baseline overall player comparison",
+    });
+    expect(within(topComparison).getAllByRole("row")).toHaveLength(26);
+    expect(client.preview.mock.calls.at(-1)?.[0].selectedPlayerIds).toEqual(
+      TOP_PLAYERS.map(({ playerId }) => playerId),
+    );
+    expect(
+      client.preview.mock.calls.at(-1)?.[0].selectedPlayerIds,
+    ).not.toEqual(expect.arrayContaining(tierPlayerIds()));
+    expect(
+      screen.queryByRole("region", { name: "Superstar · 90–99 player comparison" }),
+    ).toBeNull();
+  });
+
+  it("does not request a preview for an empty custom list", async () => {
+    const client = await renderReadyWorkbench();
+    const previousCallCount = client.preview.mock.calls.length;
+
+    selectComparisonMode("Custom list");
+
+    expect(await screen.findByRole("heading", { name: "Build a custom list" })).toBeTruthy();
+    expect(
+      await screen.findByRole("heading", { name: "Build your custom comparison" }),
+    ).toBeTruthy();
+    expect(screen.getByText("0/25 selected")).toBeTruthy();
+    expect(screen.getByText("Select comparison players")).toBeTruthy();
+    await new Promise((resolve) => window.setTimeout(resolve, 450));
+    expect(client.preview).toHaveBeenCalledTimes(previousCallCount);
+    expect(screen.queryByRole("region", { name: /player comparison$/i })).toBeNull();
+  });
+
+  it("adds and removes a custom player while previewing only the custom list", async () => {
+    const client = await renderReadyWorkbench();
+    selectComparisonMode("Custom list");
+    const previousCallCount = client.preview.mock.calls.length;
+
+    await addSpecialPlayer(client);
+
+    await waitForNextPreview(client, previousCallCount);
+    const customComparison = await screen.findByRole("region", {
+      name: "Custom list player comparison",
+    });
+    expect(within(customComparison).getAllByRole("row")).toHaveLength(2);
+    expect(client.getPlayer).toHaveBeenCalledWith(SPECIAL_PLAYER.playerId);
+    expect(client.preview.mock.calls.at(-1)?.[0].selectedPlayerIds).toEqual([
+      SPECIAL_PLAYER.playerId,
+    ]);
+    expect(screen.getByText("1/25 selected")).toBeTruthy();
+
+    const previewCallCount = client.preview.mock.calls.length;
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Remove Bench Specialist from custom list",
+      }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Build your custom comparison" }),
+    ).toBeTruthy();
+    expect(screen.getByText("0/25 selected")).toBeTruthy();
+    await new Promise((resolve) => window.setTimeout(resolve, 450));
+    expect(client.preview).toHaveBeenCalledTimes(previewCallCount);
+  });
+
+  it("keeps comparison requests isolated and restores each mode's selected player", async () => {
+    const client = await renderReadyWorkbench();
+
+    fireEvent.click(screen.getByRole("button", { name: /superstar player 2/i }));
+    expect(
+      screen
+        .getByRole("button", { name: /superstar player 2/i })
+        .getAttribute("aria-current"),
+    ).toBe("true");
+
+    let previousCallCount = client.preview.mock.calls.length;
+    selectComparisonMode("Top 25");
+    await waitForNextPreview(client, previousCallCount);
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Top player 2superstar$/i }),
+    );
+    expect(
+      screen
+        .getByRole("button", { name: /^Top player 2superstar$/i })
+        .getAttribute("aria-current"),
+    ).toBe("true");
+
+    selectComparisonMode("Custom list");
+    previousCallCount = client.preview.mock.calls.length;
+    await addSpecialPlayer(client);
+    await waitForNextPreview(client, previousCallCount);
+    expect(client.preview.mock.calls.at(-1)?.[0].selectedPlayerIds).toEqual([
+      SPECIAL_PLAYER.playerId,
+    ]);
+
+    previousCallCount = client.preview.mock.calls.length;
+    selectComparisonMode("Tier sample");
+    await waitForNextPreview(client, previousCallCount);
+    expect(client.preview.mock.calls.at(-1)?.[0].selectedPlayerIds).toEqual(
+      tierPlayerIds(),
+    );
+    expect(
+      screen
+        .getByRole("button", { name: /superstar player 2/i })
+        .getAttribute("aria-current"),
+    ).toBe("true");
+
+    previousCallCount = client.preview.mock.calls.length;
+    selectComparisonMode("Top 25");
+    await waitForNextPreview(client, previousCallCount);
+    expect(client.preview.mock.calls.at(-1)?.[0].selectedPlayerIds).toEqual(
+      TOP_PLAYERS.map(({ playerId }) => playerId),
+    );
+    expect(
+      screen
+        .getByRole("button", { name: /^Top player 2superstar$/i })
+        .getAttribute("aria-current"),
+    ).toBe("true");
+
+    previousCallCount = client.preview.mock.calls.length;
+    selectComparisonMode("Custom list");
+    await waitForNextPreview(client, previousCallCount);
+    expect(client.preview.mock.calls.at(-1)?.[0].selectedPlayerIds).toEqual([
+      SPECIAL_PLAYER.playerId,
+    ]);
+    expect(
+      screen
+        .getByRole("button", { name: /^Bench Specialistrotation$/i })
+        .getAttribute("aria-current"),
+    ).toBe("true");
+  });
+
+  it("keeps baseline calculation stats visible while a new preview is pending", async () => {
+    const client = await renderReadyWorkbench();
+    client.previewHandler = async () => new Promise<PreviewResponse>(() => undefined);
+
+    fireEvent.change(overallWeightSlider(), { target: { value: "0.7" } });
+
+    const inspector = screen.getByRole("region", {
+      name: /Overall authoritative explanation for superstar player 1/i,
+    });
+    expect(inspector.getAttribute("aria-busy")).toBe("true");
+    expect(
+      within(inspector).getByText(/Baseline stats remain visible while prior preview values/),
+    ).toBeTruthy();
+    const rawMetrics = within(inspector).getByRole("region", {
+      name: "Raw metric values",
+    });
+    const pointsRow = within(rawMetrics).getByRole("row", {
+      name: /Points Per Game/,
+    });
+    expect(within(pointsRow).getAllByRole("cell").map((cell) => cell.textContent)).toEqual([
+      "27.5",
+      "Updating…",
+      "Pending",
+    ]);
+    expect(within(inspector).getByLabelText("Calculation summary")).toBeTruthy();
+  });
+
+  it("searches by a partial name only within the custom comparison mode", async () => {
+    const client = await renderReadyWorkbench();
+    selectComparisonMode("Custom list");
 
     fireEvent.change(screen.getByRole("searchbox", { name: "Player search" }), {
       target: { value: "Spec" },
@@ -303,35 +578,74 @@ describe("Formula Workbench", () => {
       "Spec",
       expect.objectContaining({ limit: 10, signal: expect.any(AbortSignal) }),
     );
-
-    fireEvent.click(screen.getByRole("button", { name: "Pin Bench Specialist" }));
     expect(
-      await screen.findByRole("heading", { name: "Session pins" }, { timeout: 2_500 }),
+      screen.getByRole("button", { name: "Add Bench Specialist to custom list" }),
     ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Unpin Bench Specialist" })).toBeTruthy();
-    expect(
-      await screen.findByRole(
-        "heading",
-        { name: "Superstar · 90–99" },
-        { timeout: 2_500 },
-      ),
-    ).toBeTruthy();
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "Unpin Bench Specialist" }));
-    await waitFor(() => {
-      expect(screen.queryByRole("heading", { name: "Session pins" })).toBeNull();
+  it("opens a semantic glossary with the active formula model catalog", async () => {
+    await renderReadyWorkbench();
+
+    fireEvent.click(screen.getByRole("button", { name: "Glossary" }));
+
+    expect(await screen.findByRole("heading", { name: "Glossary", level: 1 })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Glossary" }).getAttribute("aria-current")).toBe(
+      "page",
+    );
+    expect(screen.getByText("Normalized weight")).toBeTruthy();
+    expect(screen.getByText("Fixed cohort")).toBeTruthy();
+
+    const catalogHeading = screen.getByRole("heading", {
+      name: "Loaded model catalog",
     });
+    const catalog = catalogHeading.closest("section");
+    expect(catalog).not.toBeNull();
+    expect(within(catalog!).getByText(/Active formula/).textContent).toContain(
+      "attributes-2026.1",
+    );
+    expect(within(catalog!).getByRole("heading", { name: "Overall" })).toBeTruthy();
+    expect(within(catalog!).getByRole("heading", { name: "Shooting" })).toBeTruthy();
     expect(
-      await screen.findByRole(
-        "heading",
-        { name: "Superstar · 90–99" },
-        { timeout: 2_500 },
-      ),
+      within(catalog!).getAllByText("Scoring production per appearance."),
+    ).toHaveLength(3);
+  });
+
+  it("preserves session edits and the custom list while navigating through the glossary", async () => {
+    const client = await renderReadyWorkbench();
+    const previousCallCount = client.preview.mock.calls.length;
+
+    fireEvent.change(overallWeightSlider(), { target: { value: "0.72" } });
+    await waitForNextPreview(client, previousCallCount);
+    selectComparisonMode("Custom list");
+    const customPreviewCallCount = client.preview.mock.calls.length;
+    await addSpecialPlayer(client);
+    await waitForNextPreview(client, customPreviewCallCount);
+    const previewCallCount = client.preview.mock.calls.length;
+
+    fireEvent.click(screen.getByRole("button", { name: "Glossary" }));
+    await screen.findByRole("heading", { name: "Glossary", level: 1 });
+    fireEvent.click(screen.getByRole("button", { name: "Workbench" }));
+    await screen.findByRole("heading", { name: "Overall" });
+
+    expect(overallWeightSlider().value).toBe("0.72");
+    expect(Number(weightSlider("Assists per game").value)).toBeCloseTo(0.28);
+    expect(
+      screen.getByRole("button", { name: "Remove Bench Specialist from custom list" }),
     ).toBeTruthy();
+    expect(screen.getByText("1/25 selected")).toBeTruthy();
+    expect(
+      screen.getByRole("tab", { name: "Custom list" }).getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(
+      (screen.getByRole("button", { name: "Reset all" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+    expect(client.getFormula).toHaveBeenCalledTimes(1);
+    expect(client.preview).toHaveBeenCalledTimes(previewCallCount);
   });
 
   it("clears stale search hits while the next query is debounced", async () => {
     const client = await renderReadyWorkbench();
+    selectComparisonMode("Custom list");
     const searchbox = screen.getByRole("searchbox", { name: "Player search" });
 
     fireEvent.change(searchbox, { target: { value: "Spec" } });
@@ -341,7 +655,9 @@ describe("Formula Workbench", () => {
     fireEvent.change(searchbox, { target: { value: "Nobody" } });
 
     expect(screen.queryByText("Bench Specialist")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Pin Bench Specialist" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Add Bench Specialist to custom list" }),
+    ).toBeNull();
     expect(
       screen.getByRole("heading", { name: "Searching the loaded cohort" }),
     ).toBeTruthy();
@@ -358,7 +674,7 @@ describe("Formula Workbench", () => {
     expect(await screen.findByRole("heading", { name: "No matching players" })).toBeTruthy();
   });
 
-  it("starts a fresh browser session without edits or pins after the workbench is remounted", async () => {
+  it("starts a fresh browser session without edits or custom players after remount", async () => {
     const client = new FakePreviewApiClient();
     const firstSession = render(<App client={client} />);
     await screen.findByRole("heading", { name: "Overall" });
@@ -368,22 +684,18 @@ describe("Formula Workbench", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /^Formula version/ }), {
       target: { value: "session-only-proposal" },
     });
-    fireEvent.change(overallWeightInput(), { target: { value: "0.75" } });
+    fireEvent.change(overallWeightSlider(), { target: { value: "0.75" } });
     await waitForNextPreview(client, previousCallCount);
     expect(
       (screen.getByRole("textbox", { name: /^Formula version/ }) as HTMLInputElement).value,
     ).toBe("session-only-proposal");
-    expect(overallWeightInput().value).toBe("0.75");
+    expect(overallWeightSlider().value).toBe("0.75");
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "Player search" }), {
-      target: { value: "Special" },
-    });
-    await screen.findByText("Bench Specialist", {}, { timeout: 1_500 });
-    fireEvent.click(screen.getByRole("button", { name: "Pin Bench Specialist" }));
-    expect(
-      await screen.findByRole("heading", { name: "Session pins" }, { timeout: 2_500 }),
-    ).toBeTruthy();
-    expect(screen.getByText("1/10 pinned")).toBeTruthy();
+    selectComparisonMode("Custom list");
+    const customPreviewCallCount = client.preview.mock.calls.length;
+    await addSpecialPlayer(client);
+    await waitForNextPreview(client, customPreviewCallCount);
+    expect(screen.getByText("1/25 selected")).toBeTruthy();
 
     firstSession.unmount();
     render(<App client={client} />);
@@ -393,13 +705,18 @@ describe("Formula Workbench", () => {
     expect(
       (screen.getByRole("textbox", { name: /^Formula version/ }) as HTMLInputElement).value,
     ).toBe("attributes-2026.1-proposal.1");
-    expect(overallWeightInput().value).toBe("0.6");
+    expect(overallWeightSlider().value).toBe("0.6");
     expect(
       (screen.getByRole("button", { name: "Reset all" }) as HTMLButtonElement).disabled,
     ).toBe(true);
-    expect(screen.getByText("0/10 pinned")).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Session pins" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Unpin Bench Specialist" })).toBeNull();
+    expect(
+      screen.getByRole("tab", { name: "Tier sample" }).getAttribute("aria-selected"),
+    ).toBe("true");
+    selectComparisonMode("Custom list");
+    expect(screen.getByText("0/25 selected")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Remove Bench Specialist from custom list" }),
+    ).toBeNull();
   });
 
   it("stops at a stale state when initial formula and metric contexts disagree", async () => {
@@ -435,14 +752,14 @@ describe("Formula Workbench", () => {
     expect(client.getTierRepresentatives).not.toHaveBeenCalled();
   });
 
-  it("clears prior comparison results and labels an authoritative preview failure", async () => {
+  it("clears prior comparison results but keeps baseline stats after preview failure", async () => {
     const client = await renderReadyWorkbench();
     expect(screen.getByRole("region", { name: "Superstar · 90–99 player comparison" })).toBeTruthy();
     client.previewHandler = async () => {
       throw new Error("preview service exploded");
     };
 
-    fireEvent.change(overallWeightInput(), { target: { value: "0.7" } });
+    fireEvent.change(overallWeightSlider(), { target: { value: "0.7" } });
 
     const comparisonFailure = await screen.findByRole(
       "heading",
@@ -459,5 +776,14 @@ describe("Formula Workbench", () => {
     expect(
       screen.queryByRole("region", { name: "Superstar · 90–99 player comparison" }),
     ).toBeNull();
+    const previewFailure = screen.getByRole("heading", { name: "Preview unavailable" });
+    const calculationAlert = previewFailure.closest<HTMLElement>('[role="alert"]');
+    expect(calculationAlert).not.toBeNull();
+    expect(within(calculationAlert!).getByText(/Baseline stats remain available/)).toBeTruthy();
+    const inspector = screen.getByRole("region", {
+      name: /Overall authoritative explanation for superstar player 1/i,
+    });
+    expect(within(inspector).getByRole("region", { name: "Raw metric values" })).toBeTruthy();
+    expect(within(inspector).getByLabelText("Calculation summary")).toBeTruthy();
   });
 });

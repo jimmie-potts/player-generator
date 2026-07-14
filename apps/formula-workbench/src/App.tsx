@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import type { PreviewApiClient } from "./api/client";
 import type {
@@ -14,6 +14,8 @@ import {
 import {
   CalculationInspector,
 } from "./components/CalculationInspector";
+import { ComparisonModeTabs } from "./components/ComparisonModeTabs";
+import { GlossaryPage } from "./components/GlossaryPage";
 import {
   FormulaInspector,
   type FormulaComponentEditorRow,
@@ -27,10 +29,16 @@ import {
   type PlayerComparisonRow,
 } from "./components/PlayerComparison";
 import { PlayerSearch } from "./components/PlayerSearch";
+import { SectionHelp } from "./components/SectionHelp";
 import { StatusPanel } from "./components/StatusPanel";
 import { WorkbenchHeader, type WorkbenchPreviewStatus } from "./components/WorkbenchHeader";
+import { normalizedComponentWeights } from "./domain/editor";
 import { identifierLabel } from "./domain/format";
-import { MAX_SESSION_PINS, useWorkbench } from "./hooks/useWorkbench";
+import {
+  MAX_CUSTOM_PLAYERS,
+  useWorkbench,
+  type WorkbenchController,
+} from "./hooks/useWorkbench";
 
 function numeric(value: JsonScalar | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -142,8 +150,58 @@ export interface AppProps {
   client?: PreviewApiClient;
 }
 
+type WorkbenchPage = "workbench" | "glossary";
+
+interface WorkbenchNavigationProps {
+  page: WorkbenchPage;
+  onNavigate: (page: WorkbenchPage) => void;
+}
+
+function WorkbenchNavigation({ page, onNavigate }: WorkbenchNavigationProps) {
+  return (
+    <nav className="workbench-page-nav" aria-label="Formula workbench pages">
+      <button
+        className="workbench-page-nav__item"
+        type="button"
+        aria-current={page === "workbench" ? "page" : undefined}
+        onClick={() => onNavigate("workbench")}
+      >
+        Workbench
+      </button>
+      <button
+        className="workbench-page-nav__item"
+        type="button"
+        aria-current={page === "glossary" ? "page" : undefined}
+        onClick={() => onNavigate("glossary")}
+      >
+        Glossary
+      </button>
+    </nav>
+  );
+}
+
 export function App({ client }: AppProps) {
   const workbench = useWorkbench(client);
+  const [page, setPage] = useState<WorkbenchPage>("workbench");
+
+  if (page === "glossary") {
+    return (
+      <div className="workbench-app glossary-app">
+        <WorkbenchNavigation page={page} onNavigate={setPage} />
+        <GlossaryPage formula={workbench.formula} metrics={workbench.metrics} />
+      </div>
+    );
+  }
+
+  return <WorkbenchView workbench={workbench} onNavigate={setPage} />;
+}
+
+interface WorkbenchViewProps {
+  workbench: WorkbenchController;
+  onNavigate: (page: WorkbenchPage) => void;
+}
+
+function WorkbenchView({ workbench, onNavigate }: WorkbenchViewProps) {
   const selectedFormula = workbench.formula?.attributes.find(
     ({ name }) => name === workbench.selectedAttribute,
   );
@@ -161,9 +219,17 @@ export function App({ client }: AppProps) {
       ? workbench.detail
       : null;
   const previewCandidate = workbench.preview;
+  const previewMatchesActivePlayers = Boolean(
+    previewCandidate &&
+      previewCandidate.players.length === workbench.comparisonPlayers.length &&
+      previewCandidate.players.every(
+        ({ playerId }, index) =>
+          playerId === workbench.comparisonPlayers[index]?.playerId,
+      ),
+  );
   const currentPreview =
     previewCandidate &&
-    previewCandidate.players.length > 0 &&
+    previewMatchesActivePlayers &&
     previewCandidate.players.every(
       ({ attributeRank }) => attributeRank.attribute === workbench.selectedAttribute,
     ) &&
@@ -206,14 +272,17 @@ export function App({ client }: AppProps) {
 
   const componentRows = useMemo<FormulaComponentEditorRow[]>(() => {
     if (!selectedEditor) return [];
-    return selectedEditor.components.flatMap((component) => {
+    const normalizedWeights = normalizedComponentWeights(
+      selectedEditor.components.map(({ weight }) => weight),
+    );
+    return selectedEditor.components.flatMap((component, index) => {
       const metric = workbench.metricsByName.get(component.metric);
       if (!metric) return [];
       const path = `attributes.${selectedEditor.name}.components.${component.metric}`;
       return [
         {
           metric,
-          weight: Number.isFinite(component.weight) ? component.weight : "",
+          weight: Number.isFinite(component.weight) ? normalizedWeights[index] ?? 0 : "",
           direction: component.direction,
           baselineDirection: component.baselineDirection,
           inverseDirection: component.direction !== component.baselineDirection,
@@ -256,7 +325,7 @@ export function App({ client }: AppProps) {
         displayName: player.displayName,
         tier:
           (typeof player.baseline.talentTier === "string" && player.baseline.talentTier) || null,
-        pinned: player.pinned,
+        removable: workbench.comparisonMode === "custom",
         selected: player.playerId === workbench.selectedPlayerId,
         state: state.state,
         stateMessage: state.message,
@@ -280,6 +349,7 @@ export function App({ client }: AppProps) {
   }, [
     previewByPlayer,
     workbench.comparisonPlayers,
+    workbench.comparisonMode,
     workbench.previewPhase,
     workbench.selectedAttribute,
     workbench.selectedPlayerId,
@@ -287,31 +357,36 @@ export function App({ client }: AppProps) {
 
   const comparisonGroups = useMemo<PlayerComparisonGroup[]>(() => {
     const rowsById = new Map(comparisonRows.map((row) => [row.playerId, row]));
-    const representativeIds = new Set(
-      workbench.representativeGroups.flatMap((group) =>
-        group.players.map(({ playerId }) => playerId),
-      ),
-    );
-    const groups: PlayerComparisonGroup[] = workbench.representativeGroups.map((group) => ({
+    if (workbench.comparisonMode === "top25") {
+      return [
+        {
+          id: "top-25",
+          label: "Top 25 by baseline overall",
+          kind: "top25",
+          rows: comparisonRows,
+        },
+      ];
+    }
+    if (workbench.comparisonMode === "custom") {
+      return [
+        {
+          id: "custom-list",
+          label: "Custom list",
+          kind: "custom",
+          rows: comparisonRows,
+        },
+      ];
+    }
+    return workbench.representativeGroups.map((group) => ({
       id: `tier-${group.tier}`,
       label: `${identifierLabel(group.tier)} · ${group.minimum}–${group.maximum}`,
-      kind: "tier",
+      kind: "tier" as const,
       rows: group.players.flatMap(({ playerId }) => {
         const row = rowsById.get(playerId);
         return row ? [row] : [];
       }),
     }));
-    const pinnedRows = workbench.pinnedPlayers
-      .filter(({ playerId }) => !representativeIds.has(playerId))
-      .flatMap(({ playerId }) => {
-        const row = rowsById.get(playerId);
-        return row ? [row] : [];
-      });
-    if (pinnedRows.length) {
-      groups.unshift({ id: "session-pins", label: "Session pins", kind: "pinned", rows: pinnedRows });
-    }
-    return groups;
-  }, [comparisonRows, workbench.pinnedPlayers, workbench.representativeGroups]);
+  }, [comparisonRows, workbench.comparisonMode, workbench.representativeGroups]);
 
   const formulaValidationMessages = workbench.validationIssues
     .filter(
@@ -335,9 +410,11 @@ export function App({ client }: AppProps) {
         ? "loading"
         : workbench.previewPhase === "error" || workbench.previewPhase === "invalid"
           ? "error"
-          : workbench.editor
-            ? "queued"
-            : "baseline";
+          : workbench.comparisonPlayers.length === 0
+            ? "empty"
+            : workbench.editor
+              ? "queued"
+              : "baseline";
 
   if (workbench.phase !== "ready") {
     const tone =
@@ -357,6 +434,7 @@ export function App({ client }: AppProps) {
           onResetAll={() => undefined}
           onExport={() => undefined}
         />
+        <WorkbenchNavigation page="workbench" onNavigate={onNavigate} />
         <StatusPanel
           title={
             workbench.phase === "loading"
@@ -403,6 +481,7 @@ export function App({ client }: AppProps) {
         onResetAll={workbench.resetSession}
         onExport={workbench.exportProposal}
       />
+      <WorkbenchNavigation page="workbench" onNavigate={onNavigate} />
 
       <div className="workbench-shell">
         <aside className="workbench-rail">
@@ -410,17 +489,6 @@ export function App({ client }: AppProps) {
             attributes={attributeRows}
             selectedAttribute={workbench.selectedAttribute}
             onSelect={workbench.selectAttribute}
-          />
-          <PlayerSearch
-            query={workbench.searchQuery}
-            results={workbench.searchResults}
-            pinnedPlayerIds={workbench.pinnedPlayers.map(({ playerId }) => playerId)}
-            loading={workbench.searchPhase === "loading"}
-            error={workbench.searchError ?? workbench.pinError}
-            maxPins={MAX_SESSION_PINS}
-            onQueryChange={workbench.setSearchQuery}
-            onSubmit={() => workbench.setSearchQuery(workbench.searchQuery.trim())}
-            onPin={(player) => void workbench.pinPlayer(player)}
           />
         </aside>
 
@@ -433,6 +501,14 @@ export function App({ client }: AppProps) {
                 The API validates this version inside the exact formula document available for
                 export. Nothing is saved to active configuration.
               </p>
+              <SectionHelp title="How proposal identity works">
+                <p>
+                  This value becomes the formula version inside the exported proposal. It labels
+                  the temporary design, but it does not replace the active formula or write
+                  anything to the server. Export uses the exact full document returned by the
+                  latest successful preview rather than rebuilding it from browser edits.
+                </p>
+              </SectionHelp>
             </div>
             <label className="field-control" htmlFor="proposal-version">
               <span>Formula version</span>
@@ -453,55 +529,57 @@ export function App({ client }: AppProps) {
             </label>
           </section>
 
-          <div className="workbench-inspection-grid">
-            <FormulaInspector
-              attribute={selectedFormula ?? null}
-              formulaVersion={workbench.context?.formula.formulaVersion ?? "—"}
-              eligibilityRule={
-                selectedFormula
-                  ? workbench.formula?.eligibilityRules[selectedFormula.eligibilityRule] ?? null
-                  : null
-              }
-              cohort={
-                selectedFormula
-                  ? workbench.formula?.cohorts[selectedFormula.cohort] ?? null
-                  : null
-              }
-              ratingScale={activeScale ?? null}
-              components={componentRows}
-              anchors={anchorRows}
-              dirty={
-                workbench.dirtyAttributes.has(workbench.selectedAttribute) ||
-                Boolean(selectedFormula && workbench.dirtyScales.has(selectedFormula.ratingScale))
-              }
-              validationMessages={formulaValidationMessages}
-              onWeightChange={(metric, value) =>
-                workbench.updateWeight(
-                  workbench.selectedAttribute,
-                  metric,
-                  value.trim() ? Number(value) : Number.NaN,
-                )
-              }
-              onInverseDirectionChange={(metric, inverse) => {
-                const component = selectedEditor?.components.find((item) => item.metric === metric);
-                if (!component) return;
-                workbench.updateDirection(
-                  workbench.selectedAttribute,
-                  metric,
-                  inverse ? inverseDirection(component.baselineDirection) : component.baselineDirection,
-                );
-              }}
-              onAnchorChange={(index, field, value) => {
-                if (!selectedScale) return;
-                const anchors = selectedScale.anchors.map((anchor) => ({ ...anchor }));
-                const anchor = anchors[index];
-                if (!anchor) return;
-                anchor[field] = value.trim() ? Number(value) : Number.NaN;
-                workbench.updateAnchors(selectedScale.name, anchors);
-              }}
-              onResetAttribute={workbench.resetSelectedAttribute}
-            />
+          <FormulaInspector
+            attribute={selectedFormula ?? null}
+            formulaVersion={workbench.context?.formula.formulaVersion ?? "—"}
+            eligibilityRule={
+              selectedFormula
+                ? workbench.formula?.eligibilityRules[selectedFormula.eligibilityRule] ?? null
+                : null
+            }
+            cohort={
+              selectedFormula
+                ? workbench.formula?.cohorts[selectedFormula.cohort] ?? null
+                : null
+            }
+            ratingScale={activeScale ?? null}
+            components={componentRows}
+            anchors={anchorRows}
+            dirty={
+              workbench.dirtyAttributes.has(workbench.selectedAttribute) ||
+              Boolean(selectedFormula && workbench.dirtyScales.has(selectedFormula.ratingScale))
+            }
+            validationMessages={formulaValidationMessages}
+            onWeightChange={(metric, value) =>
+              workbench.updateWeight(
+                workbench.selectedAttribute,
+                metric,
+                value,
+              )
+            }
+            onInverseDirectionChange={(metric, inverse) => {
+              const component = selectedEditor?.components.find((item) => item.metric === metric);
+              if (!component) return;
+              workbench.updateDirection(
+                workbench.selectedAttribute,
+                metric,
+                inverse
+                  ? inverseDirection(component.baselineDirection)
+                  : component.baselineDirection,
+              );
+            }}
+            onAnchorChange={(index, field, value) => {
+              if (!selectedScale) return;
+              const anchors = selectedScale.anchors.map((anchor) => ({ ...anchor }));
+              const anchor = anchors[index];
+              if (!anchor) return;
+              anchor[field] = value.trim() ? Number(value) : Number.NaN;
+              workbench.updateAnchors(selectedScale.name, anchors);
+            }}
+            onResetAttribute={workbench.resetSelectedAttribute}
+          />
 
+          <div className="calculation-preview-pane">
             <CalculationInspector
               player={
                 selectedPreviewPlayer
@@ -520,13 +598,17 @@ export function App({ client }: AppProps) {
                 previewCalculation?.attributes[workbench.selectedAttribute] ?? null
               }
               metrics={workbench.metrics}
+              pending={
+                workbench.previewPhase === "loading" &&
+                Boolean(baselineCalculation?.attributes[workbench.selectedAttribute])
+              }
+              previewError={
+                workbench.previewPhase === "error" || workbench.previewPhase === "invalid"
+                  ? workbench.previewError ?? "The proposed formula could not be previewed."
+                  : undefined
+              }
               status={
-                workbench.previewPhase === "loading"
-                  ? "loading"
-                  : workbench.previewPhase === "error" ||
-                      workbench.previewPhase === "invalid"
-                    ? "error"
-                    : !workbench.selectedPlayerId
+                !workbench.selectedPlayerId
                   ? "empty"
                   : workbench.detailPhase === "loading" && !baselineCalculation
                     ? "loading"
@@ -540,45 +622,124 @@ export function App({ client }: AppProps) {
             />
           </div>
 
-          <section className="sample-controls" aria-labelledby="sample-controls-title">
-            <div>
-              <p className="eyebrow">Representative cohort</p>
-              <h2 id="sample-controls-title">Tier sample</h2>
-              <p>Top-ranked eligible players per populated tier, plus up to ten session pins.</p>
-            </div>
-            <label className="field-control" htmlFor="representatives-per-tier">
-              <span>Players per tier</span>
-              <select
-                id="representatives-per-tier"
-                value={workbench.representativesPerTier}
-                onChange={(event) =>
-                  workbench.setRepresentativesPerTier(Number(event.target.value))
-                }
-              >
-                <option value="1">1 · five-player scan</option>
-                <option value="2">2 · ten-player scan</option>
-                <option value="3">3 · recommended 15</option>
-              </select>
-            </label>
-          </section>
+          <div className="comparison-workspace">
+            <section
+              className="comparison-mode-card workbench-panel"
+              aria-labelledby="comparison-mode-title"
+            >
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Comparison players</p>
+                  <h2 id="comparison-mode-title">Choose a player set</h2>
+                  <p>
+                    Switch the visible players without changing the full season population used for
+                    formula calculations and ranks.
+                  </p>
+                </div>
+              </div>
+              <SectionHelp title="How comparison sets affect the preview">
+                <p>
+                  The selected tab controls which players receive detailed results in the table.
+                  It does not shrink the calculation population: percentiles and ranks still use
+                  every eligible player in the complete configured season. The Python preview API
+                  performs that work, while the browser only chooses the active list and displays
+                  the returned impact.
+                </p>
+              </SectionHelp>
 
-          <PlayerComparison
-            selectedAttributeLabel={identifierLabel(workbench.selectedAttribute)}
-            groups={comparisonGroups}
-            loading={
-              workbench.representativePhase === "loading" ||
-              workbench.previewPhase === "loading"
-            }
-            error={
-              workbench.representativePhase === "error"
-                ? workbench.loadMessage
-                : workbench.previewPhase === "error" || workbench.previewPhase === "invalid"
-                  ? workbench.previewError
-                  : null
-            }
-            onSelect={workbench.selectPlayer}
-            onUnpin={workbench.unpinPlayer}
-          />
+              <ComparisonModeTabs
+                selectedMode={workbench.comparisonMode}
+                onModeChange={workbench.setComparisonMode}
+              >
+                {workbench.comparisonMode === "tiers" ? (
+                  <div className="comparison-mode-content comparison-mode-content--split">
+                    <div>
+                      <h3>Tier sample</h3>
+                      <p>
+                        Review the highest baseline-overall players from every populated talent
+                        tier, preserving coverage across the rating curve.
+                      </p>
+                      <SectionHelp title="How the tier sample supports tuning">
+                        <p>
+                          The default shows three players from each populated tier. Changing the
+                          selector changes only the visible sample; every preview still calculates
+                          ratings and ranks against the complete fixed season cohort.
+                        </p>
+                      </SectionHelp>
+                    </div>
+                    <label className="field-control" htmlFor="representatives-per-tier">
+                      <span>Players per tier</span>
+                      <select
+                        id="representatives-per-tier"
+                        value={workbench.representativesPerTier}
+                        onChange={(event) =>
+                          workbench.setRepresentativesPerTier(Number(event.target.value))
+                        }
+                      >
+                        <option value="1">1 · five-player scan</option>
+                        <option value="2">2 · ten-player scan</option>
+                        <option value="3">3 · recommended 15</option>
+                      </select>
+                    </label>
+                  </div>
+                ) : workbench.comparisonMode === "top25" ? (
+                  <div className="comparison-mode-content">
+                    <h3>Top 25 by baseline overall</h3>
+                    <p>
+                      This fixed list is selected and ordered by the active formula’s baseline
+                      overall rank. Preview ratings and ranks can change as you tune the model, but
+                      membership does not reshuffle, so before-and-after impact stays comparable.
+                    </p>
+                  </div>
+                ) : (
+                  <PlayerSearch
+                    query={workbench.searchQuery}
+                    results={workbench.searchResults}
+                    selectedPlayerIds={workbench.customPlayers.map(({ playerId }) => playerId)}
+                    loading={workbench.searchPhase === "loading"}
+                    error={workbench.searchError ?? workbench.customError}
+                    maxPlayers={MAX_CUSTOM_PLAYERS}
+                    onQueryChange={workbench.setSearchQuery}
+                    onSubmit={() => workbench.setSearchQuery(workbench.searchQuery.trim())}
+                    onAdd={(player) => void workbench.addCustomPlayer(player)}
+                  />
+                )}
+              </ComparisonModeTabs>
+            </section>
+
+            <PlayerComparison
+              selectedAttributeLabel={identifierLabel(workbench.selectedAttribute)}
+              groups={comparisonGroups}
+              loading={
+                (workbench.comparisonMode === "tiers" &&
+                  workbench.representativePhase === "loading") ||
+                (workbench.comparisonMode === "top25" && workbench.topPhase === "loading") ||
+                (workbench.comparisonPlayers.length > 0 &&
+                  workbench.previewPhase === "loading")
+              }
+              error={
+                workbench.comparisonMode === "tiers" && workbench.representativePhase === "error"
+                  ? workbench.loadMessage
+                  : workbench.comparisonMode === "top25" && workbench.topPhase === "error"
+                    ? workbench.topError
+                    : workbench.previewPhase === "error" || workbench.previewPhase === "invalid"
+                      ? workbench.previewError
+                      : null
+              }
+              emptyTitle={
+                workbench.comparisonMode === "custom"
+                  ? "Build your custom comparison"
+                  : "No comparison players"
+              }
+              emptyMessage={
+                workbench.comparisonMode === "custom"
+                  ? `Search above and add up to ${MAX_CUSTOM_PLAYERS} players. Only this custom list will be included in its preview.`
+                  : "The active player set did not return any players."
+              }
+              onSelect={workbench.selectPlayer}
+              onRemove={workbench.removeCustomPlayer}
+            />
+          </div>
         </main>
       </div>
     </div>

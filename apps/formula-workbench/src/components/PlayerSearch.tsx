@@ -2,35 +2,36 @@ import type { FormEvent } from "react";
 
 import type { SearchHit } from "../api/types";
 import { formatNumber } from "../domain/format";
+import { SectionHelp } from "./SectionHelp";
 import { StatusPanel } from "./StatusPanel";
 
 export interface PlayerSearchProps {
   query: string;
   results: readonly SearchHit[];
-  pinnedPlayerIds: readonly string[];
+  selectedPlayerIds: readonly string[];
   loading?: boolean;
   error?: string | null;
-  maxPins?: number;
+  maxPlayers?: number;
   disabled?: boolean;
   onQueryChange: (query: string) => void;
   onSubmit: () => void;
-  onPin: (player: SearchHit) => void;
+  onAdd: (player: SearchHit) => void;
 }
 
 export function PlayerSearch({
   query,
   results,
-  pinnedPlayerIds,
+  selectedPlayerIds,
   loading = false,
   error = null,
-  maxPins = 10,
+  maxPlayers = 25,
   disabled = false,
   onQueryChange,
   onSubmit,
-  onPin,
+  onAdd,
 }: PlayerSearchProps) {
-  const pinned = new Set(pinnedPlayerIds);
-  const atCapacity = pinned.size >= maxPins;
+  const selected = new Set(selectedPlayerIds);
+  const atCapacity = selected.size >= maxPlayers;
   const hasQuery = Boolean(query.trim());
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -42,14 +43,25 @@ export function PlayerSearch({
     <section className="player-search workbench-panel" aria-labelledby="player-search-title">
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Session roster</p>
-          <h2 id="player-search-title">Find and pin players</h2>
-          <p>Search a partial display name or exact stable player ID.</p>
+          <p className="eyebrow">Custom comparison</p>
+          <h2 id="player-search-title">Build a custom list</h2>
+          <p>
+            Search a partial display name or exact stable player ID, then add up to {maxPlayers}
+            players for a focused comparison.
+          </p>
         </div>
         <span className="capacity-badge" aria-live="polite">
-          {pinned.size}/{maxPins} pinned
+          {selected.size}/{maxPlayers} selected
         </span>
       </div>
+      <SectionHelp title="How search and custom lists work">
+        <p>
+          Search the configured season by a partial display name or an exact stable player ID, then
+          add any result to this browser session&apos;s custom comparison list. The list can contain
+          up to {maxPlayers} unique players. It never modifies the active formula, reference
+          package, or server and disappears when the page session ends.
+        </p>
+      </SectionHelp>
 
       <form className="search-form" role="search" onSubmit={submit}>
         <label htmlFor="player-search-query">Player search</label>
@@ -74,7 +86,7 @@ export function PlayerSearch({
           </button>
         </div>
         <small id="player-search-help">
-          Pins live only in this browser session and never alter reference data.
+          Your custom list lives only in this browser session and never alters reference data.
         </small>
       </form>
 
@@ -93,7 +105,7 @@ export function PlayerSearch({
       ) : results.length ? (
         <ul className="search-results" aria-label="Player search results">
           {results.map((player) => {
-            const isPinned = pinned.has(player.playerId);
+            const isSelected = selected.has(player.playerId);
             return (
               <li key={player.playerId}>
                 <div className="search-result__identity">
@@ -113,17 +125,17 @@ export function PlayerSearch({
                 <button
                   className="button button--small button--secondary"
                   type="button"
-                  onClick={() => onPin(player)}
-                  disabled={disabled || isPinned || atCapacity}
+                  onClick={() => onAdd(player)}
+                  disabled={disabled || isSelected || atCapacity}
                   aria-label={
-                    isPinned
-                      ? `${player.displayName} is pinned`
+                    isSelected
+                      ? `${player.displayName} is in the custom list`
                       : atCapacity
-                        ? `Pin limit reached; cannot pin ${player.displayName}`
-                        : `Pin ${player.displayName}`
+                        ? `Custom list is full; cannot add ${player.displayName}`
+                        : `Add ${player.displayName} to custom list`
                   }
                 >
-                  {isPinned ? "Pinned" : atCapacity ? "Limit reached" : "Pin player"}
+                  {isSelected ? "Added" : atCapacity ? "List full" : "Add player"}
                 </button>
               </li>
             );

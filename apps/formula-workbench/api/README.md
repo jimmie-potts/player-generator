@@ -111,7 +111,9 @@ GET /api/v1/players?limit=10&pinnedPlayerId=player-001&pinnedPlayerId=player-002
 ```
 
 Pins are request-only and are never saved. An unknown, duplicate, or excessive pin rejects the whole
-request.
+request. The current workbench uses the unpinned `limit=25` response as its fixed baseline-overall
+Top 25 view. The endpoint's `pinnedPlayerId` option remains available to other version 1 clients, but
+the workbench does not append those players to another comparison view.
 
 ### `GET /api/v1/players/representatives`
 
@@ -130,8 +132,8 @@ tie order. Empty tiers are omitted. Each player uses the same baseline summary c
 exposed.
 
 The endpoint's `1..5` range is a reusable API bound. The current workbench intentionally exposes
-only `1..3`: its default 15 representatives then leave ten of the preview endpoint's 25 selected-
-player slots available for session pins.
+only `1..3` in its mutually exclusive Tier sample view. Its default is three representatives per
+populated tier; those players are not combined with the Top 25 or Custom list views.
 
 ### `GET /api/v1/players/search`
 
@@ -144,7 +146,8 @@ GET /api/v1/players/search?q=duren&limit=10
 Search normalizes text with Unicode NFKC, case folding, and removal of non-alphanumeric characters,
 then performs a partial match. Exact IDs and name prefixes sort before other matches, followed by
 baseline rank and stable name/ID order. `q` must contain searchable text, and `limit` is `1..20`.
-Source IDs and reconciliation mappings are never exposed.
+Source IDs and reconciliation mappings are never exposed. The workbench uses these results to build
+a session-only Custom list of at most 25 unique players.
 
 ### `GET /api/v1/players/{playerId}`
 
@@ -200,6 +203,11 @@ an existing `(attribute, metric)` pair and may supply a nonnegative `weight`,
 `inverseDirection`, or both. `inverseDirection: true` flips the active component direction;
 `false` retains it. The shared formula validator requires every attribute's adjusted weights to have
 a positive sum and normalizes them to 1.
+
+The workbench's Tier sample, Top 25, and Custom list views are mutually exclusive clients of this
+bound: a preview sends only the active view's IDs, never a union of hidden views. This selection
+changes which detailed player results appear in the response, not the population used to calculate
+them.
 
 `selectedAttribute` is optional and defaults to `overall` for backward compatibility. It must name
 an existing formula attribute. The API ranks its baseline and preview values across the complete

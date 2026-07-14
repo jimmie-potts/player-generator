@@ -1,4 +1,5 @@
 import { identifierLabel } from "../domain/format";
+import { SectionHelp } from "./SectionHelp";
 
 export type AttributeRatingState =
   | "available"
@@ -44,6 +45,14 @@ export function AttributeSidebar({
         </div>
         <span className="count-badge">{attributes.length}</span>
       </div>
+      <SectionHelp title="How attribute ratings update" className="attribute-sidebar__help">
+        <p>
+          Select an attribute to edit its component allocation and inspect the selected player’s
+          calculation. Each displayed rating comes from the latest validated server preview when
+          available, otherwise from the active-formula baseline. Changed shared scales and
+          attributes are marked; missing or excluded values are never estimated in the browser.
+        </p>
+      </SectionHelp>
 
       {attributes.length ? (
         <ul className="attribute-sidebar__list">

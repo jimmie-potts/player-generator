@@ -24,11 +24,11 @@ import {
   createFormulaEditorState,
   dirtyAttributeNames,
   dirtyRatingScaleNames,
+  rebalanceComponentWeight,
   resetAll,
   resetAttribute,
   resetRatingScale,
   setComponentDirection,
-  setComponentWeight,
   setProposalVersion,
   setRatingScaleAnchors,
   validateFormulaEditorState,
@@ -36,7 +36,11 @@ import {
 } from "../domain/editor";
 
 const DEFAULT_REPRESENTATIVES_PER_TIER = 3;
-export const MAX_SESSION_PINS = 10;
+const MAX_PREVIEW_PLAYERS = 25;
+const TOP_PLAYER_LIMIT = MAX_PREVIEW_PLAYERS;
+export const MAX_CUSTOM_PLAYERS = MAX_PREVIEW_PLAYERS;
+
+export type ComparisonMode = "tiers" | "top25" | "custom";
 
 export type LoadPhase = "loading" | "ready" | "empty" | "error" | "stale";
 export type RequestPhase = "idle" | "loading" | "ready" | "error";
@@ -56,14 +60,14 @@ function flattenRepresentatives(groups: readonly TierRepresentativeGroup[]): Pla
   return groups.flatMap((group) => group.players);
 }
 
-function pinnedSummary(detail: PlayerDetailResponse): PlayerSummary {
+function customSummary(detail: PlayerDetailResponse): PlayerSummary {
   return {
     playerId: detail.player.playerId,
     displayName: detail.player.displayName,
     season: detail.player.season,
     baselineRank: detail.player.baselineRank,
     baseline: detail.baseline,
-    pinned: true,
+    pinned: false,
   };
 }
 
@@ -98,10 +102,15 @@ export interface WorkbenchController {
   setRepresentativesPerTier: (count: number) => void;
   representativeGroups: TierRepresentativeGroup[];
   representativePhase: RequestPhase;
-  pinnedPlayers: PlayerSummary[];
-  pinError: string | null;
-  pinPlayer: (player: SearchHit) => Promise<void>;
-  unpinPlayer: (playerId: string) => void;
+  comparisonMode: ComparisonMode;
+  setComparisonMode: (mode: ComparisonMode) => void;
+  topPlayers: PlayerSummary[];
+  topPhase: RequestPhase;
+  topError: string | null;
+  customPlayers: PlayerSummary[];
+  customError: string | null;
+  addCustomPlayer: (player: SearchHit) => Promise<void>;
+  removeCustomPlayer: (playerId: string) => void;
   comparisonPlayers: PlayerSummary[];
   selectedPlayerId: string | null;
   selectPlayer: (playerId: string) => void;
@@ -139,12 +148,19 @@ export function useWorkbench(
   >([]);
   const [representativePhase, setRepresentativePhase] =
     useState<RequestPhase>("idle");
-  const [pinnedPlayers, setPinnedPlayers] = useState<PlayerSummary[]>([]);
-  const pinnedPlayerIds = useRef(new Set<string>());
-  const pendingPinIds = useRef(new Set<string>());
+  const [comparisonMode, setComparisonModeState] =
+    useState<ComparisonMode>("tiers");
+  const [topPlayers, setTopPlayers] = useState<PlayerSummary[]>([]);
+  const [topPhase, setTopPhase] = useState<RequestPhase>("idle");
+  const [topError, setTopError] = useState<string | null>(null);
+  const [customPlayers, setCustomPlayers] = useState<PlayerSummary[]>([]);
+  const customPlayerIds = useRef(new Set<string>());
+  const pendingCustomPlayerIds = useRef(new Set<string>());
   const sessionGeneration = useRef(0);
-  const [pinError, setPinError] = useState<string | null>(null);
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [customError, setCustomError] = useState<string | null>(null);
+  const [selectedPlayerIdsByMode, setSelectedPlayerIdsByMode] = useState<
+    Record<ComparisonMode, string | null>
+  >({ tiers: null, top25: null, custom: null });
   const [detail, setDetail] = useState<PlayerDetailResponse | null>(null);
   const [detailPhase, setDetailPhase] = useState<RequestPhase>("idle");
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -181,11 +197,15 @@ export function useWorkbench(
     setEditor(null);
     setRepresentativePhase("idle");
     setRepresentativeGroups([]);
-    pinnedPlayerIds.current.clear();
-    pendingPinIds.current.clear();
-    setPinnedPlayers([]);
-    setPinError(null);
-    setSelectedPlayerId(null);
+    setComparisonModeState("tiers");
+    setTopPlayers([]);
+    setTopPhase("idle");
+    setTopError(null);
+    customPlayerIds.current.clear();
+    pendingCustomPlayerIds.current.clear();
+    setCustomPlayers([]);
+    setCustomError(null);
+    setSelectedPlayerIdsByMode({ tiers: null, top25: null, custom: null });
     setDetail(null);
     setDetailPhase("idle");
     setDetailError(null);
@@ -252,10 +272,26 @@ export function useWorkbench(
       .then((response) => {
         if (controller.signal.aborted) return;
         assertMatchingContext(context, response.context);
+        const players = flattenRepresentatives(response.tiers);
+        if (players.length > MAX_PREVIEW_PLAYERS) {
+          setRepresentativeGroups([]);
+          setRepresentativePhase("error");
+          setLoadMessage(
+            `The tier sample returned ${players.length} players, exceeding the preview limit of ${MAX_PREVIEW_PLAYERS}. Reduce players per tier or choose another comparison set.`,
+          );
+          setSelectedPlayerIdsByMode((current) => ({ ...current, tiers: null }));
+          return;
+        }
         setRepresentativeGroups(response.tiers);
         setRepresentativePhase("ready");
-        const players = flattenRepresentatives(response.tiers);
-        setSelectedPlayerId((current) => current ?? players[0]?.playerId ?? null);
+        setLoadMessage(null);
+        setSelectedPlayerIdsByMode((current) => ({
+          ...current,
+          tiers:
+            current.tiers && players.some(({ playerId }) => playerId === current.tiers)
+              ? current.tiers
+              : players[0]?.playerId ?? null,
+        }));
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted || isAbortError(error)) return;
@@ -270,30 +306,73 @@ export function useWorkbench(
     return () => controller.abort();
   }, [client, context, makeStale, phase, representativesPerTier]);
 
+  useEffect(() => {
+    if (
+      comparisonMode !== "top25" ||
+      !context ||
+      phase !== "ready" ||
+      topPhase !== "idle"
+    ) {
+      return;
+    }
+    const controller = new AbortController();
+    setTopError(null);
+    setTopPhase("loading");
+    void client
+      .getPlayers({ limit: TOP_PLAYER_LIMIT, signal: controller.signal })
+      .then((response) => {
+        if (controller.signal.aborted) return;
+        assertMatchingContext(context, response.context);
+        setTopPlayers(response.players);
+        setTopPhase("ready");
+        setSelectedPlayerIdsByMode((current) => ({
+          ...current,
+          top25:
+            current.top25 &&
+            response.players.some(({ playerId }) => playerId === current.top25)
+              ? current.top25
+              : response.players[0]?.playerId ?? null,
+        }));
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || isAbortError(error)) return;
+        if (error instanceof StaleContextError) {
+          makeStale(error.message);
+          return;
+        }
+        setTopPlayers([]);
+        setTopError(errorMessage(error));
+        setTopPhase("error");
+      });
+    return () => {
+      controller.abort();
+      setTopPhase((current) => (current === "loading" ? "idle" : current));
+    };
+  }, [client, comparisonMode, context, makeStale, phase]);
+
   const representativePlayers = useMemo(
     () => flattenRepresentatives(representativeGroups),
     [representativeGroups],
   );
   const comparisonPlayers = useMemo(() => {
-    const pinIds = new Set(pinnedPlayers.map(({ playerId }) => playerId));
-    const representativeIds = new Set(representativePlayers.map(({ playerId }) => playerId));
-    return [
-      ...representativePlayers.map((player) =>
-        pinIds.has(player.playerId) ? { ...player, pinned: true } : player,
-      ),
-      ...pinnedPlayers.filter(({ playerId }) => !representativeIds.has(playerId)),
-    ];
-  }, [pinnedPlayers, representativePlayers]);
+    if (comparisonMode === "top25") return topPlayers;
+    if (comparisonMode === "custom") return customPlayers;
+    return representativePlayers;
+  }, [comparisonMode, customPlayers, representativePlayers, topPlayers]);
+  const storedSelectedPlayerId = selectedPlayerIdsByMode[comparisonMode];
+  const selectedPlayerId =
+    storedSelectedPlayerId &&
+    comparisonPlayers.some(({ playerId }) => playerId === storedSelectedPlayerId)
+      ? storedSelectedPlayerId
+      : comparisonPlayers[0]?.playerId ?? null;
 
   useEffect(() => {
-    if (
-      selectedPlayerId &&
-      comparisonPlayers.some(({ playerId }) => playerId === selectedPlayerId)
-    ) {
-      return;
-    }
-    setSelectedPlayerId(comparisonPlayers[0]?.playerId ?? null);
-  }, [comparisonPlayers, selectedPlayerId]);
+    if (storedSelectedPlayerId === selectedPlayerId) return;
+    setSelectedPlayerIdsByMode((current) => ({
+      ...current,
+      [comparisonMode]: selectedPlayerId,
+    }));
+  }, [comparisonMode, selectedPlayerId, storedSelectedPlayerId]);
 
   useEffect(() => {
     if (!context || !selectedPlayerId || phase !== "ready") {
@@ -451,36 +530,47 @@ export function useWorkbench(
     [editor],
   );
 
-  const pinPlayer = useCallback(
+  const addCustomPlayer = useCallback(
     async (player: SearchHit) => {
-      setPinError(null);
-      if (pinnedPlayerIds.current.has(player.playerId)) {
-        setSelectedPlayerId(player.playerId);
+      setCustomError(null);
+      setComparisonModeState("custom");
+      if (customPlayerIds.current.has(player.playerId)) {
+        setSelectedPlayerIdsByMode((current) => ({
+          ...current,
+          custom: player.playerId,
+        }));
         return;
       }
-      if (pendingPinIds.current.has(player.playerId)) return;
+      if (pendingCustomPlayerIds.current.has(player.playerId)) return;
       if (
-        pinnedPlayerIds.current.size + pendingPinIds.current.size >=
-        MAX_SESSION_PINS
+        customPlayerIds.current.size + pendingCustomPlayerIds.current.size >=
+        MAX_CUSTOM_PLAYERS
       ) {
-        setPinError(`At most ${MAX_SESSION_PINS} players can be pinned for this session.`);
+        setCustomError(
+          `At most ${MAX_CUSTOM_PLAYERS} players can be added to the custom list.`,
+        );
         return;
       }
       if (!context) return;
       const generation = sessionGeneration.current;
-      pendingPinIds.current.add(player.playerId);
+      pendingCustomPlayerIds.current.add(player.playerId);
       try {
         const response = await client.getPlayer(player.playerId);
         if (generation !== sessionGeneration.current) return;
         assertMatchingContext(context, response.context);
-        if (pinnedPlayerIds.current.size >= MAX_SESSION_PINS) {
-          setPinError(`At most ${MAX_SESSION_PINS} players can be pinned for this session.`);
+        if (customPlayerIds.current.size >= MAX_CUSTOM_PLAYERS) {
+          setCustomError(
+            `At most ${MAX_CUSTOM_PLAYERS} players can be added to the custom list.`,
+          );
           return;
         }
-        pinnedPlayerIds.current.add(player.playerId);
+        customPlayerIds.current.add(player.playerId);
         invalidatePreview();
-        setPinnedPlayers((current) => [...current, pinnedSummary(response)]);
-        setSelectedPlayerId(player.playerId);
+        setCustomPlayers((current) => [...current, customSummary(response)]);
+        setSelectedPlayerIdsByMode((current) => ({
+          ...current,
+          custom: player.playerId,
+        }));
         setSearchQuery("");
         setSearchResults([]);
       } catch (error: unknown) {
@@ -489,10 +579,10 @@ export function useWorkbench(
           makeStale(error.message);
           return;
         }
-        setPinError(errorMessage(error));
+        setCustomError(errorMessage(error));
       } finally {
         if (generation === sessionGeneration.current) {
-          pendingPinIds.current.delete(player.playerId);
+          pendingCustomPlayerIds.current.delete(player.playerId);
         }
       }
     }, [client, context, invalidatePreview, makeStale],
@@ -506,22 +596,20 @@ export function useWorkbench(
     setEditor(resetRatingScale(resetAttribute(editor, attribute.name), attribute.ratingScale));
   }, [editor, formula, invalidatePreview, selectedAttribute]);
 
-  const unpinPlayer = useCallback(
+  const removeCustomPlayer = useCallback(
     (playerId: string) => {
-      if (!pinnedPlayers.some((player) => player.playerId === playerId)) return;
-      invalidatePreview();
-      pinnedPlayerIds.current.delete(playerId);
-      setPinnedPlayers((current) =>
+      if (!customPlayerIds.current.has(playerId)) return;
+      if (comparisonMode === "custom") invalidatePreview();
+      customPlayerIds.current.delete(playerId);
+      setCustomPlayers((current) =>
         current.filter((player) => player.playerId !== playerId),
       );
-      if (
-        selectedPlayerId === playerId &&
-        !representativePlayers.some((player) => player.playerId === playerId)
-      ) {
-        setSelectedPlayerId(representativePlayers[0]?.playerId ?? null);
-      }
+      setSelectedPlayerIdsByMode((current) => ({
+        ...current,
+        custom: current.custom === playerId ? null : current.custom,
+      }));
     },
-    [invalidatePreview, pinnedPlayers, representativePlayers, selectedPlayerId],
+    [comparisonMode, invalidatePreview],
   );
 
   const exportProposal = useCallback(() => {
@@ -563,7 +651,7 @@ export function useWorkbench(
     updateWeight: (attribute, metric, weight) => {
       invalidatePreview();
       setEditor((current) =>
-        current ? setComponentWeight(current, attribute, metric, weight) : current,
+        current ? rebalanceComponentWeight(current, attribute, metric, weight) : current,
       );
     },
     updateDirection: (attribute, metric, direction) => {
@@ -587,18 +675,37 @@ export function useWorkbench(
     setRepresentativesPerTier: (count) => {
       const normalized = Math.max(1, Math.min(3, Math.trunc(count)));
       if (normalized === representativesPerTier) return;
-      invalidatePreview();
+      if (comparisonMode === "tiers") invalidatePreview();
       setRepresentativesPerTierState(normalized);
     },
     representativeGroups,
     representativePhase,
-    pinnedPlayers,
-    pinError,
-    pinPlayer,
-    unpinPlayer,
+    comparisonMode,
+    setComparisonMode: (mode) => {
+      if (mode === comparisonMode) return;
+      invalidatePreview();
+      if (mode === "top25" && topPhase === "error") {
+        setTopError(null);
+        setTopPhase("idle");
+      }
+      setComparisonModeState(mode);
+    },
+    topPlayers,
+    topPhase,
+    topError,
+    customPlayers,
+    customError,
+    addCustomPlayer,
+    removeCustomPlayer,
     comparisonPlayers,
     selectedPlayerId,
-    selectPlayer: setSelectedPlayerId,
+    selectPlayer: (playerId) => {
+      if (!comparisonPlayers.some((player) => player.playerId === playerId)) return;
+      setSelectedPlayerIdsByMode((current) => ({
+        ...current,
+        [comparisonMode]: playerId,
+      }));
+    },
     detail,
     detailPhase,
     detailError,

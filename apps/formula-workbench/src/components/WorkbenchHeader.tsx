@@ -1,7 +1,9 @@
 import type { ApiContext } from "../api/types";
+import { SectionHelp } from "./SectionHelp";
 
 export type WorkbenchPreviewStatus =
   | "baseline"
+  | "empty"
   | "error"
   | "loading"
   | "preview"
@@ -21,6 +23,7 @@ export interface WorkbenchHeaderProps {
 
 const PREVIEW_STATUS_LABELS: Record<WorkbenchPreviewStatus, string> = {
   baseline: "Baseline current",
+  empty: "Select comparison players",
   error: "Preview failed",
   loading: "Calculating preview",
   preview: "Preview current",
@@ -59,6 +62,14 @@ export function WorkbenchHeader({
           Inspect the authoritative rating model, test reversible adjustments, and compare their
           player-level impact.
         </p>
+        <SectionHelp title="How this workbench protects active data" className="section-help--header">
+          <p>
+            Every edit stays in this browser session and is sent to the preview API, which uses the
+            same Python attribute engine as batch generation. A preview never changes the active
+            formula, reference data, or roster data. Export becomes available only after the server
+            validates the latest complete proposal.
+          </p>
+        </SectionHelp>
       </div>
 
       <div className="workbench-header__controls">
@@ -99,8 +110,12 @@ export function WorkbenchHeader({
             <dd>v{context.apiVersion}</dd>
           </div>
           <div>
-            <dt>Formula</dt>
-            <dd>{proposalVersion?.trim() || context.formula.formulaVersion}</dd>
+            <dt>Active formula</dt>
+            <dd>{context.formula.formulaVersion}</dd>
+          </div>
+          <div>
+            <dt>Proposal version</dt>
+            <dd>{proposalVersion?.trim() || "Not loaded"}</dd>
           </div>
           <div>
             <dt>Season</dt>
@@ -120,7 +135,7 @@ export function WorkbenchHeader({
             </dd>
           </div>
           <div>
-            <dt>Formula hash</dt>
+            <dt>Active formula hash</dt>
             <dd>
               <abbr title={context.formula.documentHash}>
                 {shortHash(context.formula.documentHash)}

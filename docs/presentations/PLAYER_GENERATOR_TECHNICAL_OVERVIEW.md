@@ -62,7 +62,7 @@ The governing principles are:
 | `apps/formula-workbench/api` | Python 3.10+, FastAPI, Pydantic, Uvicorn | Read-only formula inspection, representative/player lookup, temporary previews, and validated proposal documents |
 | `packages/data-contracts` | Python + packaged JSON schemas | CSV, formula, package-integrity, key, relationship, and semantic validation |
 | `packages/attribute-engine` | Python, pandas, NumPy, declarative JSON | Metric derivation, percentile evaluation, ratings, explanations |
-| `apps/formula-workbench` client | Node 22.12+, React 19, TypeScript 5.8, Vite 7 | API-backed inspection, session tuning, player comparison, search/pinning, and proposal export |
+| `apps/formula-workbench` client | Node 22.12+, React 19, TypeScript 5.8, Vite 7 | API-backed inspection, session tuning, tier/Top 25/custom comparison, and proposal export |
 | Repository tooling | setuptools, npm workspaces, pytest, Ruff, mypy, Vitest, Testing Library | Build, packaging, tests, linting, type/build checks |
 
 The five Python source roots install through one setuptools distribution while import-boundary tests
@@ -82,7 +82,7 @@ flowchart LR
     contracts["data-contracts<br/>schemas + validators"]
     engine["attribute-engine<br/>formula v1.0.0"]
     api["FastAPI preview API<br/>read-only /api/v1; one v2 cohort"]
-    workbench["React workbench<br/>session-only edits + pins"]
+    workbench["React workbench<br/>session-only edits + comparison lists"]
     legacy["Pinned download + wide build<br/>standalone legacy path"]
 
     local --> reference --> refpkg --> roster --> rosterpkg
@@ -319,7 +319,7 @@ reference player.
 | Server-authoritative thin client | React edits controls and presents API results; Python remains the only evaluator |
 | Optimistic context identity | Package, formula, season, and cohort tokens guard every combined workbench view |
 | Cancellable request pipeline | Debounce plus `AbortController` coalesces rapid edits and rejects superseded results |
-| Session-scoped experimentation | In-memory edits and pins reset on reload; successful proposals download explicitly |
+| Session-scoped experimentation | In-memory edits and custom comparisons reset on reload; successful proposals download explicitly |
 
 These patterns make a data pipeline auditable without coupling the applications back together.
 
@@ -357,7 +357,7 @@ workflow requires each logical unit to be committed, pushed, and opened as a rea
 | Formula schedules cover 2021–2026 | Direct evaluation rejects unlisted schedules; reference publication preserves keys with nullable attributes |
 | Defense is an estimate | Available inputs retain material team and context effects |
 | Read-only local preview service | FastAPI is implemented; authentication, persistence, deployment, and production hosting remain out of scope |
-| Session-only workbench | Reloading discards edits and pins; there are no named sessions, active writes, approvals, or deployment controls |
+| Session-only workbench | Reloading discards edits and the custom list; there are no named sessions, active writes, approvals, or deployment controls |
 | Bounded formula controls | Existing weights, directions, anchors, and proposal version are editable; new attributes, metrics, eligibility, expressions, scales, and tiers are not |
 | Player-only roster package | No approved generation rules exist for teams, coaches, contracts, or assignments |
 
@@ -421,8 +421,10 @@ Implemented strategies and bounds:
   attributes when the package's published formula version and hash match the active formula exactly;
 - reject more than 1,000 cohort rows, then bound representatives to at most five per tier, selected
   preview players and request pins to 25, and search results to 20;
-- expose one through three representatives per tier in the workbench, preserving ten pin slots at
-  the 15-player default while the reusable API retains its one-through-five bound;
+- expose one through three representatives per tier in the workbench while the reusable API retains
+  its one-through-five bound;
+- let the workbench send one active comparison view at a time: tier representatives, the fixed
+  baseline-overall Top 25, or a session-only custom list of at most 25 searched players;
 - hold the baseline and preview cohort fixed so percentiles, selected-attribute rank, and overall rank
   movement remain comparable;
 - materialize temporary explanation trees only for selected players, without filtering the metric,
@@ -446,7 +448,7 @@ sequenceDiagram
 
     Designer->>UI: Open workbench
     UI->>API: Load formula, metrics, and tier representatives
-    API-->>UI: Matched context + baseline groups
+    API-->>UI: Matched context + default baseline groups
     UI->>API: Load selected-player detail
     API-->>UI: Authoritative explanation
     Designer->>UI: Change weight, direction, or anchor
@@ -457,7 +459,7 @@ sequenceDiagram
     Engine-->>API: Full results + selected explanations
     API-->>UI: Deltas, ranks + validated full formula document
     UI->>UI: Ignore or abort superseded responses
-    Designer->>UI: Reset, search/pin, or export exact proposal JSON
+    Designer->>UI: Reset, switch comparison, build custom list, or export
 ```
 
 The sequence is the implemented local design loop. The API recalculates the active baseline and
@@ -470,14 +472,18 @@ match exactly. The browser adds these interaction behaviors without becoming a f
 - debounce preview requests, abort superseded requests, and discard prior results after failure or
   context drift;
 - preview session-only changes with reset-per-attribute, reset-all, and exact validated JSON export;
-- compare three highest-ranked eligible players from each populated talent tier by default, then
-  search and add up to ten session-only pins;
+- switch among three mutually exclusive comparison views: three highest-ranked eligible players per
+  populated tier by default, a fixed baseline-overall Top 25, or up to 25 searched players in a
+  session-only custom list;
+- send only the active comparison view for detailed preview results while retaining the complete
+  fixed cohort for server-side ratings, percentiles, and ranks;
 - show selected-attribute and overall deltas, complete-cohort rank movement, largest gain/loss,
   missing input, exclusion, no change, and recalculation failure.
 
-Closing or reloading discards edits and pins. Export serializes the server response's complete
-`previewDocument`, making it directly usable by `roster-generator generate --formula`; it remains a
-proposal, not persistence, approval, or deployment.
+Closing or reloading discards edits and the custom list. Export serializes the server response's
+complete `previewDocument`, making it directly usable by
+`roster-generator generate --formula`; it remains a proposal, not persistence, approval, or
+deployment.
 
 ---
 

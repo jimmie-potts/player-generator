@@ -243,6 +243,12 @@ its completion notes.
 - Cross-endpoint context checks belong in the typed client boundary. Combining individually valid
   responses without comparing API, package, formula, season, and cohort identities can produce a
   plausible but internally inconsistent inspection view.
+- A dense formula can scroll independently without hiding its result when the explanation pane has
+  the same bounded desktop height and keeps its score summary sticky. Remove those nested scroll and
+  sticky constraints when panes stack so narrow screens retain natural reading order.
+- Native `details` elements provide keyboard-accessible progressive disclosure for generous help
+  and calculation traces. A glossary can combine curated domain language with a catalog derived
+  from API formula and metric metadata without becoming a second source of formula behavior.
 
 ### 2026-07-14 — US-012
 
@@ -261,6 +267,20 @@ its completion notes.
   resolvable from the hoist location. Declare the Node-compatible `jsdom` version at the repository
   root and validate with a clean `npm ci`; a populated local dependency tree can otherwise mask the
   same resolution failure that a clean CI runner exposes.
+- A custom multi-thumb allocation control adds difficult adjacent-handle and assistive-technology
+  semantics. Native per-component range sliders plus a non-editing stacked summary preserve familiar
+  controls while showing the whole attribute allocation.
+- Percentage editing is deterministic when it operates on 100 integer units: reserve the edited
+  share, distribute the remainder proportionally, floor quotas, then assign leftover units by
+  largest remainder with formula order as the tie-breaker. Current, baseline, and equal-share
+  fallbacks preserve useful peer proportions while guaranteeing an exact `1.00` total.
+- Exact client allocation is an authoring policy, not a browser evaluator. The API must still
+  validate the complete proposed document, and only the shared Python engine may normalize inputs
+  and calculate ratings.
+- A valid source formula may use any finite nonnegative component weights with a positive sum because
+  the shared engine normalizes them. Show those untouched weights as normalized shares in sliders,
+  the allocation bar, and glossary text without rewriting the loaded document; require exactly 100
+  integer units only after the designer authors a component change.
 
 ### 2026-07-14 — US-013
 
@@ -275,6 +295,21 @@ its completion notes.
 - A debounced search must invalidate visible results at input time, not request time, or stale pin
   actions remain available under the new query. Session-generation guards must likewise cover both
   success and failure paths so an old request cannot mutate a reloaded session.
+- Keeping the selected-player rating summary visible beside weight controls makes the comparison
+  loop faster without changing its population: representatives, ranks, and previews still come from
+  the API's fixed complete cohort, not the browser's visible sample.
+- Mutually exclusive tier, baseline Top 25, and custom-list views are easier to reason about than a
+  tier sample with appended pins. Send only the active view's IDs for detailed results and never
+  combine hidden view memberships into one preview request.
+- A configurable per-tier sample can exceed a fixed selected-player API bound when a future formula
+  declares many populated tiers. Detect that condition before preview, show a recovery path, and
+  never silently truncate tiers or send a request the API must reject.
+- A Top 25 impact view should freeze baseline membership and order while showing preview values and
+  rank movement. Resorting or replacing members after each temporary edit changes the question from
+  "what happened to these players?" to "who is currently on top?" and makes comparison harder.
+- A comparison list and a calculation cohort are different concepts. The browser may choose up to
+  25 rows to display, but the server must continue evaluating the complete fixed cohort so switching
+  views cannot change percentiles or ranks.
 
 ## Entry format
 

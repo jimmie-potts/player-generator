@@ -6,6 +6,8 @@ import {
   createFormulaEditorState,
   dirtyAttributeNames,
   dirtyRatingScaleNames,
+  normalizedComponentWeights,
+  rebalanceComponentWeight,
   resetAll,
   resetAttribute,
   setComponentDirection,
@@ -63,6 +65,27 @@ function formula(): FormulaDocument {
   };
 }
 
+function formulaWithWeights(weights: readonly number[]): FormulaDocument {
+  const document = formula();
+  const metrics = Object.fromEntries(
+    weights.map((_, index) => [
+      `metric${index + 1}`,
+      { kind: "input" as const, field: `metric${index + 1}` },
+    ]),
+  );
+  document.metrics = metrics;
+  document.attributes[0]!.components = weights.map((weight, index) => ({
+    metric: `metric${index + 1}`,
+    weight,
+    direction: "higher",
+  }));
+  return document;
+}
+
+function componentWeights(state: ReturnType<typeof createFormulaEditorState>): number[] {
+  return state.attributes[0]!.components.map(({ weight }) => weight);
+}
+
 describe("formula editor domain", () => {
   it("creates an independent session copy and requires a proposal version", () => {
     const document = formula();
@@ -78,7 +101,7 @@ describe("formula editor domain", () => {
     ).toEqual([]);
   });
 
-  it("validates finite nonnegative weights and a positive attribute sum", () => {
+  it("validates finite nonnegative weights and an exact edited attribute total", () => {
     let state = createFormulaEditorState(formula(), "1.1.0");
     state = setComponentWeight(state, "overall", "impact", -0.1);
 
@@ -99,6 +122,122 @@ describe("formula editor domain", () => {
     expect(validateFormulaEditorState(state)).toContainEqual(
       expect.objectContaining({ code: "invalid_weight" }),
     );
+
+    const aboveTotal = setComponentWeight(
+      createFormulaEditorState(formula(), "1.1.0"),
+      "overall",
+      "impact",
+      0.7,
+    );
+    expect(validateFormulaEditorState(aboveTotal)).toContainEqual({
+      path: "attributes.overall.components",
+      code: "invalid_weight_sum",
+      message: "Edited component weights must total 1.",
+    });
+
+    const withinTolerance = setComponentWeight(
+      createFormulaEditorState(formula(), "1.1.0"),
+      "overall",
+      "impact",
+      0.6000000001,
+    );
+    expect(validateFormulaEditorState(withinTolerance)).toEqual([]);
+  });
+
+  it("accepts positive-sum source weights and exposes their normalized authoring shares", () => {
+    const state = createFormulaEditorState(formulaWithWeights([2, 1]), "1.1.0");
+
+    expect(validateFormulaEditorState(state)).toEqual([]);
+    expect(normalizedComponentWeights(componentWeights(state))).toEqual([
+      2 / 3,
+      1 / 3,
+    ]);
+
+    const adjusted = rebalanceComponentWeight(state, "overall", "metric1", 0.7);
+    expect(componentWeights(adjusted)).toEqual([0.7, 0.3]);
+    expect(validateFormulaEditorState(adjusted)).toEqual([]);
+  });
+
+  it("rebalances peers proportionally in exact one-percent units", () => {
+    const state = rebalanceComponentWeight(
+      createFormulaEditorState(
+        formulaWithWeights([0.35, 0.2, 0.15, 0.12, 0.1, 0.08]),
+        "1.1.0",
+      ),
+      "overall",
+      "metric1",
+      0.5,
+    );
+
+    expect(componentWeights(state)).toEqual([0.5, 0.15, 0.12, 0.09, 0.08, 0.06]);
+    expect(componentWeights(state).reduce((total, weight) => total + weight, 0)).toBeCloseTo(1);
+    expect(validateFormulaEditorState(state)).toEqual([]);
+  });
+
+  it("uses document order to resolve equal largest remainders", () => {
+    const state = rebalanceComponentWeight(
+      createFormulaEditorState(formulaWithWeights([0.5, 0.25, 0.25]), "1.1.0"),
+      "overall",
+      "metric1",
+      0.99,
+    );
+
+    expect(componentWeights(state)).toEqual([0.99, 0.01, 0]);
+  });
+
+  it("rebalances large finite peer weights without overflowing", () => {
+    const state = rebalanceComponentWeight(
+      createFormulaEditorState(
+        formulaWithWeights([0, Number.MAX_VALUE, Number.MAX_VALUE]),
+        "1.1.0",
+      ),
+      "overall",
+      "metric1",
+      0.5,
+    );
+
+    expect(componentWeights(state)).toEqual([0.5, 0.25, 0.25]);
+  });
+
+  it("restores zeroed peers from baseline proportions and clamps slider overflow", () => {
+    let state = createFormulaEditorState(formulaWithWeights([0.6, 0.3, 0.1]), "1.1.0");
+    state = rebalanceComponentWeight(state, "overall", "metric1", 2);
+    expect(componentWeights(state)).toEqual([1, 0, 0]);
+
+    state = rebalanceComponentWeight(state, "overall", "metric1", 0.5);
+    expect(componentWeights(state)).toEqual([0.5, 0.38, 0.12]);
+
+    state = rebalanceComponentWeight(state, "overall", "metric1", -1);
+    expect(componentWeights(state)).toEqual([0, 0.76, 0.24]);
+  });
+
+  it("falls back to equal peer shares and fixes singleton attributes at 100 percent", () => {
+    const zeroPeerBaseline = createFormulaEditorState(
+      formulaWithWeights([1, 0, 0]),
+      "1.1.0",
+    );
+    expect(
+      componentWeights(
+        rebalanceComponentWeight(zeroPeerBaseline, "overall", "metric1", 0.5),
+      ),
+    ).toEqual([0.5, 0.25, 0.25]);
+
+    const singleton = rebalanceComponentWeight(
+      createFormulaEditorState(formulaWithWeights([1]), "1.1.0"),
+      "overall",
+      "metric1",
+      0.2,
+    );
+    expect(componentWeights(singleton)).toEqual([1]);
+    expect(validateFormulaEditorState(singleton)).toEqual([]);
+  });
+
+  it("rejects nonfinite rebalance values", () => {
+    const state = createFormulaEditorState(formula(), "1.1.0");
+
+    expect(() =>
+      rebalanceComponentWeight(state, "overall", "impact", Number.NaN),
+    ).toThrow("finite number");
   });
 
   it("requires complete ordered anchors with contract rating bounds", () => {
@@ -128,7 +267,7 @@ describe("formula editor domain", () => {
 
   it("builds only changed component and complete scale adjustments", () => {
     let state = createFormulaEditorState(formula(), "1.1.0");
-    state = setComponentWeight(state, "overall", "impact", 0.75);
+    state = rebalanceComponentWeight(state, "overall", "impact", 0.75);
     state = setComponentDirection(state, "overall", "scoring", "lower");
     state = setRatingScaleAnchors(state, "overall", [
       { percentile: 0, rating: 45 },
@@ -144,6 +283,7 @@ describe("formula editor domain", () => {
         {
           attribute: "overall",
           metric: "scoring",
+          weight: 0.25,
           inverseDirection: true,
         },
       ],
@@ -162,7 +302,7 @@ describe("formula editor domain", () => {
   it("resets one attribute without resetting its shared scale and resets the whole session", () => {
     let state = createFormulaEditorState(formula(), "initial-proposal");
     state = setProposalVersion(state, "changed-proposal");
-    state = setComponentWeight(state, "overall", "impact", 0.8);
+    state = rebalanceComponentWeight(state, "overall", "impact", 0.8);
     state = setRatingScaleAnchors(state, "overall", [
       { percentile: 0, rating: 40 },
       { percentile: 1, rating: 95 },
@@ -191,6 +331,12 @@ describe("formula editor domain", () => {
       "Unknown formula attribute",
     );
     expect(() => setComponentWeight(state, "overall", "missing", 1)).toThrow(
+      "is not a component",
+    );
+    expect(() => rebalanceComponentWeight(state, "missing", "impact", 1)).toThrow(
+      "Unknown formula attribute",
+    );
+    expect(() => rebalanceComponentWeight(state, "overall", "missing", 1)).toThrow(
       "is not a component",
     );
     expect(() => setRatingScaleAnchors(state, "missing", [])).toThrow(

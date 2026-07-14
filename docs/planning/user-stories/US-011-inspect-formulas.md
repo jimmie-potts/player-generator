@@ -36,6 +36,14 @@ outcomes are explainable.
   with API-owned data as the only source for formula metadata, player calculations, and context
   identity. Loading, empty, stale-context, and request failures will clear or label prior data rather
   than presenting it as current.
+- **2026-07-14 refinement:** Gave the Formula and Authoritative Explanation panes equal,
+  viewport-bounded desktop heights. Formula details scroll inside their pane while the selected
+  player's rating summary stays visible; raw inputs and component calculations remain available in
+  native expandable sections. Mobile and narrow layouts restore normal page flow. Added generous
+  expandable guidance throughout the inspection surface and a dedicated glossary that combines
+  stable workbench terminology with a catalog derived from the formula and metric metadata returned
+  by the API. The layout and progressive-disclosure policy are recorded in
+  [D-028](../DECISIONS.md#d-028-accessible-exact-allocation-editing-and-persistent-explanation).
 
 ## Completion notes
 
@@ -64,6 +72,9 @@ outcomes are explainable.
   `npm run workbench:test` passed 35 tests. Rendered integration coverage verifies the complete
   initial API flow and exact contribution cells, while focused tests cover context mismatches and
   missing calculation values.
+- **2026-07-14 refinement validation:** `npm run workbench:test` now passes 50 tests, including
+  semantic glossary navigation, native calculation disclosures, and the persistent summary/detail
+  structure; the production workbench build and diff checks also pass.
 - **Follow-ups:** Authentication, persistence, proposal approval, deployment, and arbitrary formula
   expressions remain outside the implemented inspection boundary.
 - **Learnings:** Calculation metadata and shared-engine explanation trees are sufficient for a fully

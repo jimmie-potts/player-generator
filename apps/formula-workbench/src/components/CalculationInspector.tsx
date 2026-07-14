@@ -5,6 +5,7 @@ import {
   formatSignedNumber,
   identifierLabel,
 } from "../domain/format";
+import { SectionHelp } from "./SectionHelp";
 import { StatusPanel } from "./StatusPanel";
 
 export type CalculationInspectorStatus =
@@ -21,7 +22,7 @@ export interface CalculationPlayerIdentity {
   season: number | null;
 }
 
-export type CalculationValueState = "available" | "missing" | "unsupported";
+export type CalculationValueState = "available" | "missing" | "pending" | "unsupported";
 
 export interface CalculationRawMetricRow {
   metric: string;
@@ -50,6 +51,8 @@ export interface CalculationInspectorProps {
   baseline: AttributeCalculation | null;
   preview?: AttributeCalculation | null;
   metrics?: readonly MetricMetadata[];
+  pending?: boolean;
+  previewError?: string;
   status?: CalculationInspectorStatus;
   statusMessage?: string;
 }
@@ -65,17 +68,26 @@ function metricMetadataMap(metrics: readonly MetricMetadata[]): Map<string, Metr
 export function buildCalculationRawMetricRows(
   baseline: AttributeCalculation,
   preview: AttributeCalculation | null | undefined,
+  pending = false,
 ): CalculationRawMetricRow[] {
   const names = new Set([...Object.keys(baseline.rawInputs), ...Object.keys(preview?.rawInputs ?? {})]);
   return [...names].sort().map((metric) => {
     const baselineSupported = hasOwn(baseline.rawInputs, metric);
-    const previewSupported = preview ? hasOwn(preview.rawInputs, metric) : baselineSupported;
+    const previewSupported = pending
+      ? baselineSupported
+      : preview
+        ? hasOwn(preview.rawInputs, metric)
+        : baselineSupported;
     const baselineValue = baseline.rawInputs[metric];
-    const previewValue = preview
-      ? preview.rawInputs[metric]
-      : baselineValue;
+    const previewValue = pending
+      ? undefined
+      : preview
+        ? preview.rawInputs[metric]
+        : baselineValue;
     const state: CalculationValueState =
-      !baselineSupported && !previewSupported
+      pending
+        ? "pending"
+        : !baselineSupported && !previewSupported
         ? "unsupported"
         : baselineValue == null || previewValue == null
           ? "missing"
@@ -94,6 +106,7 @@ export function buildCalculationComponentRows(
   baseline: AttributeCalculation,
   preview: AttributeCalculation | null | undefined,
   metrics: readonly MetricMetadata[] = [],
+  pending = false,
 ): CalculationComponentRow[] {
   const metadata = metricMetadataMap(metrics);
   const names = new Set([
@@ -108,17 +121,23 @@ export function buildCalculationComponentRows(
   return [...names].map((metric) => {
     const details = metadata.get(metric);
     const baselinePercentile = baseline.componentPercentiles[metric];
-    const previewPercentile = preview
-      ? preview.componentPercentiles[metric]
-      : baselinePercentile;
+    const previewPercentile = pending
+      ? undefined
+      : preview
+        ? preview.componentPercentiles[metric]
+        : baselinePercentile;
     const baselineWeight = baseline.normalizedWeights[metric];
-    const previewWeight = preview
-      ? preview.normalizedWeights[metric]
-      : baselineWeight;
+    const previewWeight = pending
+      ? undefined
+      : preview
+        ? preview.normalizedWeights[metric]
+        : baselineWeight;
     const baselineContribution = baseline.contributions[metric];
-    const previewContribution = preview
-      ? preview.contributions[metric]
-      : baselineContribution;
+    const previewContribution = pending
+      ? undefined
+      : preview
+        ? preview.contributions[metric]
+        : baselineContribution;
     const supported =
       hasOwn(baseline.componentPercentiles, metric) ||
       hasOwn(baseline.normalizedWeights, metric) ||
@@ -129,9 +148,11 @@ export function buildCalculationComponentRows(
             hasOwn(preview.normalizedWeights, metric) ||
             hasOwn(preview.contributions, metric)),
       );
-    const state: CalculationValueState = !supported
-      ? "unsupported"
-      : baselinePercentile == null ||
+    const state: CalculationValueState = pending
+      ? "pending"
+      : !supported
+        ? "unsupported"
+        : baselinePercentile == null ||
           previewPercentile == null ||
           baselineWeight == null ||
           previewWeight == null ||
@@ -156,6 +177,9 @@ export function buildCalculationComponentRows(
 }
 
 function displayValue(value: JsonScalar | undefined, state: CalculationValueState): string {
+  if (state === "pending" && value === undefined) {
+    return "Updating…";
+  }
   if (state === "unsupported") {
     return "Unsupported";
   }
@@ -191,6 +215,8 @@ export function CalculationInspector({
   baseline,
   preview = null,
   metrics = [],
+  pending = false,
+  previewError,
   status = "ready",
   statusMessage,
 }: CalculationInspectorProps) {
@@ -219,8 +245,8 @@ export function CalculationInspector({
     );
   }
 
-  const rawRows = buildCalculationRawMetricRows(baseline, preview);
-  const componentRows = buildCalculationComponentRows(baseline, preview, metrics);
+  const rawRows = buildCalculationRawMetricRows(baseline, preview, pending);
+  const componentRows = buildCalculationComponentRows(baseline, preview, metrics, pending);
   const excluded = !baseline.eligible || (preview ? !preview.eligible : false);
   const reasons = [
     ...baseline.ineligibilityReasons,
@@ -237,143 +263,245 @@ export function CalculationInspector({
   );
 
   return (
-    <section className="calculation-inspector workbench-panel" aria-labelledby="calculation-title">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">Authoritative explanation</p>
-          <h2 id="calculation-title">{player.displayName}</h2>
+    <section
+      className="calculation-inspector workbench-panel"
+      aria-busy={pending}
+      aria-label={`${identifierLabel(attributeName)} authoritative explanation for ${player.displayName}`}
+      role="region"
+      tabIndex={0}
+    >
+      <div className="calculation-inspector__summary">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Authoritative explanation</p>
+            <h2 id="calculation-title">{player.displayName}</h2>
+            <p>
+              {identifierLabel(attributeName)} · {player.season ?? "Season unavailable"} · {player.playerId}
+            </p>
+          </div>
+          <span className={`eligibility-badge eligibility-badge--${excluded ? "excluded" : "eligible"}`}>
+            {excluded ? "Excluded" : "Eligible"}
+          </span>
+        </div>
+
+        <SectionHelp title="How to read this authoritative explanation">
           <p>
-            {identifierLabel(attributeName)} · {player.season ?? "Season unavailable"} · {player.playerId}
+            This panel traces the selected player through the shared server-side attribute
+            evaluator. Baseline values come from the active formula; preview values come from the
+            latest validated session proposal. The browser presents those results without
+            recreating or approximating the rating calculation.
           </p>
+          <p>
+            Rating is the final 25–99 output. Composite percentile describes the player’s position
+            within the eligible cohort, while weighted composite is the server’s combined value
+            before the rating scale is applied. The cohort count shows how many comparable players
+            participated in that population-relative calculation.
+          </p>
+          <p>
+            The eligibility badge indicates whether the player passed the formula’s required-input
+            and minimum-sample gates. When a preview is still being validated, the workbench does
+            not present an older result as though it belonged to the current edits.
+          </p>
+        </SectionHelp>
+
+        {pending ? (
+          <p className="preview-pending" role="status">
+            Updating the authoritative preview. Baseline stats remain visible while prior preview
+            values stay hidden.
+          </p>
+        ) : null}
+
+        {!pending && previewError ? (
+          <StatusPanel title="Preview unavailable" tone="error" compact>
+            {previewError} Baseline stats remain available for reference.
+          </StatusPanel>
+        ) : null}
+
+        {excluded ? (
+          <StatusPanel title="Excluded from this attribute cohort" tone="excluded" compact>
+            {reasons.length ? (
+              <ul className="reason-list">
+                {reasons.map((reason, index) => (
+                  <li key={`${reason.kind}-${reason.metric}-${index}`}>{ineligibilityMessage(reason)}</li>
+                ))}
+              </ul>
+            ) : (
+              "The API marked this calculation ineligible without an additional reason."
+            )}
+          </StatusPanel>
+        ) : null}
+
+        <div className="calculation-scoreboard" aria-label="Calculation summary">
+          <article>
+            <span>Rating</span>
+            <strong>{formatNumber(baseline.rating)}</strong>
+            <small>
+              {pending
+                ? "Preview updating…"
+                : `Preview ${formatNumber(preview?.rating)} · Δ ${formatSignedNumber(summaryDelta(baseline.rating, preview?.rating))}`}
+            </small>
+          </article>
+          <article>
+            <span>Composite percentile</span>
+            <strong>{formatPercent(baseline.compositePercentile)}</strong>
+            <small>
+              {pending
+                ? "Preview updating…"
+                : `Preview ${formatPercent(preview?.compositePercentile)}`}
+            </small>
+          </article>
+          <article>
+            <span>Weighted composite</span>
+            <strong>{formatNumber(baseline.composite)}</strong>
+            <small>
+              {pending ? "Preview updating…" : `Preview ${formatNumber(preview?.composite)}`}
+            </small>
+          </article>
+          <article>
+            <span>Eligible cohort</span>
+            <strong>{baseline.cohort.eligibleCount.toLocaleString()}</strong>
+            <small>
+              {identifierLabel(baseline.cohort.name)}
+              {Object.keys(baseline.cohort.values).length
+                ? ` · ${Object.entries(baseline.cohort.values)
+                    .map(([field, value]) => `${identifierLabel(field)} ${formatNumber(value)}`)
+                    .join(" · ")}`
+                : ""}
+            </small>
+          </article>
         </div>
-        <span className={`eligibility-badge eligibility-badge--${excluded ? "excluded" : "eligible"}`}>
-          {excluded ? "Excluded" : "Eligible"}
-        </span>
       </div>
 
-      {excluded ? (
-        <StatusPanel title="Excluded from this attribute cohort" tone="excluded" compact>
-          {reasons.length ? (
-            <ul className="reason-list">
-              {reasons.map((reason, index) => (
-                <li key={`${reason.kind}-${reason.metric}-${index}`}>{ineligibilityMessage(reason)}</li>
-              ))}
-            </ul>
-          ) : (
-            "The API marked this calculation ineligible without an additional reason."
-          )}
-        </StatusPanel>
-      ) : null}
+      <div className="calculation-inspector__details">
+        <details className="calculation-section calculation-detail" open>
+          <summary className="section-heading calculation-detail__summary">
+            <span>
+              <span className="eyebrow">Source values</span>
+              <span
+                className="calculation-detail__title"
+                id="raw-metrics-heading"
+                role="heading"
+                aria-level={3}
+              >
+                Raw metrics
+              </span>
+            </span>
+            <span className="calculation-detail__summary-copy">
+              Missing values remain empty; the client does not impute or calculate replacements.
+            </span>
+          </summary>
+          <div className="calculation-detail__content" aria-labelledby="raw-metrics-heading">
+            <SectionHelp title="How to read raw metrics">
+              <p>
+                Raw metrics are the source or derived player values supplied to the selected
+                attribute formula. They are the evidence the evaluator ranks or transforms before
+                applying component weights. Formula tuning normally changes how these inputs are
+                interpreted, not the underlying player data itself.
+              </p>
+              <p>
+                Baseline and preview columns let you verify that a proposal is being tested against
+                the same player inputs. A missing state is intentional: the client leaves absent
+                values empty and relies on the server’s eligibility rules instead of inventing a
+                replacement.
+              </p>
+            </SectionHelp>
+            <div className="data-table-wrap" tabIndex={0} role="region" aria-label="Raw metric values">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Metric</th>
+                    <th scope="col">Baseline</th>
+                    <th scope="col">Preview</th>
+                    <th scope="col">State</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rawRows.map((row) => (
+                    <tr key={row.metric} className={`value-row value-row--${row.state}`}>
+                      <th scope="row">{row.label}</th>
+                      <td>{displayValue(row.baseline, row.state)}</td>
+                      <td>{displayValue(row.preview, row.state)}</td>
+                      <td><span className={`value-state value-state--${row.state}`}>{identifierLabel(row.state)}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
 
-      <div className="calculation-scoreboard" aria-label="Calculation summary">
-        <article>
-          <span>Rating</span>
-          <strong>{formatNumber(baseline.rating)}</strong>
-          <small>
-            Preview {formatNumber(preview?.rating)} · Δ {formatSignedNumber(summaryDelta(baseline.rating, preview?.rating))}
-          </small>
-        </article>
-        <article>
-          <span>Composite percentile</span>
-          <strong>{formatPercent(baseline.compositePercentile)}</strong>
-          <small>Preview {formatPercent(preview?.compositePercentile)}</small>
-        </article>
-        <article>
-          <span>Weighted composite</span>
-          <strong>{formatNumber(baseline.composite)}</strong>
-          <small>Preview {formatNumber(preview?.composite)}</small>
-        </article>
-        <article>
-          <span>Eligible cohort</span>
-          <strong>{baseline.cohort.eligibleCount.toLocaleString()}</strong>
-          <small>
-            {identifierLabel(baseline.cohort.name)}
-            {Object.keys(baseline.cohort.values).length
-              ? ` · ${Object.entries(baseline.cohort.values)
-                  .map(([field, value]) => `${identifierLabel(field)} ${formatNumber(value)}`)
-                  .join(" · ")}`
-              : ""}
-          </small>
-        </article>
+        <details className="calculation-section calculation-detail" open>
+          <summary className="section-heading calculation-detail__summary">
+            <span>
+              <span className="eyebrow">API calculation detail</span>
+              <span
+                className="calculation-detail__title"
+                id="component-breakdown-heading"
+                role="heading"
+                aria-level={3}
+              >
+                Component breakdown
+              </span>
+            </span>
+            <span className="calculation-detail__summary-copy">
+              Values below are rendered exactly as returned; no rating formula runs in the browser.
+            </span>
+          </summary>
+          <div className="calculation-detail__content" aria-labelledby="component-breakdown-heading">
+            <SectionHelp title="How to read the component breakdown">
+              <p>
+                Each row follows one declared formula component from its cohort-relative percentile
+                through its normalized weight to its contribution. Direction rules determine which
+                performance values rank favorably; changing a direction can therefore change the
+                percentile before the weight is applied.
+              </p>
+              <p>
+                Normalized weights are the server-validated shares used by the evaluator and total
+                100% across the attribute. Contribution shows the amount each component supplies to
+                the weighted composite. Compare baseline and preview columns to see exactly where a
+                proposed weight or direction change altered the calculation; displayed rounding may
+                make tiny differences appear equal.
+              </p>
+            </SectionHelp>
+            <div className="data-table-wrap" tabIndex={0} role="region" aria-label="Component calculation breakdown">
+              <table className="data-table data-table--calculation">
+                <thead>
+                  <tr>
+                    <th rowSpan={2} scope="col">Component</th>
+                    <th colSpan={2} scope="colgroup">Percentile</th>
+                    <th colSpan={2} scope="colgroup">Normalized weight</th>
+                    <th colSpan={2} scope="colgroup">Contribution</th>
+                  </tr>
+                  <tr>
+                    <th scope="col">Base</th>
+                    <th scope="col">Preview</th>
+                    <th scope="col">Base</th>
+                    <th scope="col">Preview</th>
+                    <th scope="col">Base</th>
+                    <th scope="col">Preview</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {componentRows.map((row) => (
+                    <tr key={row.metric} className={`value-row value-row--${row.state}`}>
+                      <th scope="row">
+                        {row.label}
+                        {row.description ? <small>{row.description}</small> : null}
+                      </th>
+                      <td>{formatPercent(row.baselinePercentile)}</td>
+                      <td>{pending ? "Updating…" : formatPercent(row.previewPercentile)}</td>
+                      <td>{formatPercent(row.baselineWeight)}</td>
+                      <td>{pending ? "Updating…" : formatPercent(row.previewWeight)}</td>
+                      <td>{formatNumber(row.baselineContribution)}</td>
+                      <td>{pending ? "Updating…" : formatNumber(row.previewContribution)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
       </div>
-
-      <section className="calculation-section" aria-labelledby="raw-metrics-heading">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Source values</p>
-            <h3 id="raw-metrics-heading">Raw metrics</h3>
-          </div>
-          <p>Missing values remain empty; the client does not impute or calculate replacements.</p>
-        </div>
-        <div className="data-table-wrap" tabIndex={0} role="region" aria-label="Raw metric values">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th scope="col">Metric</th>
-                <th scope="col">Baseline</th>
-                <th scope="col">Preview</th>
-                <th scope="col">State</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rawRows.map((row) => (
-                <tr key={row.metric} className={`value-row value-row--${row.state}`}>
-                  <th scope="row">{row.label}</th>
-                  <td>{displayValue(row.baseline, row.state)}</td>
-                  <td>{displayValue(row.preview, row.state)}</td>
-                  <td><span className={`value-state value-state--${row.state}`}>{identifierLabel(row.state)}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="calculation-section" aria-labelledby="component-breakdown-heading">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">API calculation detail</p>
-            <h3 id="component-breakdown-heading">Component breakdown</h3>
-          </div>
-          <p>Values below are rendered exactly as returned; no rating formula runs in the browser.</p>
-        </div>
-        <div className="data-table-wrap" tabIndex={0} role="region" aria-label="Component calculation breakdown">
-          <table className="data-table data-table--calculation">
-            <thead>
-              <tr>
-                <th rowSpan={2} scope="col">Component</th>
-                <th colSpan={2} scope="colgroup">Percentile</th>
-                <th colSpan={2} scope="colgroup">Normalized weight</th>
-                <th colSpan={2} scope="colgroup">Contribution</th>
-              </tr>
-              <tr>
-                <th scope="col">Base</th>
-                <th scope="col">Preview</th>
-                <th scope="col">Base</th>
-                <th scope="col">Preview</th>
-                <th scope="col">Base</th>
-                <th scope="col">Preview</th>
-              </tr>
-            </thead>
-            <tbody>
-              {componentRows.map((row) => (
-                <tr key={row.metric} className={`value-row value-row--${row.state}`}>
-                  <th scope="row">
-                    {row.label}
-                    {row.description ? <small>{row.description}</small> : null}
-                  </th>
-                  <td>{formatPercent(row.baselinePercentile)}</td>
-                  <td>{formatPercent(row.previewPercentile)}</td>
-                  <td>{formatPercent(row.baselineWeight)}</td>
-                  <td>{formatPercent(row.previewWeight)}</td>
-                  <td>{formatNumber(row.baselineContribution)}</td>
-                  <td>{formatNumber(row.previewContribution)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
     </section>
   );
 }

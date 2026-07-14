@@ -1,4 +1,5 @@
 import { formatNumber, formatSignedNumber } from "../domain/format";
+import { SectionHelp } from "./SectionHelp";
 import { StatusPanel } from "./StatusPanel";
 
 export type ComparisonVisualState =
@@ -10,7 +11,7 @@ export type ComparisonVisualState =
   | "missing"
   | "no-change";
 
-export type ComparisonGroupKind = "pinned" | "tier";
+export type ComparisonGroupKind = "tier" | "top25" | "custom";
 
 export interface ComparisonMeasure {
   baseline: number | null;
@@ -25,7 +26,7 @@ export interface PlayerComparisonRow {
   playerId: string;
   displayName: string;
   tier: string | null;
-  pinned: boolean;
+  removable: boolean;
   selected?: boolean;
   state: ComparisonVisualState;
   stateMessage?: string;
@@ -45,8 +46,10 @@ export interface PlayerComparisonProps {
   groups: readonly PlayerComparisonGroup[];
   loading?: boolean;
   error?: string | null;
+  emptyTitle?: string;
+  emptyMessage?: string;
   onSelect: (playerId: string) => void;
-  onUnpin: (playerId: string) => void;
+  onRemove: (playerId: string) => void;
 }
 
 const STATE_LABELS: Record<ComparisonVisualState, string> = {
@@ -92,13 +95,21 @@ function rankMovementLabel(measure: ComparisonMeasure): string {
   }.`;
 }
 
+const GROUP_MEMBER_LABELS: Record<ComparisonGroupKind, string> = {
+  tier: "representative",
+  top25: "baseline-ranked player",
+  custom: "custom player",
+};
+
 export function PlayerComparison({
   selectedAttributeLabel,
   groups,
   loading = false,
   error = null,
+  emptyTitle = "No comparison players",
+  emptyMessage = "The active player set did not return any players.",
   onSelect,
-  onUnpin,
+  onRemove,
 }: PlayerComparisonProps) {
   if (error) {
     return (
@@ -119,8 +130,8 @@ export function PlayerComparison({
   const populatedGroups = groups.filter((group) => group.rows.length);
   if (!populatedGroups.length) {
     return (
-      <StatusPanel title="No comparison players" tone="empty">
-        The loaded cohort did not return representative or pinned players.
+      <StatusPanel title={emptyTitle} tone="empty">
+        {emptyMessage}
       </StatusPanel>
     );
   }
@@ -137,19 +148,31 @@ export function PlayerComparison({
           </p>
         </div>
       </div>
+      <SectionHelp title="How to read player impact">
+        <p>
+          Delta is preview minus baseline. Positive rank movement means movement toward rank 1,
+          and every rank is calculated across the complete fixed cohort rather than only the rows
+          shown here. Signals distinguish unchanged, missing, excluded, failed, and tied largest
+          gain or loss results. Selecting a player updates the authoritative explanation above.
+        </p>
+      </SectionHelp>
 
       {populatedGroups.map((group) => (
         <section className="comparison-group" key={group.id} aria-labelledby={`${group.id}-heading`}>
           <div className="comparison-group__heading">
             <h3 id={`${group.id}-heading`}>{group.label}</h3>
             <span>
-              {group.rows.length} {group.kind === "pinned" ? "session pin" : "representative"}
+              {group.rows.length} {GROUP_MEMBER_LABELS[group.kind]}
               {group.rows.length === 1 ? "" : "s"}
             </span>
           </div>
 
           <div
-            className="comparison-table-wrap"
+            className={`comparison-table-wrap${
+              group.kind === "top25" || group.kind === "custom"
+                ? " comparison-table-wrap--bounded"
+                : ""
+            }`}
             tabIndex={0}
             role="region"
             aria-label={`${group.label} player comparison`}
@@ -210,13 +233,13 @@ export function PlayerComparison({
                       {player.stateMessage ? <span className="sr-only">: {player.stateMessage}</span> : null}
                     </td>
                     <td className="comparison-actions">
-                      {player.pinned ? (
+                      {player.removable ? (
                         <button
                           className="icon-button"
                           type="button"
-                          onClick={() => onUnpin(player.playerId)}
-                          aria-label={`Unpin ${player.displayName}`}
-                          title="Unpin player"
+                          onClick={() => onRemove(player.playerId)}
+                          aria-label={`Remove ${player.displayName} from custom list`}
+                          title="Remove from custom list"
                         >
                           ×
                         </button>
