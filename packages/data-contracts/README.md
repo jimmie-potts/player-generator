@@ -44,3 +44,5 @@ player-season key sets across the season-grain tables, including attributes in v
 `load_roster_contract()` exposes roster contract version 1. Roster validation additionally enforces
 shooting decompositions, points and rebound totals, derived per-game/per-36/per-100 rates,
 percentages, net ratings, advanced-stat relationships, and exact player/key sets.
+Each roster player has exactly one aligned traditional-stat and advanced-stat season because the
+attribute table is player-grain.

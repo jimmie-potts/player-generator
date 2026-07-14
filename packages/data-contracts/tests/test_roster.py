@@ -369,6 +369,20 @@ def test_player_and_player_season_exact_key_sets_are_enforced() -> None:
         validate_roster_tables(tables)
 
 
+def test_each_roster_player_has_exactly_one_stat_season() -> None:
+    for file_name in ("player_stats.csv", "player_advanced_stats.csv"):
+        tables = _valid_tables()
+        second_season = copy.deepcopy(tables[file_name][0])
+        second_season["season"] = 2025
+        tables[file_name].append(second_season)
+
+        with pytest.raises(
+            ContractValidationError,
+            match=r"violates unique key \(playerId\)",
+        ):
+            validate_roster_tables(tables)
+
+
 def test_every_roster_player_requires_stats_and_advanced_stats() -> None:
     tables = _valid_tables()
     tables["player_stats.csv"] = []

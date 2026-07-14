@@ -69,7 +69,7 @@
         {"name": "twoPointAttemptFrequency", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
         {"name": "threePointAttemptFrequency", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1}
       ],
-      "uniqueKeys": [["playerId", "season"]]
+      "uniqueKeys": [["playerId"], ["playerId", "season"]]
     },
     "player_advanced_stats.csv": {
       "columns": [
@@ -95,7 +95,7 @@
         {"name": "defensiveWinShares", "type": "number", "required": false, "nullable": true},
         {"name": "defensiveWinSharesPer36", "type": "number", "required": false, "nullable": true}
       ],
-      "uniqueKeys": [["playerId", "season"]]
+      "uniqueKeys": [["playerId"], ["playerId", "season"]]
     },
     "player_attributes.csv": {
       "columns": [

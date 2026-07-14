@@ -185,3 +185,12 @@ changes one; do not rewrite history without recording the replacement.
   while infinity cannot be represented by the finite-number contract. A one-turnover denominator
   floor preserves the benefit of a turnover-free line. A made three on one attempt yields `1.5`
   effective field-goal and true-shooting rates, so a 0–1 proportion bound rejects valid arithmetic.
+
+## D-022: One generated season per roster player
+
+- **Status:** accepted
+- **Decision:** Roster contract version 1 permits exactly one `player_stats.csv` row and one aligned
+  `player_advanced_stats.csv` row per `playerId`. `player_attributes.csv` remains at player grain.
+- **Reason:** Generation samples one reference player-season for each roster player. Allowing more
+  than one generated season would leave the player-grain attribute row unable to identify which
+  season it rates, even when the two stat tables share the same multi-season key set.

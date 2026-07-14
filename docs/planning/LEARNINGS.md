@@ -176,6 +176,9 @@ its completion notes.
   `max(turnovers, 1)` in both generation and semantic validation.
 - Parse and hash a custom formula from the same immutable byte snapshot. Reading the path again
   after generation can make the manifest describe bytes that were not used for evaluation.
+- Exact key-set validation removes duplicates before comparing sets. When a related table has a
+  coarser grain, enforce uniqueness at that projection too; otherwise multiple stat seasons can
+  collapse to one `playerId` and appear compatible with a player-grain attribute table.
 
 ### 2026-07-13 — US-015
 

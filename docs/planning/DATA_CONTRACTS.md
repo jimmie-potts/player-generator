@@ -79,13 +79,17 @@ content hash.
 | File | Grain | Purpose |
 |---|---|---|
 | `players.csv` | one row per roster player | Generated identity and available bio or physical fields |
-| `player_stats.csv` | one row per roster player and season | Internally consistent adjusted traditional and rate statistics |
-| `player_advanced_stats.csv` | one row per roster player and season | Adjusted advanced and possession metrics |
+| `player_stats.csv` | one row per roster player for its generated season | Internally consistent adjusted traditional and rate statistics |
+| `player_advanced_stats.csv` | one row per roster player for its generated season | Adjusted advanced and possession metrics |
 | `player_attributes.csv` | one row per roster player | Calculated attributes, overall, tier, and formula version |
 | `manifest.json` | one package | Contract versions, reference-package hash, formula version, seed, and row counts |
 
 Every CSV joins through `playerId`. Upstream names, source IDs, source team IDs, and source-row
 indexes are forbidden from roster output.
+
+Roster contract version 1 permits exactly one traditional-stat row and one advanced-stat row per
+player. The two rows must also share the same `(playerId, season)` key. Attributes remain at player
+grain, so allowing a second stat season would make the rated season ambiguous.
 
 Version 1 `players.csv` header:
 
@@ -130,8 +134,8 @@ playerId,insideScoring,threePointShooting,freeThrowShooting,scoringVolume,playma
 ```
 
 The packaged `roster-v1.schema.json` resource governs ordered headers, scalar types, nullability,
-bounds, unique keys, exact player and player-season key sets, and relationships. Semantic validation
-also recomputes every published statistical identity before publication.
+bounds, per-player stat-row uniqueness, exact player and player-season key sets, and relationships.
+Semantic validation also recomputes every published statistical identity before publication.
 
 `manifest.json` is deterministic and records manifest and package version 1, every CSV contract
 version, the reference-package content hash, formula version and document hash, seed, semantic
