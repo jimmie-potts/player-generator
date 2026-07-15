@@ -21,6 +21,7 @@ from formula_preview_api.models import (
     PlayerDetailResponse,
     PreviewRequest,
     PreviewResponse,
+    RepresentativesResponse,
     SearchResponse,
 )
 from formula_preview_api.service import PreviewService
@@ -128,6 +129,19 @@ def create_app(
             limit=limit,
             pinned_player_ids=pinned_player_id or (),
         )
+
+    @app.get(
+        "/api/v1/players/representatives",
+        response_model=RepresentativesResponse,
+        responses={422: {"model": ErrorResponse}},
+    )
+    async def representatives(
+        per_tier: Annotated[
+            int,
+            Query(alias="perTier", ge=1, le=5),
+        ] = 3,
+    ) -> RepresentativesResponse:
+        return preview.representatives(per_tier=per_tier)
 
     @app.get(
         "/api/v1/players/search",

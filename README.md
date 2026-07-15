@@ -9,7 +9,7 @@ generating roster data, and developing an interactive formula workbench.
 apps/
   reference-data/       Python reference-data CLI, configuration, source ingestion, and tests
   roster-generator/     Python roster-package validation, generation, publication, and tests
-  formula-workbench/    React shell and Python formula preview API
+  formula-workbench/    React formula-design client and Python preview API
 packages/
   data-contracts/       Shared versioned schemas, identifiers, and validation
   attribute-engine/     Shared percentile and player-rating calculations
@@ -18,7 +18,7 @@ packages/
 Reference data and roster generation are the two data subprojects. The formula workbench is a
 supporting application over the shared contracts and calculation engine.
 
-The batch-data foundation and read-only API phase are implemented:
+The batch-data foundation and local formula-design workflow are implemented:
 
 - Reference data can register and normalize local NBA and ESPN Parquet inputs and atomically publish
   a validated version 2 CSV package with season-relative attributes. The pinned download and wide
@@ -27,8 +27,10 @@ The batch-data foundation and read-only API phase are implemented:
   controlled statistical mutation, and atomically publishes a normalized player-only CSV package.
 - Player attributes use the validated declarative formula document and shared Python evaluator.
 - The formula preview API exposes version 1 formula, metric, player, and temporary recalculation
-  endpoints over one integrity-checked season cohort. The React shell still has no API or formula
-  behavior; that integration remains EPIC-06 work.
+  endpoints over one integrity-checked season cohort.
+- The React workbench consumes that API to inspect calculations, preview supported session-only
+  formula adjustments, switch among tier, baseline Top 25, and custom player comparisons, and export
+  the exact server-validated proposal document.
 
 See the [version 2 planning index](docs/planning/README.md) for the remaining epics and story status.
 For a presentation-oriented system walkthrough, see the
@@ -121,24 +123,42 @@ reproducible without exposing template identities.
 
 ### Formula workbench
 
+Run the API and client in separate terminals:
+
 ```bash
+# terminal 1
 formula-preview-api --help
 formula-preview-api --config apps/formula-workbench/api/config/default.yaml
 # or: make formula-api
+
+# terminal 2
 npm run workbench:dev
+
+# validation
 npm run workbench:test
 npm run workbench:build
 ```
 
-The US-010 API loads the ignored local version 2 reference package by default, evaluates
-the complete configured 2026 cohort through the shared engine, and serves bounded baseline, search,
-detail, and request-local preview responses under `/api/v1`. It never writes formula configuration,
-reference data, or presets. See the [formula preview API contract](apps/formula-workbench/api/README.md)
-for endpoints, context hashes, edit controls, limits, and error behavior.
+The API loads the ignored local version 2 reference package by default, evaluates the complete
+configured 2026 cohort through the shared engine, and serves bounded baseline, tier-representative,
+search, detail, and request-local preview responses under `/api/v1`. It never writes formula
+configuration, reference data, or presets. See the
+[formula preview API contract](apps/formula-workbench/api/README.md) for endpoints, context hashes,
+edit controls, limits, and error behavior.
 
-The current React shell remains an independently runnable frontend boundary with no API calls or
-formula calculations. Formula inspection, browser editing, comparison, and API integration remain
-planned in EPIC-06.
+The React client loads the active formula, metric metadata, and authoritative player explanations
+from the API. Player Comparison defaults to three representatives from each populated talent tier
+and offers mutually exclusive fixed baseline Top 25 and session-only custom-list views. The custom
+list supports up to 25 searched players. Only the active view requests detailed player results, but
+the API still calculates every rating, percentile, and rank against the complete fixed season
+cohort. The client previews changes to existing component weights, directions, rating anchors, and
+the proposed formula version. Superseded requests are cancelled, stale context is rejected, and the
+browser never calculates ratings itself.
+
+Edits and the custom list disappear on reload. Export downloads the API's exact validated full
+formula JSON, which can be passed to `roster-generator generate --formula`; it does not activate or
+persist the proposal. Authentication, named sessions, arbitrary browser expressions, deployment,
+and production hosting remain out of scope.
 
 ## Rating model
 
@@ -164,7 +184,8 @@ schema lives in `packages/data-contracts/`. See the [current rating model](docs/
 - `player_attribute_engine` is the authoritative Python calculation owner.
 - `formula_preview_api` reads only a validated published reference package and calls the shared
   attribute engine; it does not import either data application or write package/formula state.
-- The React workbench must call the Python API rather than reimplement calculations.
+- The React workbench calls the Python API rather than reimplementing calculations; its edits and
+  custom list are session-only, and exports use the exact server-validated preview document.
 - Source names, source IDs, and reconciliation mappings remain reference-only.
 
 These rules are enforced by automated import-boundary and entrypoint tests.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from collections.abc import Collection, Mapping, Sequence
 from typing import Any
@@ -154,6 +155,77 @@ async def test_baseline_is_bounded_ranked_and_augmented_by_pins(
     ] is True
 
 
+async def test_representatives_are_grouped_by_every_populated_tier_deterministically(
+    client: httpx2.AsyncClient,
+    synthetic_package: SyntheticPackage,
+) -> None:
+    default_response = await client.get("/api/v1/players/representatives")
+    response = await client.get(
+        "/api/v1/players/representatives",
+        params={"perTier": 2},
+    )
+
+    assert default_response.status_code == 200
+    assert default_response.json()["perTier"] == 3
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["perTier"] == 2
+    assert payload["context"] == default_response.json()["context"]
+
+    baseline_ranks = _ranks(synthetic_package.evaluation.rows)
+    expected_tiers = []
+    for tier in sorted(
+        synthetic_package.formula.talent_tiers,
+        key=lambda item: (item.minimum, item.maximum, item.name),
+        reverse=True,
+    ):
+        candidates = [
+            row
+            for row in synthetic_package.evaluation.rows
+            if row["talentTier"] == tier.name
+        ]
+        candidates.sort(
+            key=lambda row: (
+                baseline_ranks[str(row["playerId"])] or 10**9,
+                str(row["playerId"]),
+            )
+        )
+        if candidates:
+            expected_tiers.append(
+                {
+                    "tier": tier.name,
+                    "minimum": tier.minimum,
+                    "maximum": tier.maximum,
+                    "playerIds": [str(row["playerId"]) for row in candidates[:2]],
+                }
+            )
+
+    assert [
+        {
+            "tier": group["tier"],
+            "minimum": group["minimum"],
+            "maximum": group["maximum"],
+            "playerIds": [player["playerId"] for player in group["players"]],
+        }
+        for group in payload["tiers"]
+    ] == expected_tiers
+    for group in payload["tiers"]:
+        assert 1 <= len(group["players"]) <= 2
+        assert [player["baselineRank"] for player in group["players"]] == sorted(
+            player["baselineRank"] for player in group["players"]
+        )
+        for player in group["players"]:
+            assert player["pinned"] is False
+            assert player["baseline"]["talentTier"] == group["tier"]
+            _assert_nested(
+                player["baseline"],
+                synthetic_package.rows_by_player[player["playerId"]],
+            )
+    serialized = json.dumps(payload)
+    assert "sourcePlayerId" not in serialized
+    assert "upstream-player" not in serialized
+
+
 @pytest.mark.parametrize(
     ("query", "expected_player"),
     [
@@ -233,6 +305,8 @@ def _apply_adjustments(
     adjustments: Mapping[str, object],
 ) -> dict[str, Any]:
     edited = copy.deepcopy(payload)
+    if "formulaVersion" in adjustments:
+        edited["formulaVersion"] = adjustments["formulaVersion"]
     attributes = {attribute["name"]: attribute for attribute in edited["attributes"]}
     for adjustment in adjustments.get("components", []):
         attribute = attributes[adjustment["attribute"]]
@@ -252,9 +326,12 @@ def _apply_adjustments(
     return edited
 
 
-def _ranks(rows: Sequence[Mapping[str, Any]]) -> dict[str, int | None]:
+def _ranks(
+    rows: Sequence[Mapping[str, Any]],
+    attribute: str = "overall",
+) -> dict[str, int | None]:
     values = pd.Series(
-        {str(row["playerId"]): row.get("overall") for row in rows},
+        {str(row["playerId"]): row.get(attribute) for row in rows},
         dtype="Float64",
     )
     ranked = values.rank(method="min", ascending=False, na_option="keep")
@@ -361,6 +438,110 @@ async def test_preview_edits_match_direct_shared_engine_evaluation(
                 assert change["delta"] is None
 
 
+async def test_selected_attribute_ranks_use_the_complete_cohort_and_preserve_ties(
+    client: httpx2.AsyncClient,
+    synthetic_package: SyntheticPackage,
+    request_payload: Any,
+) -> None:
+    selected_attribute = "threePointShooting"
+    selected = ["player-shooter", "player-tie-a", "player-tie-b"]
+    adjustments = {
+        "components": [
+            {
+                "attribute": selected_attribute,
+                "metric": "adjustedThreePointPercentage",
+                "inverseDirection": True,
+            }
+        ]
+    }
+    expected_payload = _apply_adjustments(
+        synthetic_package.formula_payload,
+        adjustments,
+    )
+    expected_batch = evaluate_player_attributes(
+        synthetic_package.cohort,
+        parse_formula_document(expected_payload),
+    )
+    baseline_ranks = _ranks(
+        synthetic_package.evaluation.rows,
+        selected_attribute,
+    )
+    preview_ranks = _ranks(expected_batch.rows, selected_attribute)
+    request = request_payload(selected, adjustments)
+    request["selectedAttribute"] = selected_attribute
+
+    response = await client.post("/api/v1/previews", json=request)
+
+    assert response.status_code == 200
+    players = response.json()["players"]
+    assert len(preview_ranks) == len(synthetic_package.cohort)
+    for player in players:
+        player_id = player["playerId"]
+        expected_baseline = baseline_ranks[player_id]
+        expected_preview = preview_ranks[player_id]
+        assert player["attributeRank"] == {
+            "attribute": selected_attribute,
+            "baselineRank": expected_baseline,
+            "previewRank": expected_preview,
+            "rankMovement": (
+                None
+                if expected_baseline is None or expected_preview is None
+                else expected_baseline - expected_preview
+            ),
+        }
+    by_id = {player["playerId"]: player for player in players}
+    assert by_id["player-tie-a"]["attributeRank"]["baselineRank"] == by_id[
+        "player-tie-b"
+    ]["attributeRank"]["baselineRank"]
+    assert by_id["player-tie-a"]["attributeRank"]["previewRank"] == by_id[
+        "player-tie-b"
+    ]["attributeRank"]["previewRank"]
+
+
+async def test_preview_returns_the_exact_validated_export_document_and_hash(
+    client: httpx2.AsyncClient,
+    synthetic_package: SyntheticPackage,
+    request_payload: Any,
+) -> None:
+    adjustments = {
+        "formulaVersion": "designer-proposal-1",
+        "components": [
+            {
+                "attribute": "overall",
+                "metric": "pointsPer100",
+                "weight": 0.75,
+            }
+        ],
+    }
+    expected_document = _apply_adjustments(
+        synthetic_package.formula_payload,
+        adjustments,
+    )
+    request = request_payload(["player-star"], adjustments)
+
+    response = await client.post("/api/v1/previews", json=request)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["previewDocument"] == expected_document
+    parse_formula_document(payload["previewDocument"])
+    canonical = json.dumps(
+        expected_document,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    assert payload["previewFormulaHash"] == hashlib.sha256(canonical).hexdigest()
+    assert payload["players"][0]["preview"]["formulaVersion"] == (
+        "designer-proposal-1"
+    )
+
+    active = await client.get("/api/v1/formula")
+    assert active.status_code == 200
+    assert active.json()["document"] == synthetic_package.formula_payload
+
+
 async def test_preview_recalculates_the_full_cohort_for_one_selected_player(
     client: httpx2.AsyncClient,
     synthetic_package: SyntheticPackage,
@@ -440,6 +621,16 @@ async def test_identical_preview_requests_are_deterministic_except_for_timing(
     assert first_payload == second_payload
     assert all(player["baseline"] == player["preview"] for player in first_payload["players"])
     assert all(player["rankMovement"] == 0 for player in first_payload["players"])
+    assert all(
+        player["attributeRank"]
+        == {
+            "attribute": "overall",
+            "baselineRank": player["baselineRank"],
+            "previewRank": player["previewRank"],
+            "rankMovement": player["rankMovement"],
+        }
+        for player in first_payload["players"]
+    )
 
 
 async def test_service_baseline_matches_the_fixture_shared_engine_output(

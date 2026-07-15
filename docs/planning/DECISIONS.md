@@ -245,3 +245,92 @@ changes one; do not rewrite history without recording the replacement.
   attributes describe the package's calibration snapshot rather than constraining a later consumer's
   selected formula, while explicit identities prevent stale browser requests from mixing package,
   baseline, and formula state.
+
+## D-026: Server-authoritative designer proposals and tiered comparison
+
+- **Status:** accepted
+- **Decision:** EPIC-06 edits only existing formula component weights, component directions, rating
+  anchors, and the proposed formula version. The preview API returns the exact validated temporary
+  formula document and calculates selected-attribute ranks over the same complete cohort as overall
+  ranks. The default comparison contains three highest-ranked eligible players from each populated
+  talent tier. The reusable representative endpoint accepts one through five per tier, while the
+  workbench exposes one through three, leaving capacity for ten session-only pins within the
+  25-player preview limit at its 15-player default.
+- **Reason:** Returning the validated document avoids reproducing formula-merge behavior in
+  TypeScript and makes the exported JSON directly usable by batch consumers. Attribute ranks remain
+  population-relative and therefore belong beside the shared evaluator, not in the bounded browser
+  sample. Tier-stratified defaults expose tuning effects beyond the top two tiers while explicit
+  limits preserve interactive response bounds.
+
+## D-027: Session-scoped client state with cancellable authoritative previews
+
+- **Status:** accepted
+- **Decision:** Keep workbench edits, the selected player and attribute, and at most ten pins in
+  React memory for the current page session. Load all formula, metric, player, and calculation data
+  through a typed `/api/v1` client, verify response context identities before combining data, debounce
+  preview requests, abort superseded requests, and clear results that are stale or failed. Client
+  validation may provide immediate form feedback but cannot produce ratings. Enable proposal export
+  only from the latest successful response and serialize its exact `previewDocument` as formatted
+  JSON.
+- **Reason:** A local, reversible design loop needs responsive controls without creating a second
+  formula engine or an implicit persistence layer. Context verification and cancellation prevent
+  asynchronous responses from mixing formula, package, or season state. Exporting the server-owned
+  document preserves shared-validator semantics and makes the handoff directly consumable by the
+  roster generator without reconstructing merge behavior in TypeScript.
+
+## D-028: Accessible exact-allocation editing and persistent explanation
+
+- **Status:** accepted
+- **Decision:** Present every selected attribute's components as native range sliders in integer
+  one-percentage-point units, accompanied by one non-editing stacked allocation bar. Changing a
+  component assigns its requested percentage and distributes the remaining units proportionally
+  across its peers. Floor each proportional share, award remaining units by largest fractional
+  remainder, and resolve equal remainders by formula document order. When every current peer share
+  is zero, use baseline proportions and then equal shares as deterministic fallbacks. Normalize an
+  untouched positive-sum source allocation for slider and allocation-bar presentation without
+  rewriting the loaded formula; after the designer changes any component, make the authored
+  allocation total exactly `1.00`. Keep a sole component fixed at 100%. On desktop, give Formula and
+  Authoritative Explanation equal viewport-bounded panes, let Formula scroll independently, and
+  keep the rating summary visible while secondary explanation details use native expandable
+  sections. Return to normal document flow on narrow layouts. Supply native expandable section
+  guidance and a glossary containing stable terms plus a catalog derived from loaded formula and
+  metric metadata.
+- **Reason:** Native sliders provide familiar keyboard and assistive-technology behavior, while the
+  stacked bar communicates the full allocation without the ambiguous interaction model of a custom
+  multi-thumb control. Deterministic integer redistribution makes the designer's percentages
+  explicit and prevents one edit from producing an allocation above or below 100%. Persistent
+  results shorten the edit-and-compare loop, responsive normal flow avoids trapping mobile content,
+  and model-derived glossary entries remain current without reimplementing formula behavior. The
+  API still validates every proposal and the shared Python engine remains the only rating evaluator.
+
+## D-029: Mutually exclusive comparison sets over one fixed cohort
+
+- **Status:** accepted
+- **Decision:** Offer three mutually exclusive Player Comparison views. `Tier sample` remains the
+  default and shows one through three highest baseline-overall players from each populated talent
+  tier. `Top 25` shows the 25 players returned in baseline-overall order by
+  `GET /api/v1/players?limit=25`; its membership and order do not reshuffle after a temporary edit.
+  `Custom list` lets the designer search the configured reference cohort and keep up to 25 unique
+  players in React memory for the page session. Send only the active view's player IDs to a preview,
+  never a union of multiple views and never more than the API's 25-player detail bound. When a
+  formula has enough populated tiers for the selected per-tier count to exceed that bound, block the
+  tier preview with a recovery message rather than sending an invalid or silently truncated set.
+  The selected view bounds which detailed player results the API returns, but it does not define the
+  statistical population: the preview API and shared Python engine continue to calculate ratings,
+  percentiles, and ranks over the complete fixed season cohort. Preserve each view's selected player
+  while switching views when that player remains in the view.
+- **Supersedes:** [D-011](#d-011-top-player-sample-with-search-and-pinning) and the
+  comparison-composition portion of
+  [D-026](#d-026-server-authoritative-designer-proposals-and-tiered-comparison) that combines the
+  15-player tier default with ten pins, plus the ten-pin limit in
+  [D-027](#d-027-session-scoped-client-state-with-cancellable-authoritative-previews). D-026's
+  server-authoritative proposal and complete-cohort rank decisions and D-027's session-only,
+  context-checked, cancellable preview decisions remain in force. The lower-level API's bounded
+  `pinnedPlayerId` query remains part of its version 1 contract but is no longer the workbench's
+  comparison-composition model.
+- **Reason:** Separate views let a designer choose broad curve coverage, an elite baseline scan, or
+  a targeted investigation without an ambiguous combined table or a hidden capacity tradeoff.
+  Fixed baseline membership makes before-and-after Top 25 impact comparable, and a 25-player custom
+  ceiling uses the preview contract's existing response bound. Keeping the full cohort authoritative
+  prevents ratings and ranks from changing merely because the designer switches which rows are
+  visible.
