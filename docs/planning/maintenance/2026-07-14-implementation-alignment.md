@@ -42,8 +42,9 @@
 
 ## Validation
 
-- `.venv/bin/python -m pytest` passed all 386 tests, including configuration regressions for exact,
-  reduced, inherited, independently configured, and excessive version 1 limits.
+- `.venv/bin/python -m pytest` passed all 387 tests, including configuration regressions for exact,
+  reduced, direct-constructor and YAML inheritance, independently configured, and excessive version
+  1 limits.
 - `.venv/bin/python -m ruff check .` passed.
 - `TMPDIR=/tmp npm run workbench:test` passed all 85 frontend tests. `TMPDIR` avoids the Codex desktop
   WSL session's unavailable inherited Windows temporary directory; it does not change application
@@ -58,8 +59,8 @@
 - **Delivered:** `PreviewSettings` now enforces the published version 1 ceilings for baseline, pin,
   selected-player, search, and cohort limits for YAML, replacements, and direct construction. The
   service uses the new `max_selected_players` setting independently of `max_pinned_players`, while
-  older YAML that omits the new field inherits its pin limit. The Pydantic request model and settings
-  use one selected-player maximum constant.
+  older YAML and direct `PreviewSettings` construction that omit the new field inherit their pin
+  limit. The Pydantic request model and settings use one selected-player maximum constant.
 - **Documentation:** [D-030](../DECISIONS.md#d-030-formula-preview-version-1-bounds-are-contract-maxima)
   records the invariant; the API README documents configurable narrowing and legacy inheritance;
   and the reference-data configuration and README explicitly identify the legacy-only season and

@@ -47,9 +47,14 @@ class PreviewSettings:
     max_search_results: int
     max_cohort_size: int
     latency_budget_ms: int
-    max_selected_players: int = API_V1_MAX_SELECTED_PLAYERS
+    max_selected_players: int | None = None
 
     def __post_init__(self) -> None:
+        max_selected_players = (
+            self.max_pinned_players
+            if self.max_selected_players is None
+            else self.max_selected_players
+        )
         _positive_integer(self.season, "season")
         _bounded_positive_integer(
             self.default_sample_size,
@@ -62,10 +67,11 @@ class PreviewSettings:
             API_V1_MAX_PINNED_PLAYERS,
         )
         _bounded_positive_integer(
-            self.max_selected_players,
+            max_selected_players,
             "max_selected_players",
             API_V1_MAX_SELECTED_PLAYERS,
         )
+        object.__setattr__(self, "max_selected_players", max_selected_players)
         _bounded_positive_integer(
             self.max_search_results,
             "max_search_results",

@@ -335,6 +335,9 @@ its completion notes.
 - Pins and selected preview players share the same numerical maximum but are different endpoint
   concepts. Give each its own setting, and provide an explicit inheritance rule for older
   configuration rather than retaining accidental coupling in service logic.
+- Implement compatibility defaults at the shared settings-construction boundary. A fallback only in
+  a YAML parser leaves exported direct constructors with different behavior and can silently broaden
+  a caller's previously narrower limit.
 - A shared configuration file can safely support current and standalone legacy commands only when
   each command's settings are labeled. Otherwise an unused season filter can look like current
   normalized-publication policy.

@@ -51,8 +51,8 @@ evaluated so shooting priors and percentiles retain their declared population. T
 applies to that in-memory cohort; the smaller baseline-sample, pin, selected-player, and search
 limits bound response work. Configuration may lower the version 1 maxima of 25 baseline players,
 25 request pins, 25 selected preview players, 20 search results, and 1,000 cohort rows, but cannot
-raise them. Older custom configuration without `max_selected_players` retains its prior behavior by
-using `max_pinned_players` as the selected-player limit.
+raise them. Older YAML and direct `PreviewSettings` construction without `max_selected_players`
+retain their prior behavior by using `max_pinned_players` as the selected-player limit.
 
 ## Version and context tokens
 

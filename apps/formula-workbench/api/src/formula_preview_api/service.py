@@ -588,12 +588,14 @@ class PreviewService:
 
     def _validate_selected_players(self, player_ids: Sequence[str]) -> None:
         fields: list[FieldError] = []
-        if len(player_ids) > self.settings.max_selected_players:
+        max_selected_players = self.settings.max_selected_players
+        assert max_selected_players is not None
+        if len(player_ids) > max_selected_players:
             fields.append(
                 FieldError(
                     "selectedPlayerIds",
                     "too_many",
-                    f"At most {self.settings.max_selected_players} players are allowed.",
+                    f"At most {max_selected_players} players are allowed.",
                 )
             )
         if len(set(player_ids)) != len(player_ids):

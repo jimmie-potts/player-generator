@@ -58,6 +58,21 @@ def test_version_1_contract_maxima_and_reduced_limits_are_valid() -> None:
     assert reduced.max_selected_players == 12
 
 
+def test_direct_construction_inherits_the_pin_limit_for_selected_players() -> None:
+    settings = PreviewSettings(
+        reference_package=Path("reference-v2"),
+        season=2026,
+        default_sample_size=10,
+        max_pinned_players=7,
+        max_search_results=5,
+        max_cohort_size=500,
+        latency_budget_ms=3000,
+    )
+
+    assert settings.max_pinned_players == 7
+    assert settings.max_selected_players == 7
+
+
 @pytest.mark.parametrize(
     ("field", "maximum"),
     [
