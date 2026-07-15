@@ -29,9 +29,12 @@ player_attributes.csv
   set NBA-GM's starting season or league calendar.
 - The human-review workbook is generated separately and is never an integration input.
 
-This handoff changes only the roster package. Player-generator's reference package retains separate
-`player_seasons.csv`, `player_stats.csv`, and `player_advanced_stats.csv` tables and keeps source IDs
-and private reconciliation data behind the reference boundary.
+NBA-GM continues to consume only the roster profile. Within player-generator, the corresponding
+reference `players.csv`, `player_stats.csv`, and `player_attributes.csv` files will derive shared
+fields and formatting from the same contract definitions. Both target profiles consolidate
+advanced metrics into `player_stats.csv`. Reference-only `player_seasons.csv`, source IDs,
+provenance, reconciliation, and audit data remain behind the reference boundary and are not added to
+the NBA-GM handoff.
 
 ## Ownership baseline
 
@@ -66,7 +69,9 @@ US-016 must provide NBA-GM with:
   and the disposition of every current field.
 
 NBA-GM should keep the synthetic fixture self-contained so its tests do not require a
-player-generator checkout.
+player-generator checkout. The paired reference fixture and cross-profile parity tests remain
+player-generator-owned producer checks; NBA-GM does not need to validate or consume the reference
+profile.
 
 ## Proposed NBA-GM epic: Consume the player-generator MVP roster package
 
@@ -83,6 +88,8 @@ XLSX league-package format.
 
 - NBA-GM and player-generator share the exact schema, semantic field definitions, and synthetic
   conformance fixture.
+- NBA-GM accepts the roster profile without taking ownership of player-generator's paired reference
+  publication or its private provenance extensions.
 - Every current player, statistic, and attribute field has an explicit consumer disposition.
 - Statistical observations remain separate from generated ratings, tendencies, and personalities.
 - `season = 2025` deterministically becomes `2024-25`, including century-safe formatting.
@@ -112,6 +119,8 @@ projects can implement against the same semantics in parallel.
 - Review every table's grain, primary key, ordered header, nullability, type, range, unit, and exact
   relationship.
 - Confirm one statistical-basis row and one attribute row per player for the MVP.
+- Confirm that the accepted files are the player-generator roster profile; NBA-GM does not ingest
+  the paired reference profile or its season-context and provenance extensions.
 - Confirm that integer `season` is the ending year, that `2025` means 2024-25, that players may have
   different basis seasons, and that none of those values sets the new league's starting season.
 - Give every input field one disposition: direct import, normalized observation, rating-transform

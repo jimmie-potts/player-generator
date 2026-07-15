@@ -99,6 +99,15 @@ Use the workflow in
 ## Contracts and determinism
 
 - Govern every CSV header, key, type, null rule, enum, and relationship with a versioned contract.
+- Maintain corresponding reference and roster `players.csv`, `player_stats.csv`, and
+  `player_attributes.csv` definitions in parity. A shared field or CSV-formatting change must update
+  both contract profiles, fixtures, validators, and documentation in the same story and pull
+  request.
+- Keep profile-only columns and files explicit. Reference season context, source identity, and
+  provenance may remain reference-only; roster generation metadata may remain roster-only. Do not
+  use a profile extension to create two definitions of the same shared field.
+- Add cross-profile contract tests for shared ordered fields, types, base null rules and declared
+  overrides, units, bounds, and serialization so parity cannot drift silently.
 - Use camelCase CSV headers, UTF-8, ISO 8601 dates, and stable internal IDs in version 2 interfaces.
 - Formula weights must be finite and nonnegative and normalize to 1. Ratings use the configured
   25–99 scale.
