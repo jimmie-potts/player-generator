@@ -119,6 +119,7 @@ def _column_map(
     *,
     semantic_metadata: bool,
     allowed_extra_properties: set[str] | None = None,
+    allow_empty: bool = False,
 ) -> dict[str, Mapping[str, Any]]:
     columns = list(_sequence(value, context))
     result: dict[str, Mapping[str, Any]] = {}
@@ -201,7 +202,7 @@ def _column_map(
         if "derivation" in column:
             _text(column.get("derivation"), f"{context} column {name} derivation")
         result[name] = column
-    if not result:
+    if not result and not allow_empty:
         raise ContractValidationError(f"{context} must define at least one column")
     return result
 
@@ -260,9 +261,10 @@ def _validate_relationship_declarations(
     *,
     columns_by_file: Mapping[str, set[str]],
     context: str,
-) -> None:
+) -> set[tuple[str, str]]:
     relationships = list(_sequence(value, context))
     seen_names: set[str] = set()
+    participating_fields: set[tuple[str, str]] = set()
     for index, raw_relationship in enumerate(relationships, start=1):
         relationship = _mapping(raw_relationship, f"{context} relationship {index}")
         name = _text(
@@ -277,12 +279,12 @@ def _validate_relationship_declarations(
                 raise ContractValidationError(
                     f"{context} relationship {name} has invalid foreign-key fields"
                 )
-            _, source_fields = _relationship_side(
+            source_file, source_fields = _relationship_side(
                 relationship.get("from"),
                 columns_by_file=columns_by_file,
                 context=f"{context} relationship {name} from",
             )
-            _, target_fields = _relationship_side(
+            target_file, target_fields = _relationship_side(
                 relationship.get("to"),
                 columns_by_file=columns_by_file,
                 context=f"{context} relationship {name} to",
@@ -291,6 +293,12 @@ def _validate_relationship_declarations(
                 raise ContractValidationError(
                     f"{context} relationship {name} has different source and target arity"
                 )
+            participating_fields.update(
+                (source_file, field_name) for field_name in source_fields
+            )
+            participating_fields.update(
+                (target_file, field_name) for field_name in target_fields
+            )
         elif kind == "exactKeySet":
             if set(relationship) != {"name", "kind", "files", "columns"}:
                 raise ContractValidationError(
@@ -321,10 +329,14 @@ def _validate_relationship_declarations(
                         f"{context} relationship {name} references unknown columns in "
                         f"{file_name}: {', '.join(sorted(unknown))}"
                     )
+                participating_fields.update(
+                    (file_name, field_name) for field_name in fields
+                )
         else:
             raise ContractValidationError(
                 f"{context} relationship {name} has unsupported kind {kind!r}"
             )
+    return participating_fields
 
 
 def _validate_profile_definition(
@@ -389,6 +401,12 @@ def _validate_profile_definition(
 
     extensions = _mapping(profile.get("extensionColumns"), f"{context} extensionColumns")
     profile_files = _mapping(profile.get("profileOnlyFiles"), f"{context} profileOnlyFiles")
+    profile_file_overlap = set(profile_files) & set(_SHARED_FILE_NAMES)
+    if profile_file_overlap:
+        raise ContractValidationError(
+            f"{context} profile-only files overlap shared files: "
+            f"{', '.join(sorted(profile_file_overlap))}"
+        )
     expected_schema_files = {*_SHARED_FILE_NAMES, *profile_files}
     if set(current_orders) != expected_schema_files:
         raise ContractValidationError(
@@ -407,7 +425,8 @@ def _validate_profile_definition(
             f"{context} extensionColumns {file_name}",
             semantic_metadata=True,
             allowed_extra_properties={"rationale", "decision", "derivation"},
-        ) if extensions[file_name] else {}
+            allow_empty=True,
+        )
         overlap = set(file_extensions) & set(shared_columns[file_name])
         if overlap:
             raise ContractValidationError(
@@ -474,6 +493,51 @@ def _validate_profile_definition(
                 f"{', '.join(sorted(unknown))}"
             )
 
+    unique_keys = _mapping(profile.get("uniqueKeys"), f"{context} uniqueKeys")
+    if set(unique_keys) != set(_SHARED_FILE_NAMES):
+        raise ContractValidationError(f"{context} uniqueKeys must define all shared files")
+    protected_fields: set[tuple[str, str]] = set()
+    for file_name in _SHARED_FILE_NAMES:
+        _validate_unique_key_declarations(
+            unique_keys[file_name],
+            allowed_fields=set(
+                _text_list(current_orders[file_name], f"{context} {file_name}")
+            ),
+            context=f"{context} uniqueKeys {file_name}",
+        )
+        for raw_key in _sequence(unique_keys[file_name], f"{context} uniqueKeys {file_name}"):
+            protected_fields.update(
+                (file_name, field_name)
+                for field_name in _text_list(raw_key, f"{context} uniqueKeys {file_name}")
+            )
+    for file_name, raw_file in profile_files.items():
+        file_contract = _mapping(raw_file, f"{context} profileOnlyFiles {file_name}")
+        _validate_unique_key_declarations(
+            file_contract.get("uniqueKeys"),
+            allowed_fields=set(
+                _text_list(current_orders[file_name], f"{context} {file_name}")
+            ),
+            context=f"{context} profileOnlyFiles {file_name} uniqueKeys",
+        )
+    key_rationales = _mapping(profile.get("keyRationales"), f"{context} keyRationales")
+    if set(key_rationales) != set(_SHARED_FILE_NAMES):
+        raise ContractValidationError(f"{context} keyRationales must define all shared files")
+    for file_name, rationale in key_rationales.items():
+        _text(rationale, f"{context} keyRationales {file_name}")
+    relationship_fields = _validate_relationship_declarations(
+        profile.get("relationships"),
+        columns_by_file={
+            file_name: set(_text_list(order, f"{context} {file_name}"))
+            for file_name, order in current_orders.items()
+        },
+        context=f"{context} relationships",
+    )
+    protected_fields.update(
+        coordinate
+        for coordinate in relationship_fields
+        if coordinate[0] in shared_columns
+    )
+
     seen_overrides: set[tuple[str, str]] = set()
     for index, raw_override in enumerate(
         _sequence(profile.get("availabilityOverrides"), f"{context} availabilityOverrides"),
@@ -512,6 +576,11 @@ def _validate_profile_definition(
                     f"{context} availability override references unknown field {file_name}.{field}"
                 )
             key = (file_name, field)
+            if key in protected_fields:
+                raise ContractValidationError(
+                    f"{context} availability override may not change key or relationship "
+                    f"field {file_name}.{field}"
+                )
             if key in seen_overrides:
                 raise ContractValidationError(
                     f"{context} repeats availability override for {file_name}.{field}"
@@ -531,12 +600,22 @@ def _validate_profile_definition(
         field_name = _text(
             constraint.get("field"), f"{context} field constraint {index} field"
         )
-        for file_name in _text_list(
+        constraint_files = _text_list(
             constraint.get("files"), f"{context} field constraint {index} files"
-        ):
+        )
+        if not constraint_files:
+            raise ContractValidationError(
+                f"{context} field constraint {index} must name files"
+            )
+        for file_name in constraint_files:
             if file_name not in shared_columns or field_name not in shared_columns[file_name]:
                 raise ContractValidationError(
                     f"{context} field constraint references unknown field {file_name}.{field_name}"
+                )
+            if shared_columns[file_name][field_name]["type"] != "string":
+                raise ContractValidationError(
+                    f"{context} field constraint pattern requires a string field: "
+                    f"{file_name}.{field_name}"
                 )
             key = (file_name, field_name, str(constraint["property"]))
             if key in seen_constraints:
@@ -555,38 +634,6 @@ def _validate_profile_definition(
             ) from error
         _text(constraint.get("rationale"), f"{context} field constraint {index} rationale")
         _text(constraint.get("decision"), f"{context} field constraint {index} decision")
-
-    unique_keys = _mapping(profile.get("uniqueKeys"), f"{context} uniqueKeys")
-    if set(unique_keys) != set(_SHARED_FILE_NAMES):
-        raise ContractValidationError(f"{context} uniqueKeys must define all shared files")
-    for file_name in _SHARED_FILE_NAMES:
-        _validate_unique_key_declarations(
-            unique_keys[file_name],
-            allowed_fields=set(_text_list(current_orders[file_name], f"{context} {file_name}")),
-            context=f"{context} uniqueKeys {file_name}",
-        )
-    for file_name, raw_file in profile_files.items():
-        file_contract = _mapping(raw_file, f"{context} profileOnlyFiles {file_name}")
-        _validate_unique_key_declarations(
-            file_contract.get("uniqueKeys"),
-            allowed_fields=set(
-                _text_list(current_orders[file_name], f"{context} {file_name}")
-            ),
-            context=f"{context} profileOnlyFiles {file_name} uniqueKeys",
-        )
-    key_rationales = _mapping(profile.get("keyRationales"), f"{context} keyRationales")
-    if set(key_rationales) != set(_SHARED_FILE_NAMES):
-        raise ContractValidationError(f"{context} keyRationales must define all shared files")
-    for file_name, rationale in key_rationales.items():
-        _text(rationale, f"{context} keyRationales {file_name}")
-    _validate_relationship_declarations(
-        profile.get("relationships"),
-        columns_by_file={
-            file_name: set(_text_list(order, f"{context} {file_name}"))
-            for file_name, order in current_orders.items()
-        },
-        context=f"{context} relationships",
-    )
 
 
 def _shared_column_maps(

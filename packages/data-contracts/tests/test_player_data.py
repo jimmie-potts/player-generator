@@ -283,6 +283,91 @@ def test_family_rejects_shared_fields_disguised_as_extensions() -> None:
         validate_player_data_contract_family(family)
 
 
+@pytest.mark.parametrize("malformed", [{}, "", None, False])
+def test_family_validates_empty_extension_declarations_as_arrays(malformed: object) -> None:
+    family = load_player_data_contract()
+    family["profiles"]["roster"]["extensionColumns"]["player_attributes.csv"] = malformed
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"extensionColumns player_attributes\.csv must be an array",
+    ):
+        validate_player_data_contract_family(family)
+
+
+def test_family_rejects_shared_files_disguised_as_profile_only() -> None:
+    family = load_player_data_contract()
+    family["profiles"]["roster"]["profileOnlyFiles"]["players.csv"] = {}
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"profile-only files overlap shared files: players\.csv",
+    ):
+        validate_player_data_contract_family(family)
+
+
+def test_family_rejects_availability_overrides_for_key_fields() -> None:
+    family = load_player_data_contract()
+    family["profiles"]["roster"]["availabilityOverrides"].append(
+        {
+            "file": "players.csv",
+            "fields": ["playerId"],
+            "required": False,
+            "nullable": True,
+            "rationale": "Invalid key weakening.",
+            "decision": "D-033",
+        }
+    )
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"may not change key or relationship field players\.csv\.playerId",
+    ):
+        validate_player_data_contract_family(family)
+
+
+def test_family_rejects_availability_overrides_for_relationship_fields() -> None:
+    family = load_player_data_contract()
+    roster = family["profiles"]["roster"]
+    roster["relationships"].append(
+        {
+            "name": "displayNameRelationshipGuard",
+            "kind": "foreignKey",
+            "from": {"file": "players.csv", "columns": ["displayName"]},
+            "to": {"file": "players.csv", "columns": ["displayName"]},
+        }
+    )
+    roster["availabilityOverrides"].append(
+        {
+            "file": "players.csv",
+            "fields": ["displayName"],
+            "required": False,
+            "nullable": True,
+            "rationale": "Invalid relationship weakening.",
+            "decision": "D-033",
+        }
+    )
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"may not change key or relationship field players\.csv\.displayName",
+    ):
+        validate_player_data_contract_family(family)
+
+
+def test_family_restricts_pattern_constraints_to_string_fields() -> None:
+    family = load_player_data_contract()
+    constraint = family["profiles"]["roster"]["fieldConstraints"][0]
+    constraint["files"] = ["player_stats.csv"]
+    constraint["field"] = "season"
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"pattern requires a string field: player_stats\.csv\.season",
+    ):
+        validate_player_data_contract_family(family)
+
+
 def test_profile_parity_rejects_semantic_or_format_redefinitions() -> None:
     roster = load_roster_contract()
     height = next(
