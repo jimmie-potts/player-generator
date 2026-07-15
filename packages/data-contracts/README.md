@@ -5,19 +5,45 @@ rating-field identifiers, and validation for data exchanged between applications
 
 The cross-project baseline is [player data contract version 1](../../docs/planning/DATA_CONTRACTS.md).
 The reference and roster resources are profiles of that one contract family. The current resources
-implement the version 1 inventories and profile relationships. US-016 still owns extraction of
-their shared player fields into common definitions, explicit extension metadata, paired fixtures,
-and cross-profile drift tests; until that work is complete, the two packaged profile schemas remain
-separate resources.
+implement the version 1 inventories and profile relationships. The authored family resource now
+owns the target shared field definitions, semantic metadata, profile extensions, availability
+overrides, and CSV conventions. The expanded profile resources remain the current runtime and
+portable consumer schemas. Their known alignment work is closed in the family resource's temporary
+gap ledger, and validation fails if either profile develops an undeclared difference. US-016 remains
+in progress for paired fixtures and final contract decisions; US-017 removes the declared runtime
+gaps as it applies the aligned definitions to publication.
 
 Packaged contract resources are:
 
+- `schemas/player-data-v1.contract.json`: the one authored catalog for shared ordered fields,
+  meanings, units, classifications, scalar targets, bounds, CSV formatting, profile extensions,
+  availability overrides, and the exact temporary alignment ledger.
 - `schemas/reference-v1.schema.json`: the ordered headers, required and nullable fields, scalar
   types, unique keys, and relationships for the five normalized reference-profile CSVs.
 - `schemas/formula-v1.schema.json`: the structural contract for versioned declarative player
   formulas, including their required sections, supported metric shapes, and 25–99 rating bounds.
 - `schemas/roster-v1.schema.json`: the ordered headers, null rules, bounds, keys, relationships, and
   semantic statistical invariants for the three normalized roster-profile CSVs.
+
+Contract-family tooling exposes the shared source and verifies that the runtime profiles differ
+from it only where the temporary ledger says they do:
+
+```python
+from player_data_contracts import (
+    load_player_data_contract,
+    validate_player_data_profile_parity,
+)
+
+family = load_player_data_contract()
+validate_player_data_profile_parity()
+```
+
+`validate_player_data_profile_parity()` treats both new issues and obsolete gap declarations as
+failures. Each temporary exception pins its exact current value or full shared order as well as the
+target definition, so a different mismatch at an already-known location also fails. A fixed
+discrepancy therefore requires removing its ledger entry in the same change.
+`serialize_csv_value()` implements the family's canonical scalar representation for conformance
+fixtures and later publisher adoption.
 
 Reference-package producers can validate native row mappings before serialization and then validate
 the staged CSV directory before publication:

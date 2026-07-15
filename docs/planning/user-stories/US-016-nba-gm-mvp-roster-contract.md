@@ -98,6 +98,25 @@ can proceed independently without the two player-generator profiles drifting.
   profiles. Reference season context and advanced metrics are columns in `player_stats.csv`; the
   reference profile contains five CSVs plus audit and manifest, and the roster profile contains three
   CSVs plus manifest. Runtime and conformance validation remain active before completion.
+- **2026-07-15:** Added the authored `player-data-v1.contract.json` family catalog for shared ordered
+  fields, scalar targets, meanings, units, classifications, CSV rules, profile-only extensions, and
+  availability overrides. Added parity validation that requires the current flat profile schemas to
+  match the catalog's closed temporary gap ledger exactly. The ledger keeps seven missing reference
+  derived fields, one order discrepancy, and current type/bound discrepancies visible without
+  misclassifying them as profile extensions or starting US-017 publication changes. Paired fixtures,
+  common manifest conformance, namespace resolution, and age effective-date resolution remain
+  before US-016 completion. US-017 owns removing the pinned runtime-schema gaps while adopting the
+  aligned publication contract.
+- **2026-07-15:** Accepted D-036 so shared height and weight use bounded numbers rather than forcing
+  fractional reference measurements through a lossy integer conversion. Pinned the exact current
+  value and full order for every temporary schema gap, froze an exponent-free cross-language numeric
+  serialization rule, and added machine-readable derivations for the possession, assist-ratio,
+  turnover, and shooting-efficiency identities in D-018, D-019, and D-021.
+- **2026-07-15:** Accepted D-037 after checking the target bounds against the current ignored
+  reference corpus without publishing source rows. Widened shared offensive/defensive and net-rating
+  domains and allowed negative `playerImpactEstimate` values so later schema alignment does not
+  filter or clamp valid calibration observations. Narrower current roster bounds remain exact pinned
+  US-017 gaps rather than profile-specific redefinitions.
 
 ## Completion notes
 

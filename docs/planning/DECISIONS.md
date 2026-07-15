@@ -455,3 +455,40 @@ changes one; do not rewrite history without recording the replacement.
 - **Reason:** NBA-GM integration starts with this format, and no external consumer depends on another
   normalized layout. One current contract and one statistics surface per profile avoid ambiguous
   package histories and unnecessary joins.
+
+## D-036: Shared physical measurement representation
+
+- **Status:** accepted
+- **Accepted:** 2026-07-15
+- **Decision:** Define shared `heightInches` and `weightPounds` fields as finite numbers bounded to
+  60–96 inches and 140–400 pounds. Preserve available fractional reference precision and values
+  within the governed reference domain. Generated roster values may remain whole numbers because
+  every integer is valid under the shared number representation. Do not round, truncate, or
+  fabricate a physical value merely to align profiles.
+- **Delivery:** US-016 records the shared scalar definition and exact temporary profile differences;
+  US-017 applies it to both expanded runtime schemas and publishers. NBA-GM consumes the roster
+  values as numbers and must not assume the lexical representation proves an integer-only contract.
+- **Reason:** The reference contract already accepts legitimate fractional measurements, including
+  synthetic conformance coverage, and its valid domain extends beyond the roster schema's current
+  350-pound ceiling. Choosing the narrower roster representation would either reject valid reference
+  data or require an unapproved lossy normalization rule. The shared number and domain bounds
+  preserve source values while remaining backward-compatible with generated whole-unit values.
+
+## D-037: Lossless shared advanced-metric bounds
+
+- **Status:** accepted
+- **Accepted:** 2026-07-15
+- **Decision:** Give shared offensive and defensive ratings a nonnegative floor but no artificial
+  upper ceiling. Treat their signed net ratings and `playerImpactEstimate` as unbounded finite
+  values; `playerImpactEstimate` is a dimensionless index rather than a 0–1 proportion. A publisher
+  may emit a narrower subset, but a profile extension must not narrow the shared schema or discard an
+  otherwise valid reference row.
+- **Delivery:** US-016 records the shared bounds and exact temporary differences from both runtime
+  schemas. US-017 aligns the expanded schemas and publishers. Existing roster mutation clamps may
+  continue to keep generated values in a narrower operating range because that does not change the
+  accepted field domain.
+- **Reason:** The current reference corpus contains legitimate finite observations outside the
+  roster schema's earlier 0–200 rating, -200–200 net-rating, and 0–1 impact limits, especially in
+  small samples. No stable domain formula supplies a defensible replacement ceiling. Retaining the
+  observations is lossless and keeps reference calibration data authoritative; silent filtering or
+  clamping would change the source population and formula cohorts.

@@ -7,6 +7,7 @@ import math
 import re
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime
+from decimal import Decimal
 from numbers import Integral, Real
 from pathlib import Path
 from typing import Any
@@ -209,6 +210,30 @@ def _validate_value(
                 raise ContractValidationError(f"{context} must be {phrase} {bound}")
 
     return normalized
+
+
+def serialize_csv_value(
+    value: object,
+    column: Mapping[str, Any],
+    *,
+    context: str = "CSV value",
+) -> str:
+    """Validate and serialize one scalar with the player-data v1 CSV rules."""
+    normalized = _validate_value(value, column, context, contract_name="CSV")
+    if normalized is None:
+        return ""
+    field_type = column.get("type")
+    if field_type == "integer":
+        return str(normalized)
+    if field_type == "number":
+        number = float(normalized)
+        if number == 0:
+            return "0"
+        serialized = format(Decimal(repr(number)), "f")
+        if "." in serialized:
+            serialized = serialized.rstrip("0").rstrip(".")
+        return serialized
+    return str(normalized)
 
 
 def _validate_unique_keys(

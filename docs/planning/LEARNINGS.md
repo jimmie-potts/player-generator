@@ -357,6 +357,21 @@ its completion notes.
   removing their semantics.
 - Exact package inventories should reject undeclared files. A single accepted version 1 format is
   clearer than preserving unused internal package history as an apparent public contract.
+- When a final shared contract and current publishers cannot move in the same story, record the
+  difference as a closed machine-readable alignment ledger. Treating missing shared fields as
+  profile extensions would make temporary implementation drift look like permanent architecture.
+- Drift validation should fail both when an undeclared discrepancy appears and when a declared gap
+  disappears. The latter forces the same change that fixes an implementation to remove its stale
+  exception and keeps planning status honest.
+- A temporary exception must pin its exact current value or full order, not only the location of a
+  mismatch. Otherwise a second incompatible change at the already-waived location can pass as the
+  original known gap.
+- Choose the lossless common scalar when profile data differs in precision. A shared numeric
+  physical measurement accepts generated integers while avoiding a fabricated rounding rule for
+  fractional reference values.
+- Validate proposed shared bounds against the private reference corpus using aggregate-only checks.
+  Generated data may occupy a deliberately narrow operating range, but that range must not become a
+  shared schema limit that rejects legitimate calibration rows.
 
 ## Entry format
 

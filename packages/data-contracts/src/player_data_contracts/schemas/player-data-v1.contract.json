@@ -1,0 +1,285 @@
+{
+  "title": "Player data contract family",
+  "description": "Authored version 1 shared player-field catalog, profile extensions, and current alignment ledger for the reference and roster profiles.",
+  "contractFamily": "player-data",
+  "contractVersion": 1,
+  "csv": {
+    "encoding": "UTF-8",
+    "lineEnding": "LF",
+    "delimiter": ",",
+    "quoteCharacter": "\"",
+    "doubleQuoteEscaping": true,
+    "quoting": "minimal",
+    "headerRow": true,
+    "headerStyle": "camelCase",
+    "nullEncoding": "",
+    "numericSerialization": "ieee754-shortest-roundtrip-expanded-v1",
+    "numericSerializationDescription": "Finite IEEE-754 values use their shortest round-trip significand expanded to plain base-10 notation with no exponent; insignificant fractional zeros are removed, integral values omit the decimal point, and negative zero is 0.",
+    "deterministicOrdering": true
+  },
+  "sharedFiles": {
+    "players.csv": {
+      "columns": [
+        {"name": "playerId", "type": "string", "required": true, "nullable": false, "meaning": "Stable internal player key within one profile namespace.", "unit": "identifier", "classification": "key"},
+        {"name": "displayName", "type": "string", "required": true, "nullable": false, "meaning": "Player name intended for display.", "unit": "text", "classification": "identity"},
+        {"name": "firstName", "type": "string", "required": false, "nullable": true, "meaning": "Player given name when available.", "unit": "text", "classification": "identity"},
+        {"name": "lastName", "type": "string", "required": false, "nullable": true, "meaning": "Player family name when available.", "unit": "text", "classification": "identity"},
+        {"name": "heightInches", "type": "number", "required": false, "nullable": true, "minimum": 60, "maximum": 96, "meaning": "Player height in inches, preserving available fractional precision.", "unit": "inches", "classification": "physical"},
+        {"name": "weightPounds", "type": "number", "required": false, "nullable": true, "minimum": 140, "maximum": 400, "meaning": "Player weight in pounds, preserving available fractional precision.", "unit": "pounds", "classification": "physical"}
+      ]
+    },
+    "player_stats.csv": {
+      "columns": [
+        {"name": "playerId", "type": "string", "required": true, "nullable": false, "meaning": "Player key joining the statistics row to players.csv.", "unit": "identifier", "classification": "key"},
+        {"name": "season", "type": "integer", "required": true, "nullable": false, "minimum": 1000, "maximum": 9999, "meaning": "Four-digit ending year of the statistical-basis season; 2025 means 2024-25.", "unit": "seasonEndingYear", "classification": "context"},
+        {"name": "games", "type": "integer", "required": false, "nullable": true, "minimum": 1, "meaning": "Games represented by the statistics row.", "unit": "games", "classification": "primitive"},
+        {"name": "minutes", "type": "number", "required": false, "nullable": true, "meaning": "Total minutes represented by the statistics row.", "unit": "minutes", "classification": "primitive"},
+        {"name": "fieldGoalsMade", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total field goals made.", "unit": "count", "classification": "primitive"},
+        {"name": "fieldGoalsAttempted", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total field goals attempted.", "unit": "count", "classification": "primitive"},
+        {"name": "twoPointersMade", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total two-point field goals made.", "unit": "count", "classification": "primitive"},
+        {"name": "twoPointersAttempted", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total two-point field goals attempted.", "unit": "count", "classification": "primitive"},
+        {"name": "threePointersMade", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total three-point field goals made.", "unit": "count", "classification": "primitive"},
+        {"name": "threePointersAttempted", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total three-point field goals attempted.", "unit": "count", "classification": "primitive"},
+        {"name": "freeThrowsMade", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total free throws made.", "unit": "count", "classification": "primitive"},
+        {"name": "freeThrowsAttempted", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total free throws attempted.", "unit": "count", "classification": "primitive"},
+        {"name": "reboundsOffensive", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total offensive rebounds.", "unit": "count", "classification": "primitive"},
+        {"name": "reboundsDefensive", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total defensive rebounds.", "unit": "count", "classification": "primitive"},
+        {"name": "reboundsTotal", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total rebounds; offensive plus defensive rebounds when both are available.", "unit": "count", "classification": "derivedTotal"},
+        {"name": "assists", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total assists.", "unit": "count", "classification": "primitive"},
+        {"name": "turnovers", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total turnovers.", "unit": "count", "classification": "primitive"},
+        {"name": "steals", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total steals.", "unit": "count", "classification": "primitive"},
+        {"name": "blocks", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total blocked shots.", "unit": "count", "classification": "primitive"},
+        {"name": "foulsPersonal", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total personal fouls.", "unit": "count", "classification": "primitive"},
+        {"name": "points", "type": "integer", "required": false, "nullable": true, "minimum": 0, "meaning": "Total points scored.", "unit": "points", "classification": "derivedTotal"},
+        {"name": "plusMinusPoints", "type": "integer", "required": false, "nullable": true, "meaning": "Total on-court point differential.", "unit": "points", "classification": "primitive"},
+        {"name": "fieldGoalPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Field goals made divided by field goals attempted.", "unit": "proportion", "classification": "derivedPercentage"},
+        {"name": "twoPointPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Two-pointers made divided by two-pointers attempted.", "unit": "proportion", "classification": "derivedPercentage"},
+        {"name": "threePointPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Three-pointers made divided by three-pointers attempted.", "unit": "proportion", "classification": "derivedPercentage"},
+        {"name": "freeThrowPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Free throws made divided by free throws attempted.", "unit": "proportion", "classification": "derivedPercentage"},
+        {"name": "minutesPerGame", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Minutes divided by games.", "unit": "minutesPerGame", "classification": "derivedRate"},
+        {"name": "pointsPerGame", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Points divided by games.", "unit": "pointsPerGame", "classification": "derivedRate"},
+        {"name": "reboundsPerGame", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Total rebounds divided by games.", "unit": "reboundsPerGame", "classification": "derivedRate"},
+        {"name": "assistsPerGame", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Assists divided by games.", "unit": "assistsPerGame", "classification": "derivedRate"},
+        {"name": "turnoversPerGame", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Turnovers divided by games.", "unit": "turnoversPerGame", "classification": "derivedRate"},
+        {"name": "threePointAttemptsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Three-point attempts normalized to 36 minutes.", "unit": "attemptsPer36Minutes", "classification": "derivedRate"},
+        {"name": "freeThrowAttemptsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Free-throw attempts normalized to 36 minutes.", "unit": "attemptsPer36Minutes", "classification": "derivedRate"},
+        {"name": "offensiveReboundsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Offensive rebounds normalized to 36 minutes.", "unit": "reboundsPer36Minutes", "classification": "derivedRate"},
+        {"name": "defensiveReboundsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Defensive rebounds normalized to 36 minutes.", "unit": "reboundsPer36Minutes", "classification": "derivedRate"},
+        {"name": "assistsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Assists normalized to 36 minutes.", "unit": "assistsPer36Minutes", "classification": "derivedRate"},
+        {"name": "turnoversPer36", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Turnovers normalized to 36 minutes.", "unit": "turnoversPer36Minutes", "classification": "derivedRate"},
+        {"name": "stealsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Steals normalized to 36 minutes.", "unit": "stealsPer36Minutes", "classification": "derivedRate"},
+        {"name": "blocksPer36", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Blocks normalized to 36 minutes.", "unit": "blocksPer36Minutes", "classification": "derivedRate"},
+        {"name": "pointsPer36", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Points normalized to 36 minutes.", "unit": "pointsPer36Minutes", "classification": "derivedRate"},
+        {"name": "plusMinusPer36", "type": "number", "required": false, "nullable": true, "meaning": "Point differential normalized to 36 minutes.", "unit": "pointsPer36Minutes", "classification": "derivedRate"},
+        {"name": "pointsPer100", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Points normalized to 100 possessions.", "unit": "pointsPer100Possessions", "classification": "derivedRate", "derivation": "points / possessions * 100"},
+        {"name": "assistsPer100", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Assists normalized to 100 possessions.", "unit": "assistsPer100Possessions", "classification": "derivedRate", "derivation": "assists / possessions * 100"},
+        {"name": "turnoversPer100", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Turnovers normalized to 100 possessions.", "unit": "turnoversPer100Possessions", "classification": "derivedRate", "derivation": "turnovers / possessions * 100"},
+        {"name": "stealsPer100", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Steals normalized to 100 possessions.", "unit": "stealsPer100Possessions", "classification": "derivedRate", "derivation": "steals / possessions * 100"},
+        {"name": "blocksPer100", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Blocks normalized to 100 possessions.", "unit": "blocksPer100Possessions", "classification": "derivedRate", "derivation": "blocks / possessions * 100"},
+        {"name": "twoPointAttemptFrequency", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Share of field-goal attempts that are two-pointers.", "unit": "proportion", "classification": "derivedFrequency"},
+        {"name": "threePointAttemptFrequency", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Share of field-goal attempts that are three-pointers.", "unit": "proportion", "classification": "derivedFrequency"},
+        {"name": "estimatedOffensiveRating", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Estimated offensive points produced per 100 possessions with no artificial upper ceiling.", "unit": "pointsPer100Possessions", "classification": "advancedMetric"},
+        {"name": "offensiveRating", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Offensive points produced per 100 possessions with no artificial upper ceiling.", "unit": "pointsPer100Possessions", "classification": "advancedMetric"},
+        {"name": "estimatedDefensiveRating", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Estimated defensive points allowed per 100 possessions with no artificial upper ceiling.", "unit": "pointsPer100Possessions", "classification": "advancedMetric"},
+        {"name": "defensiveRating", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Defensive points allowed per 100 possessions with no artificial upper ceiling.", "unit": "pointsPer100Possessions", "classification": "advancedMetric"},
+        {"name": "estimatedNetRating", "type": "number", "required": false, "nullable": true, "meaning": "Estimated offensive rating minus estimated defensive rating as an unbounded finite value.", "unit": "pointsPer100Possessions", "classification": "derivedAdvancedMetric"},
+        {"name": "netRating", "type": "number", "required": false, "nullable": true, "meaning": "Offensive rating minus defensive rating as an unbounded finite value.", "unit": "pointsPer100Possessions", "classification": "derivedAdvancedMetric"},
+        {"name": "assistPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Estimated share of teammate field goals assisted while on court.", "unit": "proportion", "classification": "advancedMetric"},
+        {"name": "assistTurnoverRatio", "type": "number", "required": false, "nullable": true, "minimum": 0, "meaning": "Assists divided by max(turnovers, 1), including the zero-turnover case.", "unit": "ratio", "classification": "derivedRate", "derivation": "assists / max(turnovers, 1)"},
+        {"name": "assistRatio", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 100, "meaning": "Assists as a percentage of the shared play-ending denominator.", "unit": "percentagePoints", "classification": "derivedAdvancedMetric", "derivation": "assists / (fieldGoalsAttempted + 0.44 * freeThrowsAttempted + assists + turnovers) * 100"},
+        {"name": "offensiveReboundPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Estimated share of available offensive rebounds collected.", "unit": "proportion", "classification": "advancedMetric"},
+        {"name": "defensiveReboundPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Estimated share of available defensive rebounds collected.", "unit": "proportion", "classification": "advancedMetric"},
+        {"name": "reboundPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Estimated share of all available rebounds collected.", "unit": "proportion", "classification": "advancedMetric"},
+        {"name": "estimatedTurnoverPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 100, "meaning": "Turnovers as a percentage of the shared play-ending denominator.", "unit": "percentagePoints", "classification": "derivedAdvancedMetric", "derivation": "turnovers / (fieldGoalsAttempted + 0.44 * freeThrowsAttempted + assists + turnovers) * 100"},
+        {"name": "effectiveFieldGoalPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1.5, "meaning": "Field-goal percentage adjusted for the added value of three-pointers.", "unit": "proportion", "classification": "derivedPercentage", "derivation": "(fieldGoalsMade + 0.5 * threePointersMade) / fieldGoalsAttempted"},
+        {"name": "trueShootingPercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1.5, "meaning": "Scoring efficiency including field goals and free throws.", "unit": "proportion", "classification": "derivedPercentage", "derivation": "points / (2 * (fieldGoalsAttempted + 0.44 * freeThrowsAttempted))"},
+        {"name": "usagePercentage", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Estimated share of team possessions used while on court.", "unit": "proportion", "classification": "advancedMetric"},
+        {"name": "playerImpactEstimate", "type": "number", "required": false, "nullable": true, "meaning": "Unbounded finite composite estimate of a player's statistical impact, including negative small-sample values.", "unit": "dimensionlessIndex", "classification": "advancedMetric"},
+        {"name": "defensiveWinShares", "type": "number", "required": false, "nullable": true, "meaning": "Estimated wins contributed through defense.", "unit": "wins", "classification": "advancedMetric"},
+        {"name": "defensiveWinSharesPer36", "type": "number", "required": false, "nullable": true, "meaning": "Defensive win shares normalized to 36 minutes.", "unit": "winsPer36Minutes", "classification": "derivedRate", "derivation": "defensiveWinShares / minutes * 36"}
+      ]
+    },
+    "player_attributes.csv": {
+      "columns": [
+        {"name": "playerId", "type": "string", "required": true, "nullable": false, "meaning": "Player key joining attributes to players.csv.", "unit": "identifier", "classification": "key"},
+        {"name": "insideScoring", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived inside-scoring ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "threePointShooting", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived three-point shooting ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "freeThrowShooting", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived free-throw shooting ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "scoringVolume", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived scoring-volume ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "playmaking", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived playmaking ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "ballSecurity", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived ball-security ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "offensiveRebounding", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived offensive-rebounding ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "defensiveRebounding", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived defensive-rebounding ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "perimeterDefense", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived perimeter-defense ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "interiorDefense", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived interior-defense ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "stamina", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived stamina ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "durability", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived durability ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "overall", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99, "meaning": "Formula-derived overall ability.", "unit": "ratingPoints", "classification": "formulaDerivedRating"},
+        {"name": "impactPercentile", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1, "meaning": "Player impact rank within the evaluated cohort.", "unit": "percentile", "classification": "formulaDerivedPercentile"},
+        {"name": "talentTier", "type": "string", "required": false, "nullable": true, "enum": ["superstar", "all_star", "starter", "rotation", "fringe"], "meaning": "Formula-derived ordinal talent band.", "unit": "category", "classification": "formulaDerivedCategory"},
+        {"name": "formulaVersion", "type": "string", "required": true, "nullable": false, "meaning": "Version identifier of the formula used to calculate this row.", "unit": "versionIdentifier", "classification": "provenance"}
+      ]
+    }
+  },
+  "profiles": {
+    "reference": {
+      "schemaResource": "schemas/reference-v1.schema.json",
+      "packageInventory": ["manifest.json", "audit.json", "players.csv", "player_stats.csv", "player_attributes.csv", "player_source_ids.csv", "sources.csv"],
+      "packageFileExtensions": {
+        "audit.json": {"rationale": "Deterministic reconciliation and source-publication audit detail remains reference-only.", "decision": "D-033"}
+      },
+      "currentColumnOrder": {
+        "players.csv": ["playerId", "displayName", "firstName", "lastName", "birthDate", "heightInches", "weightPounds", "country", "college", "draftYear", "draftRound", "draftNumber"],
+        "player_stats.csv": ["playerSeasonId", "playerId", "season", "teamId", "teamAbbreviation", "age", "games", "starts", "wins", "losses", "minutes", "fieldGoalsMade", "fieldGoalsAttempted", "threePointersMade", "threePointersAttempted", "freeThrowsMade", "freeThrowsAttempted", "reboundsOffensive", "reboundsDefensive", "reboundsTotal", "assists", "turnovers", "steals", "blocks", "foulsPersonal", "points", "plusMinusPoints", "twoPointersMade", "twoPointersAttempted", "twoPointPercentage", "minutesPerGame", "threePointAttemptsPer36", "freeThrowAttemptsPer36", "offensiveReboundsPer36", "defensiveReboundsPer36", "assistsPer36", "turnoversPer36", "stealsPer36", "blocksPer36", "pointsPer36", "plusMinusPer36", "pointsPer100", "assistsPer100", "turnoversPer100", "stealsPer100", "blocksPer100", "twoPointAttemptFrequency", "threePointAttemptFrequency", "estimatedOffensiveRating", "offensiveRating", "estimatedDefensiveRating", "defensiveRating", "estimatedNetRating", "netRating", "assistPercentage", "assistTurnoverRatio", "assistRatio", "offensiveReboundPercentage", "defensiveReboundPercentage", "reboundPercentage", "estimatedTurnoverPercentage", "effectiveFieldGoalPercentage", "trueShootingPercentage", "usagePercentage", "playerImpactEstimate", "defensiveWinShares", "defensiveWinSharesPer36"],
+        "player_attributes.csv": ["playerSeasonId", "playerId", "season", "insideScoring", "threePointShooting", "freeThrowShooting", "scoringVolume", "playmaking", "ballSecurity", "offensiveRebounding", "defensiveRebounding", "perimeterDefense", "interiorDefense", "stamina", "durability", "overall", "impactPercentile", "talentTier", "formulaVersion"],
+        "player_source_ids.csv": ["playerId", "sourceType", "sourcePlayerId"],
+        "sources.csv": ["sourceId", "sourceType", "originalFilename", "sha256", "adapterVersion", "upstreamVersion", "rowCount", "processedAt", "licenseStatus"]
+      },
+      "rowOrder": {
+        "players.csv": ["playerId"],
+        "player_stats.csv": ["playerSeasonId"],
+        "player_attributes.csv": ["playerSeasonId"],
+        "player_source_ids.csv": ["playerId", "sourceType", "sourcePlayerId"],
+        "sources.csv": ["sourceId"]
+      },
+      "availabilityOverrides": [],
+      "fieldConstraints": [],
+      "extensionColumns": {
+        "players.csv": [
+          {"name": "birthDate", "type": "date", "required": false, "nullable": true, "meaning": "Known source birth date.", "unit": "ISO8601Date", "classification": "referenceIdentity", "rationale": "Source identity may retain real birth dates; roster and NBA-GM birth-date policy are separately owned.", "decision": "D-033"},
+          {"name": "country", "type": "string", "required": false, "nullable": true, "meaning": "Known source country.", "unit": "text", "classification": "referenceIdentity", "rationale": "Source biographical context remains reference-only.", "decision": "D-033"},
+          {"name": "college", "type": "string", "required": false, "nullable": true, "meaning": "Known source college.", "unit": "text", "classification": "referenceIdentity", "rationale": "Source biographical context remains reference-only.", "decision": "D-033"},
+          {"name": "draftYear", "type": "integer", "required": false, "nullable": true, "meaning": "Known source draft year.", "unit": "year", "classification": "referenceIdentity", "rationale": "Historical source draft facts remain reference-only.", "decision": "D-033"},
+          {"name": "draftRound", "type": "integer", "required": false, "nullable": true, "meaning": "Known source draft round.", "unit": "ordinal", "classification": "referenceIdentity", "rationale": "Historical source draft facts remain reference-only.", "decision": "D-033"},
+          {"name": "draftNumber", "type": "integer", "required": false, "nullable": true, "meaning": "Known source overall draft selection.", "unit": "ordinal", "classification": "referenceIdentity", "rationale": "Historical source draft facts remain reference-only.", "decision": "D-033"}
+        ],
+        "player_stats.csv": [
+          {"name": "playerSeasonId", "type": "string", "required": true, "nullable": false, "meaning": "Stable reference player-season key.", "unit": "identifier", "classification": "referenceKey", "rationale": "Reference statistics and attributes are player-season grain.", "decision": "D-033"},
+          {"name": "teamId", "type": "string", "required": false, "nullable": true, "meaning": "Unambiguous source team key for the season row.", "unit": "identifier", "classification": "referenceContext", "rationale": "Source team context remains reference-only and is empty for multi-team seasons.", "decision": "D-033"},
+          {"name": "teamAbbreviation", "type": "string", "required": false, "nullable": true, "meaning": "Unambiguous source team abbreviation for the season row.", "unit": "text", "classification": "referenceContext", "rationale": "Source team context remains reference-only and is empty for multi-team seasons.", "decision": "D-033"},
+          {"name": "age", "type": "number", "required": false, "nullable": true, "meaning": "Source-reported age for the statistical season.", "unit": "years", "classification": "referenceContext", "rationale": "Season-relative source age is distinct from roster generation snapshot age.", "decision": "D-033"},
+          {"name": "starts", "type": "integer", "required": false, "nullable": true, "meaning": "Games started in the statistical season.", "unit": "games", "classification": "referenceContext", "rationale": "Source season context is not required by the MVP roster consumer.", "decision": "D-033"},
+          {"name": "wins", "type": "integer", "required": false, "nullable": true, "meaning": "Team wins represented by the statistical season row.", "unit": "games", "classification": "referenceContext", "rationale": "Source team-season context remains reference-only.", "decision": "D-033"},
+          {"name": "losses", "type": "integer", "required": false, "nullable": true, "meaning": "Team losses represented by the statistical season row.", "unit": "games", "classification": "referenceContext", "rationale": "Source team-season context remains reference-only.", "decision": "D-033"}
+        ],
+        "player_attributes.csv": [
+          {"name": "playerSeasonId", "type": "string", "required": true, "nullable": false, "meaning": "Stable reference player-season key.", "unit": "identifier", "classification": "referenceKey", "rationale": "Reference attributes are player-season grain.", "decision": "D-033"},
+          {"name": "season", "type": "integer", "required": true, "nullable": false, "meaning": "Four-digit ending year of the rated reference season.", "unit": "seasonEndingYear", "classification": "referenceContext", "rationale": "Reference attributes retain their cohort season; roster attributes are player grain.", "decision": "D-033"}
+        ]
+      },
+      "profileOnlyFiles": {
+        "player_source_ids.csv": {
+          "rationale": "Source-to-reference reconciliation keys never cross into roster data.",
+          "decision": "D-033",
+          "columns": [
+            {"name": "playerId", "type": "string", "required": true, "nullable": false, "meaning": "Reference player key resolved from the source identity.", "unit": "identifier", "classification": "referenceKey", "rationale": "Joins a private reconciliation identity to its canonical reference player.", "decision": "D-033"},
+            {"name": "sourceType", "type": "string", "required": true, "nullable": false, "meaning": "Registered source-adapter type that owns the source player identifier.", "unit": "identifier", "classification": "provenance", "rationale": "Source identifiers are meaningful only inside their registered source namespace.", "decision": "D-033"},
+            {"name": "sourcePlayerId", "type": "string", "required": true, "nullable": false, "meaning": "Player identifier assigned by the registered source.", "unit": "identifier", "classification": "provenance", "rationale": "Private source reconciliation requires the upstream key and never publishes it to roster data.", "decision": "D-033"}
+          ],
+          "uniqueKeys": [["playerId", "sourceType"], ["sourceType", "sourcePlayerId"]],
+          "keyRationale": "One source identity resolves to one reference player, and each player has at most one identity per source type."
+        },
+        "sources.csv": {
+          "rationale": "Registered input provenance and license status remain reference-only.",
+          "decision": "D-033",
+          "columns": [
+            {"name": "sourceId", "type": "string", "required": true, "nullable": false, "meaning": "Stable identifier for one registered source input.", "unit": "identifier", "classification": "provenance", "rationale": "Reference provenance needs a stable key independent of local input paths.", "decision": "D-033"},
+            {"name": "sourceType", "type": "string", "required": true, "nullable": false, "meaning": "Registered adapter type used to interpret the input.", "unit": "identifier", "classification": "provenance", "rationale": "Reproducible normalization requires the adapter family.", "decision": "D-033"},
+            {"name": "originalFilename", "type": "string", "required": true, "nullable": false, "meaning": "Filename of the registered local input without its private path.", "unit": "text", "classification": "provenance", "rationale": "Audit output records the source artifact without exposing local filesystem paths.", "decision": "D-033"},
+            {"name": "sha256", "type": "sha256", "required": true, "nullable": false, "meaning": "SHA-256 content digest of the registered input.", "unit": "sha256", "classification": "integrity", "rationale": "Input identity and reproducibility require a content digest.", "decision": "D-033"},
+            {"name": "adapterVersion", "type": "integer", "required": true, "nullable": false, "meaning": "Version of the source adapter schema and normalization rules.", "unit": "versionNumber", "classification": "provenance", "rationale": "The same input may normalize differently under another adapter version.", "decision": "D-033"},
+            {"name": "upstreamVersion", "type": "string", "required": false, "nullable": true, "meaning": "Upstream dataset version when the source provides one.", "unit": "versionIdentifier", "classification": "provenance", "rationale": "Known upstream releases improve auditability without fabricating unavailable values.", "decision": "D-033"},
+            {"name": "rowCount", "type": "integer", "required": true, "nullable": false, "meaning": "Number of rows read from the registered input.", "unit": "rows", "classification": "audit", "rationale": "Row counts support deterministic ingestion and audit checks.", "decision": "D-033"},
+            {"name": "processedAt", "type": "datetime", "required": true, "nullable": false, "meaning": "Timezone-aware timestamp when the source was processed.", "unit": "ISO8601DateTime", "classification": "audit", "rationale": "Operational provenance records when the local source entered the package.", "decision": "D-033"},
+            {"name": "licenseStatus", "type": "string", "required": true, "nullable": false, "meaning": "Recorded redistribution or use status for the registered source.", "unit": "category", "classification": "provenance", "rationale": "Publication must retain an explicit source-rights status.", "decision": "D-033"}
+          ],
+          "uniqueKeys": [["sourceId"]],
+          "keyRationale": "Each registered input has one stable provenance record."
+        }
+      },
+      "uniqueKeys": {
+        "players.csv": [["playerId"]],
+        "player_stats.csv": [["playerSeasonId"], ["playerId", "season"]],
+        "player_attributes.csv": [["playerSeasonId"], ["playerId", "season"]]
+      },
+      "keyRationales": {
+        "players.csv": "playerId is the unique reference-player identity within the reference profile.",
+        "player_stats.csv": "playerSeasonId is the stable row key and playerId plus season enforces one statistics row per reference cohort member.",
+        "player_attributes.csv": "Attributes use the same player-season grain as reference statistics."
+      },
+      "relationships": [
+        {"name": "playerStatsReferencePlayers", "kind": "foreignKey", "from": {"file": "player_stats.csv", "columns": ["playerId"]}, "to": {"file": "players.csv", "columns": ["playerId"]}},
+        {"name": "playerAttributesReferencePlayers", "kind": "foreignKey", "from": {"file": "player_attributes.csv", "columns": ["playerId"]}, "to": {"file": "players.csv", "columns": ["playerId"]}},
+        {"name": "playerSourceIdsReferencePlayers", "kind": "foreignKey", "from": {"file": "player_source_ids.csv", "columns": ["playerId"]}, "to": {"file": "players.csv", "columns": ["playerId"]}},
+        {"name": "playerSourceTypesReferenceSources", "kind": "foreignKey", "from": {"file": "player_source_ids.csv", "columns": ["sourceType"]}, "to": {"file": "sources.csv", "columns": ["sourceType"]}},
+        {"name": "referencePlayerSeasonGrain", "kind": "exactKeySet", "files": ["player_stats.csv", "player_attributes.csv"], "columns": ["playerSeasonId", "playerId", "season"]}
+      ]
+    },
+    "roster": {
+      "schemaResource": "schemas/roster-v1.schema.json",
+      "packageInventory": ["manifest.json", "players.csv", "player_stats.csv", "player_attributes.csv"],
+      "packageFileExtensions": {},
+      "currentColumnOrder": {
+        "players.csv": ["playerId", "displayName", "firstName", "lastName", "age", "heightInches", "weightPounds"],
+        "player_stats.csv": ["playerId", "season", "games", "minutes", "possessions", "fieldGoalsMade", "fieldGoalsAttempted", "twoPointersMade", "twoPointersAttempted", "threePointersMade", "threePointersAttempted", "freeThrowsMade", "freeThrowsAttempted", "reboundsOffensive", "reboundsDefensive", "reboundsTotal", "assists", "turnovers", "steals", "blocks", "foulsPersonal", "points", "plusMinusPoints", "fieldGoalPercentage", "twoPointPercentage", "threePointPercentage", "freeThrowPercentage", "minutesPerGame", "pointsPerGame", "reboundsPerGame", "assistsPerGame", "turnoversPerGame", "threePointAttemptsPer36", "freeThrowAttemptsPer36", "offensiveReboundsPer36", "defensiveReboundsPer36", "assistsPer36", "turnoversPer36", "stealsPer36", "blocksPer36", "pointsPer36", "plusMinusPer36", "pointsPer100", "assistsPer100", "turnoversPer100", "stealsPer100", "blocksPer100", "twoPointAttemptFrequency", "threePointAttemptFrequency", "estimatedOffensiveRating", "offensiveRating", "estimatedDefensiveRating", "defensiveRating", "estimatedNetRating", "netRating", "assistPercentage", "assistTurnoverRatio", "assistRatio", "offensiveReboundPercentage", "defensiveReboundPercentage", "reboundPercentage", "estimatedTurnoverPercentage", "effectiveFieldGoalPercentage", "trueShootingPercentage", "usagePercentage", "playerImpactEstimate", "defensiveWinShares", "defensiveWinSharesPer36"],
+        "player_attributes.csv": ["playerId", "insideScoring", "threePointShooting", "freeThrowShooting", "scoringVolume", "playmaking", "ballSecurity", "offensiveRebounding", "defensiveRebounding", "perimeterDefense", "interiorDefense", "stamina", "durability", "overall", "impactPercentile", "talentTier", "formulaVersion"]
+      },
+      "rowOrder": {
+        "players.csv": ["playerId"],
+        "player_stats.csv": ["playerId", "season"],
+        "player_attributes.csv": ["playerId"]
+      },
+      "availabilityOverrides": [
+        {"file": "players.csv", "fields": ["firstName", "lastName"], "required": true, "nullable": false, "rationale": "Generated roster identities always provide component names.", "decision": "D-033"},
+        {"file": "player_stats.csv", "fields": ["games", "minutes", "fieldGoalsMade", "fieldGoalsAttempted", "twoPointersMade", "twoPointersAttempted", "threePointersMade", "threePointersAttempted", "freeThrowsMade", "freeThrowsAttempted", "assists", "turnovers", "steals", "blocks", "points"], "required": true, "nullable": false, "rationale": "Roster generation always supplies the primitive values required by its statistical identities.", "decision": "D-033"},
+        {"file": "player_attributes.csv", "fields": ["insideScoring", "threePointShooting", "freeThrowShooting", "scoringVolume", "playmaking", "ballSecurity", "offensiveRebounding", "defensiveRebounding", "perimeterDefense", "interiorDefense", "stamina", "durability", "overall", "impactPercentile", "talentTier"], "required": true, "nullable": false, "rationale": "Every generated roster player is formula-eligible and receives complete attributes.", "decision": "D-033"}
+      ],
+      "fieldConstraints": [
+        {"files": ["players.csv", "player_stats.csv", "player_attributes.csv"], "field": "playerId", "property": "pattern", "value": "^player_[0-9a-f]{16}$", "rationale": "Roster IDs use the deterministic 16-hex player namespace.", "decision": "D-033"}
+      ],
+      "extensionColumns": {
+        "players.csv": [
+          {"name": "age", "type": "integer", "required": false, "nullable": true, "minimum": 18, "maximum": 45, "meaning": "Generated age snapshot at roster creation.", "unit": "years", "classification": "rosterGeneration", "rationale": "Player-generator owns generated snapshot age; NBA-GM owns any birth-date or effective-date transformation.", "decision": "D-033"}
+        ],
+        "player_stats.csv": [
+          {"name": "possessions", "type": "number", "required": true, "nullable": false, "meaning": "Estimated possession total used as the denominator for per-100 roster rates.", "unit": "possessions", "classification": "rosterGeneration", "rationale": "Roster generation needs an explicit possession basis; reference publishes the rates but not this total.", "decision": "D-035"}
+        ],
+        "player_attributes.csv": []
+      },
+      "profileOnlyFiles": {},
+      "uniqueKeys": {
+        "players.csv": [["playerId"]],
+        "player_stats.csv": [["playerId"], ["playerId", "season"]],
+        "player_attributes.csv": [["playerId"]]
+      },
+      "keyRationales": {
+        "players.csv": "playerId is the unique generated-player identity within one roster package.",
+        "player_stats.csv": "One statistics row and one statistical-basis season are permitted per generated player.",
+        "player_attributes.csv": "Attributes remain player grain and use the same playerId set as the other roster files."
+      },
+      "relationships": [
+        {"name": "playerStatsReferencePlayers", "kind": "foreignKey", "from": {"file": "player_stats.csv", "columns": ["playerId"]}, "to": {"file": "players.csv", "columns": ["playerId"]}},
+        {"name": "playerAttributesReferencePlayers", "kind": "foreignKey", "from": {"file": "player_attributes.csv", "columns": ["playerId"]}, "to": {"file": "players.csv", "columns": ["playerId"]}},
+        {"name": "rosterPlayerSet", "kind": "exactKeySet", "files": ["players.csv", "player_stats.csv", "player_attributes.csv"], "columns": ["playerId"]}
+      ]
+    }
+  },
+  "declaredAlignmentGaps": [
+    {"kind": "missingSharedColumns", "profile": "reference", "file": "player_stats.csv", "fields": ["fieldGoalPercentage", "threePointPercentage", "freeThrowPercentage", "pointsPerGame", "reboundsPerGame", "assistsPerGame", "turnoversPerGame"], "rationale": "The shared contract owns these derivable statistics, but the current reference publisher does not emit them yet.", "followUp": "US-017"},
+    {"kind": "sharedOrder", "profile": "reference", "file": "player_stats.csv", "currentOrder": ["playerId", "season", "games", "minutes", "fieldGoalsMade", "fieldGoalsAttempted", "threePointersMade", "threePointersAttempted", "freeThrowsMade", "freeThrowsAttempted", "reboundsOffensive", "reboundsDefensive", "reboundsTotal", "assists", "turnovers", "steals", "blocks", "foulsPersonal", "points", "plusMinusPoints", "twoPointersMade", "twoPointersAttempted", "twoPointPercentage", "minutesPerGame", "threePointAttemptsPer36", "freeThrowAttemptsPer36", "offensiveReboundsPer36", "defensiveReboundsPer36", "assistsPer36", "turnoversPer36", "stealsPer36", "blocksPer36", "pointsPer36", "plusMinusPer36", "pointsPer100", "assistsPer100", "turnoversPer100", "stealsPer100", "blocksPer100", "twoPointAttemptFrequency", "threePointAttemptFrequency", "estimatedOffensiveRating", "offensiveRating", "estimatedDefensiveRating", "defensiveRating", "estimatedNetRating", "netRating", "assistPercentage", "assistTurnoverRatio", "assistRatio", "offensiveReboundPercentage", "defensiveReboundPercentage", "reboundPercentage", "estimatedTurnoverPercentage", "effectiveFieldGoalPercentage", "trueShootingPercentage", "usagePercentage", "playerImpactEstimate", "defensiveWinShares", "defensiveWinSharesPer36"], "rationale": "The current reference header places two-point totals after plus-minus instead of beside the other shooting totals.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "reference", "file": "players.csv", "fields": ["heightInches", "weightPounds"], "properties": ["minimum", "maximum"], "currentValues": {"minimum": {"absent": true}, "maximum": {"absent": true}}, "rationale": "Reference physical fields preserve numeric precision but have not yet adopted the governed bounds.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "roster", "file": "players.csv", "fields": ["heightInches", "weightPounds"], "properties": ["type"], "currentValues": {"type": "integer"}, "rationale": "Roster physical values are currently constrained to integers; the shared number representation preserves reference precision while accepting generated whole-unit values.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "roster", "file": "players.csv", "fields": ["weightPounds"], "properties": ["maximum"], "currentValues": {"maximum": 350}, "rationale": "The current roster schema has a narrower weight ceiling than the lossless shared domain bound.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "reference", "file": "player_stats.csv", "fields": ["season"], "properties": ["minimum", "maximum"], "currentValues": {"minimum": {"absent": true}, "maximum": {"absent": true}}, "rationale": "The reference schema has not yet encoded the four-digit ending-year bounds.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "roster", "file": "player_stats.csv", "fields": ["season"], "properties": ["minimum", "maximum"], "currentValues": {"minimum": 1, "maximum": {"absent": true}}, "rationale": "The roster schema currently accepts any positive season rather than the four-digit ending-year bounds.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "roster", "file": "player_stats.csv", "fields": ["estimatedOffensiveRating", "offensiveRating", "estimatedDefensiveRating", "defensiveRating"], "properties": ["maximum"], "currentValues": {"maximum": 200}, "rationale": "The current roster schema has a narrower rating ceiling than the lossless shared reference domain.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "roster", "file": "player_stats.csv", "fields": ["estimatedNetRating", "netRating"], "properties": ["minimum", "maximum"], "currentValues": {"minimum": -200, "maximum": 200}, "rationale": "The current roster schema has narrower signed net-rating bounds than the shared reference domain.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "roster", "file": "player_stats.csv", "fields": ["playerImpactEstimate"], "properties": ["minimum", "maximum"], "currentValues": {"minimum": 0, "maximum": 1}, "rationale": "The current roster schema narrows an unbounded finite impact index and excludes valid negative reference observations.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "reference", "file": "player_stats.csv", "fields": ["games"], "properties": ["minimum"], "currentValues": {"minimum": {"absent": true}}, "rationale": "The reference schema has not yet copied the governed lower bound.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "reference", "file": "player_stats.csv", "fields": ["fieldGoalsMade", "fieldGoalsAttempted", "twoPointersMade", "twoPointersAttempted", "threePointersMade", "threePointersAttempted", "freeThrowsMade", "freeThrowsAttempted", "reboundsOffensive", "reboundsDefensive", "reboundsTotal", "assists", "turnovers", "steals", "blocks", "foulsPersonal", "points"], "properties": ["type", "minimum"], "currentValues": {"type": "number", "minimum": {"absent": true}}, "rationale": "Reference cumulative counts are still typed as unbounded numbers instead of governed nonnegative integers.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "reference", "file": "player_stats.csv", "fields": ["plusMinusPoints"], "properties": ["type"], "currentValues": {"type": "number"}, "rationale": "Reference plus-minus is still typed as a number instead of an integer total.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "reference", "file": "player_stats.csv", "fields": ["minutesPerGame", "threePointAttemptsPer36", "freeThrowAttemptsPer36", "offensiveReboundsPer36", "defensiveReboundsPer36", "assistsPer36", "turnoversPer36", "stealsPer36", "blocksPer36", "pointsPer36", "pointsPer100", "assistsPer100", "turnoversPer100", "stealsPer100", "blocksPer100", "assistTurnoverRatio"], "properties": ["minimum"], "currentValues": {"minimum": {"absent": true}}, "rationale": "Reference nonnegative rate bounds are not yet encoded.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "reference", "file": "player_stats.csv", "fields": ["estimatedOffensiveRating", "offensiveRating", "estimatedDefensiveRating", "defensiveRating"], "properties": ["minimum"], "currentValues": {"minimum": {"absent": true}}, "rationale": "Reference nonnegative rating floors are not yet encoded.", "followUp": "US-017"},
+    {"kind": "sharedDefinition", "profile": "reference", "file": "player_stats.csv", "fields": ["twoPointPercentage", "twoPointAttemptFrequency", "threePointAttemptFrequency", "assistPercentage", "assistRatio", "offensiveReboundPercentage", "defensiveReboundPercentage", "reboundPercentage", "estimatedTurnoverPercentage", "effectiveFieldGoalPercentage", "trueShootingPercentage", "usagePercentage"], "properties": ["minimum", "maximum"], "currentValues": {"minimum": {"absent": true}, "maximum": {"absent": true}}, "rationale": "Reference percentage, frequency, and bounded advanced-metric limits are not yet encoded.", "followUp": "US-017"}
+  ]
+}

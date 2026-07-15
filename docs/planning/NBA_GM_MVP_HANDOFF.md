@@ -31,11 +31,13 @@ player_attributes.csv
 
 NBA-GM consumes only the roster profile. Within player-generator, the corresponding reference
 `players.csv`, `player_stats.csv`, and `player_attributes.csv` files are required to derive shared
-fields and formatting from the same contract definitions; US-016 still owns that schema refactor
-and its parity tests. Both version 1 profiles publish advanced metrics in `player_stats.csv`, while
-reference season context remains a reference-only extension. Reference-only source IDs, provenance,
-reconciliation, and audit data remain behind the reference boundary and are not added to the NBA-GM
-handoff.
+fields and formatting from the same authored family resource. The parity validator now rejects any
+profile difference outside its closed temporary alignment ledger. US-016 remains in progress for
+paired fixtures and final contract decisions; US-017 resolves the pinned profile-schema field,
+order, type, and bound gaps as publication adopts the shared definitions. Both version 1 profiles
+publish advanced metrics in `player_stats.csv`, while reference season context remains a
+reference-only extension. Reference-only source IDs, provenance, reconciliation, and audit data
+remain behind the reference boundary and are not added to the NBA-GM handoff.
 
 ## Ownership baseline
 
@@ -62,7 +64,8 @@ broader ratings merely because their numeric ranges overlap.
 
 The US-016 handoff provides NBA-GM with:
 
-- the exact machine-readable schemas and accepted version 1 contract identity;
+- the authored machine-readable family catalog, exact roster schema, and accepted version 1
+  contract identity;
 - ordered headers, types, null rules, ranges, units, and primitive or derived classifications;
 - one fully synthetic golden package with pinned file and content hashes;
 - an expected joined player record;
