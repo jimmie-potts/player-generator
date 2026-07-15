@@ -316,6 +316,15 @@ its completion notes.
   decrease or movement away, blue for a changed weight allocation that is not inherently good or
   bad, and a neutral treatment for no change. Color is only redundant emphasis; signed values,
   arrows, direction words, and accessible labels must communicate the same meaning.
+- Scope a custom-list error to the action that produced it. Clear an add failure when the designer
+  starts a new search or removes a player, and generation-scope pending add completions so they
+  cannot erase or obscure a newer query.
+- A failed load in an already active comparison view needs an explicit in-place retry action.
+  Requiring the user to switch modes and return hides the recovery path and couples retry behavior
+  to navigation.
+- Adjacent visible elements do not guarantee a clearly separated accessible name. Give a player
+  selector an explicit label that delimits the display name and humanizes its tier identifier while
+  retaining the same readable tier in the visible interface.
 
 ## Entry format
 

@@ -1,4 +1,4 @@
-import { formatNumber, formatSignedNumber } from "../domain/format";
+import { formatNumber, formatSignedNumber, identifierLabel } from "../domain/format";
 import { SectionHelp } from "./SectionHelp";
 import { StatusPanel } from "./StatusPanel";
 
@@ -48,6 +48,8 @@ export interface PlayerComparisonProps {
   error?: string | null;
   emptyTitle?: string;
   emptyMessage?: string;
+  retryLabel?: string;
+  onRetry?: () => void;
   onSelect: (playerId: string) => void;
   onRemove: (playerId: string) => void;
 }
@@ -111,6 +113,10 @@ function impactIcon(direction: ImpactDirection): string {
   return "";
 }
 
+function tierLabel(tier: string | null): string {
+  return tier === null ? "No tier" : identifierLabel(tier);
+}
+
 function RatingImpact({ value }: { value: number | null }) {
   const direction = impactDirection(value);
   const accessibleText =
@@ -145,12 +151,24 @@ export function PlayerComparison({
   error = null,
   emptyTitle = "No comparison players",
   emptyMessage = "The active player set did not return any players.",
+  retryLabel = "Retry comparison",
+  onRetry,
   onSelect,
   onRemove,
 }: PlayerComparisonProps) {
   if (error) {
     return (
-      <StatusPanel title="Player comparison unavailable" tone="error">
+      <StatusPanel
+        title="Player comparison unavailable"
+        tone="error"
+        action={
+          onRetry ? (
+            <button className="button button--secondary" type="button" onClick={onRetry}>
+              {retryLabel}
+            </button>
+          ) : undefined
+        }
+      >
         {error} Prior preview results are not shown as current.
       </StatusPanel>
     );
@@ -248,9 +266,10 @@ export function PlayerComparison({
                         type="button"
                         onClick={() => onSelect(player.playerId)}
                         aria-current={player.selected ? "true" : undefined}
+                        aria-label={`${player.displayName}, ${tierLabel(player.tier)}`}
                       >
                         <strong>{player.displayName}</strong>
-                        <span>{player.tier ?? "No tier"}</span>
+                        <span>{tierLabel(player.tier)}</span>
                       </button>
                     </th>
                     <td className="rating-transition">{ratingTransition(player.attribute)}</td>

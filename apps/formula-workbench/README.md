@@ -41,6 +41,14 @@ directions, rating anchors, and the proposed formula version. Preview requests a
 superseded requests are cancelled. Context mismatches invalidate the view rather than mixing
 package, formula, or season state.
 
+Comparison errors include recovery where the user can act. Starting another player search or
+removing a custom player clears an earlier custom-list add error so fresh results remain available.
+Pending add responses are scoped to the interaction that started them, so a late failure or success
+cannot hide results or erase a newer query.
+If the active Top 25 list fails to load, its error panel offers `Retry Top 25` without requiring a
+mode switch. Player-selection controls announce the display name followed by a human-readable tier,
+with explicit separation for assistive technology.
+
 Changed authoritative preview values are highlighted wherever the designer evaluates impact. Green
 with an upward arrow or positive signed value marks an outcome increase; red with a downward arrow
 or negative signed value marks a decrease. Rank movement uses green for movement toward rank 1 and

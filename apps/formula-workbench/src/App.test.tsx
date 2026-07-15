@@ -430,6 +430,38 @@ describe("Formula Workbench", () => {
     ).toBeNull();
   });
 
+  it("retries a failed Top 25 load without leaving the active tab", async () => {
+    const client = new FakePreviewApiClient();
+    client.getPlayers.mockRejectedValueOnce(new Error("top-player service unavailable"));
+    await renderReadyWorkbench(client);
+
+    selectComparisonMode("Top 25");
+
+    const errorHeading = await screen.findByRole("heading", {
+      name: "Player comparison unavailable",
+    });
+    const alert = errorHeading.closest<HTMLElement>('[role="alert"]');
+    expect(alert).not.toBeNull();
+    expect(within(alert!).getByText(/top-player service unavailable/)).toBeTruthy();
+    expect(client.getPlayers).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(alert!).getByRole("button", { name: "Retry Top 25" }));
+
+    await waitFor(() => expect(client.getPlayers).toHaveBeenCalledTimes(2));
+    expect(
+      await screen.findByRole(
+        "region",
+        { name: "Top 25 by baseline overall player comparison" },
+        { timeout: 2_500 },
+      ),
+    ).toBeTruthy();
+    await waitFor(() =>
+      expect(client.preview.mock.calls.at(-1)?.[0].selectedPlayerIds).toEqual(
+        TOP_PLAYERS.map(({ playerId }) => playerId),
+      ),
+    );
+  });
+
   it("does not request a preview for an empty custom list", async () => {
     const client = await renderReadyWorkbench();
     const previousCallCount = client.preview.mock.calls.length;
@@ -494,11 +526,11 @@ describe("Formula Workbench", () => {
     selectComparisonMode("Top 25");
     await waitForNextPreview(client, previousCallCount);
     fireEvent.click(
-      screen.getByRole("button", { name: /^Top player 2superstar$/i }),
+      screen.getByRole("button", { name: "Top player 2, Superstar" }),
     );
     expect(
       screen
-        .getByRole("button", { name: /^Top player 2superstar$/i })
+        .getByRole("button", { name: "Top player 2, Superstar" })
         .getAttribute("aria-current"),
     ).toBe("true");
 
@@ -530,7 +562,7 @@ describe("Formula Workbench", () => {
     );
     expect(
       screen
-        .getByRole("button", { name: /^Top player 2superstar$/i })
+        .getByRole("button", { name: "Top player 2, Superstar" })
         .getAttribute("aria-current"),
     ).toBe("true");
 
@@ -542,7 +574,7 @@ describe("Formula Workbench", () => {
     ]);
     expect(
       screen
-        .getByRole("button", { name: /^Bench Specialistrotation$/i })
+        .getByRole("button", { name: "Bench Specialist, Rotation" })
         .getAttribute("aria-current"),
     ).toBe("true");
   });
@@ -680,6 +712,35 @@ describe("Formula Workbench", () => {
       expect.objectContaining({ limit: 10, signal: expect.any(AbortSignal) }),
     );
     expect(await screen.findByRole("heading", { name: "No matching players" })).toBeTruthy();
+  });
+
+  it("clears a failed custom add when the designer starts another search", async () => {
+    const client = await renderReadyWorkbench();
+    selectComparisonMode("Custom list");
+    client.getPlayer.mockRejectedValueOnce(new Error("player detail unavailable"));
+
+    await addSpecialPlayer(client);
+
+    expect(
+      await screen.findByRole("heading", { name: "Player search failed" }),
+    ).toBeTruthy();
+    expect(screen.getByText("player detail unavailable")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Add Bench Specialist to custom list" }),
+    ).toBeNull();
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Player search" }), {
+      target: { value: "Bench" },
+    });
+
+    expect(
+      await screen.findByRole(
+        "button",
+        { name: "Add Bench Specialist to custom list" },
+        { timeout: 1_500 },
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText("player detail unavailable")).toBeNull();
   });
 
   it("starts a fresh browser session without edits or custom players after remount", async () => {

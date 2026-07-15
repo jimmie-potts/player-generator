@@ -63,6 +63,29 @@ describe("PlayerComparison", () => {
     ).toBe(true);
   });
 
+  it("uses readable tiers and separated accessible names for player selection", () => {
+    renderComparison([
+      {
+        id: "tiers",
+        label: "Tier sample",
+        kind: "tier",
+        rows: [
+          row(),
+          row({
+            playerId: "player-2",
+            displayName: "Untiered Player",
+            tier: null,
+          }),
+        ],
+      },
+    ]);
+
+    expect(screen.getByRole("button", { name: "Example Player, All Star" })).toBeTruthy();
+    expect(screen.getByText("All Star")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Untiered Player, No tier" })).toBeTruthy();
+    expect(screen.getByText("No tier")).toBeTruthy();
+  });
+
   it("removes only rows marked removable from a custom list", () => {
     const onRemove = renderComparison([
       {
@@ -88,6 +111,18 @@ describe("PlayerComparison", () => {
 
     expect(screen.getByRole("heading", { name: "Your custom list is empty" })).toBeTruthy();
     expect(screen.getByText("Search for up to 25 players to compare.")).toBeTruthy();
+  });
+
+  it("offers an explicit retry action for a recoverable comparison error", () => {
+    const onRetry = vi.fn();
+    renderComparison([], {
+      error: "The Top 25 could not be loaded.",
+      retryLabel: "Retry Top 25",
+      onRetry,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry Top 25" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it("highlights every rating and rank impact with color-independent direction cues", () => {

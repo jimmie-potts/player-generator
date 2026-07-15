@@ -119,6 +119,32 @@ describe("useWorkbench comparison modes", () => {
     });
   });
 
+  it("retries a failed top-player load while the Top 25 mode remains active", async () => {
+    const client = new FakePreviewApiClient();
+    client.getPlayers
+      .mockRejectedValueOnce(new Error("The Top 25 could not be loaded."))
+      .mockResolvedValueOnce({
+        context: CONTEXT,
+        defaultSampleSize: 25,
+        players: structuredClone(TOP_PLAYERS),
+      });
+    const { result } = await readyWorkbench(client);
+
+    act(() => result.current.setComparisonMode("top25"));
+    await waitFor(() => expect(result.current.topPhase).toBe("error"));
+
+    expect(result.current.comparisonMode).toBe("top25");
+    expect(result.current.topError).toBe("The Top 25 could not be loaded.");
+    expect(client.getPlayers).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.retryTopPlayers());
+
+    await waitFor(() => expect(client.getPlayers).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.topPhase).toBe("ready"));
+    expect(result.current.topError).toBeNull();
+    expect(result.current.topPlayers).toEqual(TOP_PLAYERS);
+  });
+
   it("keeps a custom list separate, deduplicated, removable, and active in previews", async () => {
     const client = new FakePreviewApiClient();
     const { result } = await readyWorkbench(client);
@@ -194,6 +220,108 @@ describe("useWorkbench comparison modes", () => {
         ([playerId]) => playerId === SPECIAL_PLAYER.playerId,
       ),
     ).toHaveLength(specialRequestsBefore);
+  });
+
+  it("clears stale custom-list errors when searching again or removing a player", async () => {
+    const client = new FakePreviewApiClient();
+    client.getPlayer.mockImplementation(async (playerId) => {
+      if (playerId === SPECIAL_PLAYER.playerId) {
+        throw new Error("The player could not be added.");
+      }
+      return makePlayerDetail(playerId);
+    });
+    const { result } = await readyWorkbench(client);
+    const removablePlayer = searchHit(TOP_PLAYERS[0]);
+
+    await act(async () => result.current.addCustomPlayer(removablePlayer));
+    await act(async () => result.current.addCustomPlayer(SPECIAL_PLAYER));
+    expect(result.current.customError).toBe("The player could not be added.");
+
+    act(() => result.current.setSearchQuery("another player"));
+    expect(result.current.customError).toBeNull();
+
+    await act(async () => result.current.addCustomPlayer(SPECIAL_PLAYER));
+    expect(result.current.customError).toBe("The player could not be added.");
+
+    act(() => result.current.removeCustomPlayer(removablePlayer.playerId));
+    expect(result.current.customError).toBeNull();
+  });
+
+  it("ignores a pending custom-add failure after a newer search begins", async () => {
+    const client = new FakePreviewApiClient();
+    let rejectPending!: (reason?: unknown) => void;
+    const pendingLookup = new Promise<PlayerDetailResponse>((_resolve, reject) => {
+      rejectPending = reject;
+    });
+    client.getPlayer.mockImplementation(async (playerId) =>
+      playerId === SPECIAL_PLAYER.playerId ? pendingLookup : makePlayerDetail(playerId),
+    );
+    const { result } = await readyWorkbench(client);
+
+    act(() => result.current.setSearchQuery("Spec"));
+    let addPromise!: Promise<void>;
+    act(() => {
+      addPromise = result.current.addCustomPlayer(SPECIAL_PLAYER);
+    });
+    await waitFor(() =>
+      expect(client.getPlayer).toHaveBeenCalledWith(SPECIAL_PLAYER.playerId),
+    );
+
+    act(() => result.current.setSearchQuery("Bench"));
+    await waitFor(() => expect(result.current.searchPhase).toBe("ready"));
+    expect(result.current.searchResults.map(({ playerId }) => playerId)).toContain(
+      SPECIAL_PLAYER.playerId,
+    );
+    await act(async () => {
+      rejectPending(new Error("The old add failed."));
+      await addPromise;
+    });
+
+    expect(result.current.searchQuery).toBe("Bench");
+    expect(result.current.customError).toBeNull();
+    expect(result.current.searchResults.map(({ playerId }) => playerId)).toContain(
+      SPECIAL_PLAYER.playerId,
+    );
+  });
+
+  it("does not erase a newer search when an earlier custom add succeeds", async () => {
+    const client = new FakePreviewApiClient();
+    let resolvePending!: (response: PlayerDetailResponse) => void;
+    const pendingLookup = new Promise<PlayerDetailResponse>((resolve) => {
+      resolvePending = resolve;
+    });
+    client.getPlayer.mockImplementation(async (playerId) =>
+      playerId === SPECIAL_PLAYER.playerId ? pendingLookup : makePlayerDetail(playerId),
+    );
+    const { result } = await readyWorkbench(client);
+
+    act(() => result.current.setSearchQuery("Spec"));
+    let addPromise!: Promise<void>;
+    act(() => {
+      addPromise = result.current.addCustomPlayer(SPECIAL_PLAYER);
+    });
+    await waitFor(() =>
+      expect(client.getPlayer).toHaveBeenCalledWith(SPECIAL_PLAYER.playerId),
+    );
+
+    act(() => result.current.setSearchQuery("Bench"));
+    await waitFor(() => expect(result.current.searchPhase).toBe("ready"));
+    expect(result.current.searchResults.map(({ playerId }) => playerId)).toContain(
+      SPECIAL_PLAYER.playerId,
+    );
+    await act(async () => {
+      resolvePending(makePlayerDetail(SPECIAL_PLAYER.playerId));
+      await addPromise;
+    });
+
+    expect(result.current.searchQuery).toBe("Bench");
+    expect(result.current.customError).toBeNull();
+    expect(result.current.searchResults.map(({ playerId }) => playerId)).toContain(
+      SPECIAL_PLAYER.playerId,
+    );
+    expect(result.current.customPlayers.map(({ playerId }) => playerId)).toContain(
+      SPECIAL_PLAYER.playerId,
+    );
   });
 
   it("ignores an unfinished top-player response after leaving that mode", async () => {

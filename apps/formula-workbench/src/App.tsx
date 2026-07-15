@@ -736,6 +736,12 @@ function WorkbenchView({ workbench, onNavigate }: WorkbenchViewProps) {
                   ? `Search above and add up to ${MAX_CUSTOM_PLAYERS} players. Only this custom list will be included in its preview.`
                   : "The active player set did not return any players."
               }
+              retryLabel="Retry Top 25"
+              onRetry={
+                workbench.comparisonMode === "top25" && workbench.topPhase === "error"
+                  ? workbench.retryTopPlayers
+                  : undefined
+              }
               onSelect={workbench.selectPlayer}
               onRemove={workbench.removeCustomPlayer}
             />

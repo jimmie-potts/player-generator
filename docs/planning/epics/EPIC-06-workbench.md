@@ -61,6 +61,10 @@
   normalized weights use blue because allocation alone is not a positive or negative outcome. All
   cues are backed by signed values, directional arrows, and accessible labels; unchanged and
   non-result states remain neutral and explicitly identified.
+- **2026-07-14 PR review follow-up:** Addressed three comparison usability gaps: new custom searches and
+  removals clear stale add errors, an active failed Top 25 view presents an explicit retry action,
+  and player-selection controls announce a separated display name and human-readable tier. These
+  changes preserve the same session-only state and server-authoritative calculations.
 
 ## Completion notes
 
@@ -100,6 +104,14 @@
   `npm run workbench:build`, `.venv/bin/python -m pytest` (376 passed),
   `.venv/bin/python -m ruff check .`, `sha256sum -c FILE_MANIFEST.sha256`, and staged diff checks
   passed after adding visible, non-color-only impact feedback and a completed-preview announcement.
+- **PR review follow-up outcome:** Comparison failures now provide an in-place recovery path and no
+  longer mask fresh custom-list searches or let late add completions erase newer results, while
+  player-selection names expose readable tier context to assistive technology. Focused regression
+  coverage protects these behaviors.
+- **PR review follow-up validation:** `npm run workbench:test` passed 85 tests;
+  `npm run workbench:build`, `.venv/bin/python -m pytest` (376 passed),
+  `.venv/bin/python -m ruff check .`, `sha256sum -c FILE_MANIFEST.sha256`, and staged diff checks
+  passed.
 - **Deviations and follow-ups:** No unrecorded deviations were introduced beyond D-028 and D-029.
   Saved comparison groups, collaborative sharing, authentication, persistence, approval, and
   deployment remain out of scope; custom players remain page-session state.

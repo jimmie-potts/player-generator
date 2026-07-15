@@ -76,6 +76,11 @@ based on one example.
   blue for changed weight allocation, and a neutral treatment for unchanged values. This
   presentation refinement does not alter API-owned calculations, comparison membership, or
   fixed-cohort rank semantics.
+- **2026-07-14 PR review follow-up:** Made comparison recovery and player selection clearer without
+  changing calculation semantics. A new search or custom-player removal clears a stale add error,
+  and late add completions cannot replace the newer query or its results. A failed active Top 25
+  view offers an explicit `Retry Top 25` action, and player selectors expose the display name and a
+  human-readable tier as a deliberately separated accessible name.
 
 ## Completion notes
 
@@ -142,6 +147,14 @@ based on one example.
   `.venv/bin/python -m ruff check .`, `sha256sum -c FILE_MANIFEST.sha256`, and staged diff checks
   passed. Focused coverage verifies positive, negative, unchanged, sub-display-precision,
   allocation-only, rank-direction, and completed screen-reader announcement states.
+- **PR review follow-up:** Custom-list recovery no longer lets an earlier add failure obscure a new
+  search or lets a late add completion erase newer results, a failed Top 25 load can be retried
+  without leaving its active view, and assistive technology receives each player name and readable
+  tier as distinct information. Regression coverage exercises all three paths.
+- **PR review follow-up validation:** `npm run workbench:test` passed 85 tests;
+  `npm run workbench:build`, `.venv/bin/python -m pytest` (376 passed),
+  `.venv/bin/python -m ruff check .`, `sha256sum -c FILE_MANIFEST.sha256`, and staged diff checks
+  passed.
 - **Follow-ups:** Preview-impact styling must remain redundant: signed values, arrows, and accessible
   direction labels carry the same meaning as green, red, and blue, while pending, unchanged,
   unavailable, excluded, and failed states remain distinguishable without implying a gain or loss.

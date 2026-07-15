@@ -107,6 +107,7 @@ export interface WorkbenchController {
   topPlayers: PlayerSummary[];
   topPhase: RequestPhase;
   topError: string | null;
+  retryTopPlayers: () => void;
   customPlayers: PlayerSummary[];
   customError: string | null;
   addCustomPlayer: (player: SearchHit) => Promise<void>;
@@ -153,10 +154,12 @@ export function useWorkbench(
   const [topPlayers, setTopPlayers] = useState<PlayerSummary[]>([]);
   const [topPhase, setTopPhase] = useState<RequestPhase>("idle");
   const [topError, setTopError] = useState<string | null>(null);
+  const [topRequestToken, setTopRequestToken] = useState(0);
   const [customPlayers, setCustomPlayers] = useState<PlayerSummary[]>([]);
   const customPlayerIds = useRef(new Set<string>());
   const pendingCustomPlayerIds = useRef(new Set<string>());
   const sessionGeneration = useRef(0);
+  const customInteractionGeneration = useRef(0);
   const [customError, setCustomError] = useState<string | null>(null);
   const [selectedPlayerIdsByMode, setSelectedPlayerIdsByMode] = useState<
     Record<ComparisonMode, string | null>
@@ -164,7 +167,7 @@ export function useWorkbench(
   const [detail, setDetail] = useState<PlayerDetailResponse | null>(null);
   const [detailPhase, setDetailPhase] = useState<RequestPhase>("idle");
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQueryState] = useState("");
   const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
   const [searchPhase, setSearchPhase] = useState<RequestPhase>("idle");
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -188,6 +191,7 @@ export function useWorkbench(
 
   useEffect(() => {
     sessionGeneration.current += 1;
+    customInteractionGeneration.current += 1;
     const controller = new AbortController();
     setPhase("loading");
     setLoadMessage(null);
@@ -212,7 +216,7 @@ export function useWorkbench(
     setPreview(null);
     setPreviewPhase("idle");
     setPreviewError(null);
-    setSearchQuery("");
+    setSearchQueryState("");
     setSearchResults([]);
     setSearchPhase("idle");
     setSearchError(null);
@@ -348,7 +352,7 @@ export function useWorkbench(
       controller.abort();
       setTopPhase((current) => (current === "loading" ? "idle" : current));
     };
-  }, [client, comparisonMode, context, makeStale, phase]);
+  }, [client, comparisonMode, context, makeStale, phase, topRequestToken]);
 
   const representativePlayers = useMemo(
     () => flattenRepresentatives(representativeGroups),
@@ -553,6 +557,7 @@ export function useWorkbench(
       }
       if (!context) return;
       const generation = sessionGeneration.current;
+      const interactionGeneration = customInteractionGeneration.current;
       pendingCustomPlayerIds.current.add(player.playerId);
       try {
         const response = await client.getPlayer(player.playerId);
@@ -571,15 +576,19 @@ export function useWorkbench(
           ...current,
           custom: player.playerId,
         }));
-        setSearchQuery("");
-        setSearchResults([]);
+        if (interactionGeneration === customInteractionGeneration.current) {
+          setSearchQueryState("");
+          setSearchResults([]);
+        }
       } catch (error: unknown) {
         if (generation !== sessionGeneration.current) return;
         if (error instanceof StaleContextError) {
           makeStale(error.message);
           return;
         }
-        setCustomError(errorMessage(error));
+        if (interactionGeneration === customInteractionGeneration.current) {
+          setCustomError(errorMessage(error));
+        }
       } finally {
         if (generation === sessionGeneration.current) {
           pendingCustomPlayerIds.current.delete(player.playerId);
@@ -599,6 +608,8 @@ export function useWorkbench(
   const removeCustomPlayer = useCallback(
     (playerId: string) => {
       if (!customPlayerIds.current.has(playerId)) return;
+      customInteractionGeneration.current += 1;
+      setCustomError(null);
       if (comparisonMode === "custom") invalidatePreview();
       customPlayerIds.current.delete(playerId);
       setCustomPlayers((current) =>
@@ -611,6 +622,19 @@ export function useWorkbench(
     },
     [comparisonMode, invalidatePreview],
   );
+
+  const updateSearchQuery = useCallback((query: string) => {
+    customInteractionGeneration.current += 1;
+    setCustomError(null);
+    setSearchQueryState(query);
+  }, []);
+
+  const retryTopPlayers = useCallback(() => {
+    if (comparisonMode !== "top25" || topPhase !== "error") return;
+    setTopError(null);
+    setTopPhase("idle");
+    setTopRequestToken((current) => current + 1);
+  }, [comparisonMode, topPhase]);
 
   const exportProposal = useCallback(() => {
     if (!preview || !editor || previewPhase !== "ready") return;
@@ -693,6 +717,7 @@ export function useWorkbench(
     topPlayers,
     topPhase,
     topError,
+    retryTopPlayers,
     customPlayers,
     customError,
     addCustomPlayer,
@@ -710,7 +735,7 @@ export function useWorkbench(
     detailPhase,
     detailError,
     searchQuery,
-    setSearchQuery,
+    setSearchQuery: updateSearchQuery,
     searchResults,
     searchPhase,
     searchError,
