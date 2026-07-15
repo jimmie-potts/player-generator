@@ -6,7 +6,7 @@ Technical presentation for engineers, architects, and product stakeholders
 
 Implementation baseline: 2026-07-14, `agent/implement-epic-06`
 
-> **Scope of “projected final state”:** the end of the currently approved seven-epic roadmap. It is
+> **Scope of “projected final state”:** the end of the currently approved eight-epic roadmap. It is
 > not a projection of a complete league simulator.
 
 ---
@@ -14,7 +14,7 @@ Implementation baseline: 2026-07-14, `agent/implement-epic-06`
 # 1. Executive state
 
 The batch-data foundation, read-only formula preview API, and interactive React formula workbench
-are implemented. Future team and coach contracts remain planned.
+are implemented. The NBA-GM MVP handoff and future team and coach contracts remain planned.
 
 | Capability | Current state | Roadmap state |
 |---|---|---|
@@ -24,9 +24,11 @@ are implemented. Future team and coach contracts remain planned.
 | Deterministic player-only roster package | Implemented | EPIC-04 complete |
 | Read-only formula preview API | Implemented | EPIC-05 complete |
 | Interactive formula workbench | Implemented | EPIC-06 complete |
+| NBA-GM MVP roster handoff | Proposed contract and story pack | EPIC-08 ready |
 | Team and coach contract definitions | Proposed headers only | EPIC-07 ready |
 
-**Delivery:** 14 of 15 user stories are complete. US-014 is ready and unstarted.
+**Delivery:** 14 of 18 user stories are complete. US-014 and US-016 through US-018 are ready and
+unstarted.
 
 ---
 
@@ -495,6 +497,8 @@ At the end of the approved roadmap, the project will provide:
 - one explainable formula engine across reference publication, roster generation, and previews;
 - a read-only Python API for versioned formulas, search, calculation detail, and temporary previews;
 - a React workbench for inspection, reversible tuning, player comparison, and proposal export;
+- a manifest-backed NBA-GM MVP handoff with consolidated roster statistics, a synthetic conformance
+  fixture, and an optional generated review workbook;
 - machine-validatable `teams.csv` and `coaches.csv` contract targets with stable IDs, membership by
   `teamId`, ISO 8601 dates, and 0–100 coach rating/preference scales.
 
@@ -506,7 +510,8 @@ It will **still not provide**:
 - production hosting or operations infrastructure;
 - arbitrary expressions executed from the browser.
 
-EPIC-07 is schema design only, and those files are not emitted by the player-only generator. Any
+EPIC-08 remains player-only: NBA-GM owns league context and simulation-specific transformations.
+EPIC-07 is schema design only, and its files are not emitted by the player-only generator. Any
 broader simulation capability requires new approved stories and, where it changes architecture or
 policy, a new decision record.
 
@@ -526,19 +531,23 @@ Delivered interactive service
 Delivered interactive client
   EPIC-06  inspect → preview → compare
 
+Next integration lane
+  EPIC-08  contract + fixture → consolidated roster publication → optional review workbook
+
 Remaining independent contract lane
   EPIC-07 / US-014  team and coach schemas only
 ```
 
 Epic numbering is roadmap grouping, not a strict chronological dependency graph: US-015 followed
-the EPIC-04 package-consumer seam, while EPIC-07 does not depend on the API or workbench.
+the EPIC-04 package-consumer seam, EPIC-08 returns to that seam for NBA-GM integration, and EPIC-07
+does not depend on the API or workbench.
 
 Migration has proceeded seam by seam: establish boundaries, replace the roster generator's
 raw/wide-data coupling with a published package, extract calculations into a shared engine, add the
 read-only API consumer, then add its session-only browser client. The plan permits a deliberate clean
-v2 break while keeping additive reference v1 readable after v2 added attributes. Remaining roadmap
-work defines future team and coach contracts without introducing population policy or new generator
-behavior.
+v2 break while keeping additive reference v1 readable after v2 added attributes. The next lane
+freezes the NBA-GM package contract before changing roster publication, while the independent
+domain-contract lane defines teams and coaches without introducing population policy.
 
 ---
 
@@ -550,6 +559,7 @@ behavior.
 | Incorrect identity merges | Exact conservative matching; reviewed overrides; complete reconciliation audit |
 | Formula drift across consumers | One engine; versioned document; exact byte hash; explanation regressions |
 | Broken statistical relationships | Mutate primitives; derive dependents; semantic contract validation |
+| Player-generator and NBA-GM contract drift | One machine-readable schema; synthetic golden package; expected normalized record; exact field-disposition review |
 | Non-reproducible output | Seed, config and package hashes, stable rows/content hashes; deterministic roster manifest; reference timestamp excluded from content hash |
 | Upstream data redistribution | Local ignored inputs; provenance/license metadata; no committed third-party data |
 | Slow previews | 1,000-row cohort cap, bounded responses, selected-only explanation materialization, and a 3,000 ms warm test |
@@ -622,6 +632,8 @@ Repository sources used for this presentation:
 - [Formula preview API contract](../../apps/formula-workbench/api/README.md)
 - [Formula API epic](../planning/epics/EPIC-05-formula-api.md)
 - [Formula workbench epic](../planning/epics/EPIC-06-workbench.md)
+- [NBA-GM MVP handoff epic](../planning/epics/EPIC-08-nba-gm-mvp-handoff.md)
+- [NBA-GM handoff and proposed consumer stories](../planning/NBA_GM_MVP_HANDOFF.md)
 - [Future domain-contract epic](../planning/epics/EPIC-07-domain-contracts.md)
 
 Status labels in the deck are implementation claims only when their stories are marked `complete`.

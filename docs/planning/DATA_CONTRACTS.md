@@ -6,6 +6,10 @@ Coach and team sections remain planned interfaces for their later stories. All C
 headers, UTF-8 encoding, one header row, LF line endings, and stable IDs. Missing optional source
 values remain empty rather than being inferred without an approved rule.
 
+Every integer `season` is the four-digit year in which the basketball season ends: `2025` means the
+2024-25 season. In roster output, that value identifies the generated player's statistical basis; it
+does not declare a package-wide league season and may differ between players.
+
 ## Reference package
 
 | File | Grain | Required identity columns | Purpose |
@@ -143,6 +147,48 @@ configuration hash, per-file row counts and hashes, and one aggregate content ha
 has no creation timestamp. Publication writes a same-parent staging directory and replaces the
 destination only after contract, relationship, statistical, integrity, and identity-leak checks
 pass.
+
+## Planned NBA-GM MVP roster handoff
+
+The following is the agreed EPIC-08 target, not the implemented roster version 1 interface above.
+US-016 freezes its exact schema and synthetic conformance fixture; US-017 changes publication only
+after NBA-GM can review that contract.
+
+```text
+manifest.json
+players.csv
+player_stats.csv
+player_attributes.csv
+```
+
+| File | Planned grain | Planned purpose |
+|---|---|---|
+| `players.csv` | one row per roster player | Generated identity and available physical snapshot |
+| `player_stats.csv` | one row per roster player for its sole statistical-basis season | All currently published traditional, rate, possession, and advanced statistics |
+| `player_attributes.csv` | one row per roster player | Separately versioned formula-derived attributes, overall, percentile, and tier |
+| `manifest.json` | one package | Contract and generator identity, deterministic inputs, formula provenance, row counts, and integrity hashes |
+
+The three CSVs have the exact same unique `playerId` set. The planned `player_stats.csv` keeps the
+current traditional-stat header order and then appends the current advanced-stat fields without a
+second `playerId` or `season`. US-016 must govern each ordered column's scalar type, nullability,
+bounds, unit or scale, and primitive or derived classification before the interface is implemented.
+
+The roster package does not add `player_seasons.csv`; that name remains the reference package's
+season-context table. The roster's single `season` value is the statistical season-ending year from
+D-031 and is not NBA-GM league context. NBA-GM converts that value to its canonical `YYYY-YY` key,
+validates the package independently, retains all current statistics as MVP observations, and owns
+positions, team assignment, contracts, league dates, detailed simulation ratings, and tendencies.
+
+The handoff retains a contract identifier but requires no pre-integration compatibility or
+dual-publishing path. A generated `roster-review.xlsx` may project the consolidated statistics into
+human-oriented sheets, but it remains outside the package directory, manifest, and content hash and
+cannot write changes back to canonical data.
+
+ESPN-derived simulation statistics, deeper metrics, and personality traits or descriptions remain
+post-MVP work. Source-specific IDs and fields continue to stop at the reference boundary; later
+roster fields must use neutral domain semantics under a separately approved contract. See
+[NBA_GM_MVP_HANDOFF.md](NBA_GM_MVP_HANDOFF.md) for the ownership boundary and proposed NBA-GM
+consumer stories.
 
 ## Future coach contract
 
