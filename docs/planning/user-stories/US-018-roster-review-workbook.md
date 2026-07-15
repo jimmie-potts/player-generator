@@ -17,8 +17,9 @@ canonical integration source.
   coverage. It must not change the source package or participate in its content hash.
 - Provide `Players`, `Box Stats`, `Advanced Metrics`, `Attributes`, and `Validation Summary`
   worksheets.
-- Project `Box Stats` and `Advanced Metrics` from the one canonical `player_stats.csv` using the
-  field classifications completed by US-016.
+- Project `Box Stats` and `Advanced Metrics` from the roster profile's one canonical
+  `player_stats.csv` using the shared field classifications completed by US-016. Do not introduce a
+  workbook-only interpretation of a field shared with the reference profile.
 - Include the source package contract identifier, content hash, formula identity, row counts, and
   season-ending-year convention in `Validation Summary`.
 - Use values only: no macros, executable formulas, external links, hidden content, or workbook-to-

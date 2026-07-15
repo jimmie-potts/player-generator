@@ -14,7 +14,8 @@ Implementation baseline: 2026-07-14, `agent/implement-epic-06`
 # 1. Executive state
 
 The batch-data foundation, read-only formula preview API, and interactive React formula workbench
-are implemented. The NBA-GM MVP handoff and future team and coach contracts remain planned.
+are implemented. The parity-aligned NBA-GM MVP handoff and future team and coach contracts remain
+planned.
 
 | Capability | Current state | Roadmap state |
 |---|---|---|
@@ -24,7 +25,7 @@ are implemented. The NBA-GM MVP handoff and future team and coach contracts rema
 | Deterministic player-only roster package | Implemented | EPIC-04 complete |
 | Read-only formula preview API | Implemented | EPIC-05 complete |
 | Interactive formula workbench | Implemented | EPIC-06 complete |
-| NBA-GM MVP roster handoff | Proposed contract and story pack | EPIC-08 ready |
+| Parity-aligned NBA-GM MVP roster handoff | Proposed contract and story pack | EPIC-08 ready |
 | Team and coach contract definitions | Proposed headers only | EPIC-07 ready |
 
 **Delivery:** 14 of 18 user stories are complete. US-014 and US-016 through US-018 are ready and
@@ -497,8 +498,9 @@ At the end of the approved roadmap, the project will provide:
 - one explainable formula engine across reference publication, roster generation, and previews;
 - a read-only Python API for versioned formulas, search, calculation detail, and temporary previews;
 - a React workbench for inspection, reversible tuning, player comparison, and proposal export;
-- a manifest-backed NBA-GM MVP handoff with consolidated roster statistics, a synthetic conformance
-  fixture, and an optional generated review workbook;
+- parity-aligned reference and roster player files with consolidated statistics, plus a
+  manifest-backed NBA-GM roster handoff, synthetic conformance fixture, and optional generated
+  review workbook;
 - machine-validatable `teams.csv` and `coaches.csv` contract targets with stable IDs, membership by
   `teamId`, ISO 8601 dates, and 0–100 coach rating/preference scales.
 
@@ -532,7 +534,7 @@ Delivered interactive client
   EPIC-06  inspect → preview → compare
 
 Next integration lane
-  EPIC-08  contract + fixture → consolidated roster publication → optional review workbook
+  EPIC-08  shared contracts + fixtures → parity-aligned publication → optional review workbook
 
 Remaining independent contract lane
   EPIC-07 / US-014  team and coach schemas only
@@ -546,8 +548,9 @@ Migration has proceeded seam by seam: establish boundaries, replace the roster g
 raw/wide-data coupling with a published package, extract calculations into a shared engine, add the
 read-only API consumer, then add its session-only browser client. The plan permits a deliberate clean
 v2 break while keeping additive reference v1 readable after v2 added attributes. The next lane
-freezes the NBA-GM package contract before changing roster publication, while the independent
-domain-contract lane defines teams and coaches without introducing population policy.
+freezes paired reference and roster player contracts before changing either publication path, while
+the independent domain-contract lane defines teams and coaches without introducing population
+policy.
 
 ---
 
@@ -559,6 +562,7 @@ domain-contract lane defines teams and coaches without introducing population po
 | Incorrect identity merges | Exact conservative matching; reviewed overrides; complete reconciliation audit |
 | Formula drift across consumers | One engine; versioned document; exact byte hash; explanation regressions |
 | Broken statistical relationships | Mutate primitives; derive dependents; semantic contract validation |
+| Reference and roster player-file drift | Shared field definitions; declared profile extensions; paired fixtures and cross-profile parity tests |
 | Player-generator and NBA-GM contract drift | One machine-readable schema; synthetic golden package; expected normalized record; exact field-disposition review |
 | Non-reproducible output | Seed, config and package hashes, stable rows/content hashes; deterministic roster manifest; reference timestamp excluded from content hash |
 | Upstream data redistribution | Local ignored inputs; provenance/license metadata; no committed third-party data |

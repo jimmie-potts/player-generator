@@ -386,3 +386,34 @@ changes one; do not rewrite history without recording the replacement.
   and are always generated and validated together. One consolidated statistics table removes a
   compulsory consumer join without weakening semantic validation, while a shared schema and
   synthetic fixture let player-generator and NBA-GM implement the handoff independently.
+
+## D-033: Reference and roster player-file parity
+
+- **Status:** accepted
+- **Decision:** Maintain the corresponding reference and roster `players.csv`, `player_stats.csv`,
+  and `player_attributes.csv` surfaces as two profiles of one player-data contract. Shared columns
+  must retain the same name, relative order, scalar representation, semantic meaning, unit or scale,
+  bounds or enum, derivation classification, season convention, and serialization in both profiles.
+  Any shared field addition, removal, rename, or formatting change must update both profiles and
+  their schemas, fixtures, validators, tests, and documentation in the same story and pull request.
+  New player-content fields default to both profiles; a one-profile field requires a dated decision
+  and an explicit extension declaration. Cross-profile contract tests must fail when shared
+  definitions drift. As part of EPIC-08, consolidate traditional and advanced statistics into
+  `player_stats.csv` in both published profiles and retire `player_advanced_stats.csv` from both
+  target inventories.
+- **Profile boundaries:** Parity does not require equal row values, IDs, grains, or complete package
+  inventories. Reference-only season context, source IDs, provenance, reconciliation, and audit data
+  remain behind the reference boundary. Roster-only deterministic generation inputs and manifest
+  metadata remain in the roster profile. Profile-specific key prefixes, availability-based null
+  overrides, and other extensions must be closed and explicitly declared; they must not redefine a
+  shared field's type, meaning, unit, bounds, or derivation. NBA-GM continues to consume only the
+  player-only roster profile.
+- **Supersedes:** This decision supersedes D-032's planned reference-package exception and, once
+  US-017 is complete, D-005's separate traditional- and advanced-stat output boundary. D-005 and
+  D-022 still describe the implemented reference version 2 and roster version 1 interfaces until
+  that story completes. D-006's player-only roster scope and the prohibition on publishing source
+  identities in roster data remain in force.
+- **Reason:** Reference data is the calibrated counterpart of roster data. Allowing their common
+  player surfaces to evolve independently would duplicate contract work and invite semantic drift
+  before NBA-GM integration and later enrichment. Shared definitions and synchronized delivery keep
+  both outputs reviewable and compatible without weakening their provenance boundary.

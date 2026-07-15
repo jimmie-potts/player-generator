@@ -148,11 +148,28 @@ has no creation timestamp. Publication writes a same-parent staging directory an
 destination only after contract, relationship, statistical, integrity, and identity-leak checks
 pass.
 
-## Planned NBA-GM MVP roster handoff
+## Planned parity-aligned NBA-GM MVP player contracts
 
-The following is the agreed EPIC-08 target, not the implemented roster version 1 interface above.
-US-016 freezes its exact schema and synthetic conformance fixture; US-017 changes publication only
-after NBA-GM can review that contract.
+The following is the agreed EPIC-08 target, not either implemented interface above. Reference
+version 2 and roster version 1 remain current until US-017 completes. US-016 freezes two profiles of
+one player-data contract and paired synthetic fixtures; US-017 changes both publishers, their
+supported readers, and current-state documentation together after NBA-GM can review the roster
+profile.
+
+Planned reference profile:
+
+```text
+manifest.json
+audit.json
+players.csv
+player_seasons.csv
+player_stats.csv
+player_attributes.csv
+player_source_ids.csv
+sources.csv
+```
+
+Planned roster profile and exact NBA-GM handoff:
 
 ```text
 manifest.json
@@ -161,23 +178,45 @@ player_stats.csv
 player_attributes.csv
 ```
 
-| File | Planned grain | Planned purpose |
-|---|---|---|
-| `players.csv` | one row per roster player | Generated identity and available physical snapshot |
-| `player_stats.csv` | one row per roster player for its sole statistical-basis season | All currently published traditional, rate, possession, and advanced statistics |
-| `player_attributes.csv` | one row per roster player | Separately versioned formula-derived attributes, overall, percentile, and tier |
-| `manifest.json` | one package | Contract and generator identity, deterministic inputs, formula provenance, row counts, and integrity hashes |
+| Corresponding file | Reference grain and key prefix | Roster grain and key prefix | Shared payload |
+|---|---|---|---|
+| `players.csv` | one row per reference player; `playerId` | one row per roster player; `playerId` | Approved player identity, bio, and physical fields |
+| `player_stats.csv` | one row per player-season; `playerSeasonId,playerId,season` | one row per roster player for its sole statistical-basis season; `playerId,season` | Traditional, rate, possession, and advanced observations |
+| `player_attributes.csv` | one row per player-season; `playerSeasonId,playerId,season` | one row per roster player; `playerId` | Formula-derived attributes, overall, percentile, tier, and formula identity |
 
-The three CSVs have the exact same unique `playerId` set. The planned `player_stats.csv` keeps the
-current traditional-stat header order and then appends the current advanced-stat fields without a
-second `playerId` or `season`. US-016 must govern each ordered column's scalar type, nullability,
-bounds, unit or scale, and primitive or derived classification before the interface is implemented.
+The corresponding files derive their shared payload from one definition. Shared fields retain the
+same relative order, scalar representation, meaning, null encoding, unit or scale, bounds or enum,
+primitive or derived classification, and CSV serialization in both profiles. New player-content
+fields default to both profiles. A field present in only one profile requires a dated decision and
+an explicit extension declaration. Parity does not require equal row values, IDs, grains, or full
+package inventories.
 
-The roster package does not add `player_seasons.csv`; that name remains the reference package's
-season-context table. The roster's single `season` value is the statistical season-ending year from
-D-031 and is not NBA-GM league context. NBA-GM converts that value to its canonical `YYYY-YY` key,
-validates the package independently, retains all current statistics as MVP observations, and owns
-positions, team assignment, contracts, league dates, detailed simulation ratings, and tendencies.
+US-016 must close and govern the extension list. Reference-only `playerSeasonId` keys, season
+context, source IDs, provenance, reconciliation, audit data, and availability-based null rules do
+not enter roster data. Roster-only generator, namespace, ID-scheme, seed, configuration, and
+reference-package metadata do not become reference placeholders. A profile extension cannot change
+a shared field's type, meaning, unit, bounds, or derivation. The contract must explicitly resolve
+current differences such as `age` versus `birthDate`, count-number representation, and fields
+available in only one current profile without fabricating values.
+
+Both target profiles consolidate their traditional and advanced metrics into `player_stats.csv` and
+retire `player_advanced_stats.csv`. The shared statistics payload includes the governed games,
+minutes, possession basis, percentages, and rate fields. If reference `player_seasons.csv` retains a
+value also published in `player_stats.csv`, relationship validation requires exact equality instead
+of permitting two independently mutable definitions.
+
+The manifests share a governed envelope for package type and contract identity, file row counts and
+hashes, formula identity, and aggregate content identity. Reference input, provenance, and audit
+metadata and roster generation metadata remain declared profile extensions. Cross-profile tests
+compare the shared definitions after declared key prefixes, exercise identical serialization in
+paired synthetic fixtures, reject undeclared fields or overrides, and prove that a one-sided field,
+ordering, type, or formatting change fails.
+
+The roster profile's three CSVs have the exact same unique `playerId` set. Its single `season` value
+is the statistical season-ending year from D-031 and is not NBA-GM league context. NBA-GM converts
+that value to its canonical `YYYY-YY` key, validates only the roster profile, retains all current
+statistics as MVP observations, and owns positions, team assignment, contracts, league dates,
+detailed simulation ratings, and tendencies.
 
 The handoff retains a contract identifier but requires no pre-integration compatibility or
 dual-publishing path. A generated `roster-review.xlsx` may project the consolidated statistics into
@@ -186,7 +225,7 @@ cannot write changes back to canonical data.
 
 ESPN-derived simulation statistics, deeper metrics, and personality traits or descriptions remain
 post-MVP work. Source-specific IDs and fields continue to stop at the reference boundary; later
-roster fields must use neutral domain semantics under a separately approved contract. See
+shared player fields require a parity-aligned contract change. See
 [NBA_GM_MVP_HANDOFF.md](NBA_GM_MVP_HANDOFF.md) for the ownership boundary and proposed NBA-GM
 consumer stories.
 

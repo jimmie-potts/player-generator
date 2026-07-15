@@ -14,8 +14,11 @@ do not silently expand their scope.
 
 1. Confirm all listed dependencies are complete.
 2. Reconcile the story with the implemented repository, relevant decisions, and later learnings.
-3. Change its status to `in_progress`.
-4. Record any newly discovered scope conflict before changing an interface.
+3. For a change to a shared player, statistics, or attribute field or CSV-formatting rule, identify
+   and include the corresponding reference and roster contract, fixture, validator, and
+   documentation changes required by D-033.
+4. Change its status to `in_progress`.
+5. Record any newly discovered scope conflict before changing an interface.
 
 ## Completing a story
 
@@ -66,6 +69,8 @@ Treat each review thread as a traceable unit of follow-up work:
 
 - Acceptance criteria are demonstrably satisfied.
 - Public contracts are versioned and documented.
+- Stories that change corresponding reference or roster player files satisfy D-033 and, once US-017
+  delivers the automated parity checks, pass those checks.
 - Automated tests cover expected behavior and relevant failure modes.
 - No local reference data or unlicensed upstream data is newly tracked.
 - Current-state documentation matches the implementation.
