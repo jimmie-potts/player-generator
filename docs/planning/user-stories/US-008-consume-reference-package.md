@@ -12,12 +12,12 @@ does not depend on raw sources or adapter internals.
 ## Acceptance criteria
 
 - The roster-generator CLI accepts a reference-package directory and roster configuration.
-- It validates the package manifest, required files, content hash, contract versions, key
-  relationships, and compatible formula version before sampling.
+- It validates the package manifest, required files, content hash, contract identity, key
+  relationships, and supported formula version before sampling.
 - It never imports source adapters or reads upstream Parquet files.
 - Eligibility filters, season selection, recency weights, roster size, and random seed are explicit
   configuration.
-- Validation failures identify the incompatible file, contract, or relationship before generation
+- Validation failures identify the invalid file, contract, or relationship before generation
   starts.
 - Identical reference package, configuration, formula document, and seed select the same templates.
 
@@ -42,17 +42,17 @@ does not depend on raw sources or adapter internals.
 - **Completed:** 2026-07-13
 - **Pull request:** [PR #7](https://github.com/jimmie-potts/player-generator/pull/7)
 - **Delivered:** The roster CLI accepts config plus reference-package, formula, output, and seed
-  overrides. `roster_generator.reference_package` verifies reference manifest/package version 1,
-  all six CSV contract versions, exact required files, per-file hashes and row counts, the audit row
-  count, aggregate content hash, normalized table relationships, and formula reference-contract
-  and roster-output compatibility before returning a typed player-season join. Selection evaluates
+  overrides. `roster_generator.reference_package` verifies the version 1 reference profile, all five
+  CSV contracts, exact required files, per-file hashes and row counts, the audit row count, aggregate
+  content hash, normalized table relationships, formula input requirements, and the roster output
+  contract before returning a typed player-season join. Selection evaluates
   complete season cohorts before applying explicit season, recency, games, minutes,
   generation-viability, size, replacement, and seed controls.
 - **Deviations:** None. The story remains a consumer only and never builds or repairs a reference
   package.
 - **Validation:** `.venv/bin/python -m pytest
   apps/roster-generator/tests/test_reference_selection.py` passed 24 tests, including missing
-  files, hash/row/version/relationship failures, formula output compatibility, mutation viability,
+  files, hash/row/version/relationship failures, formula output requirements, mutation viability,
   empty populations, deterministic selection, and end-to-end CLI publication; focused Ruff passed.
 - **Follow-up:** US-009 consumes the selected internal templates and must not serialize their
   reference identities or any crosswalk.

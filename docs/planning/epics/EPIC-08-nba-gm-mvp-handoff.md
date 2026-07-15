@@ -36,8 +36,8 @@ follow-up and is not required to complete the machine-to-machine integration.
 - Every governed version 1 roster statistic is available as an MVP simulation input.
 - Statistical identities, formula provenance, determinism, atomic publication, and the
   reference-to-roster identity boundary remain intact.
-- Reference-only season context, source identities, provenance, and audit data remain absent from
-  the NBA-GM roster handoff.
+- Reference-only season-context columns, source identities, provenance, and audit data remain absent
+  from the NBA-GM roster handoff.
 
 ## Non-goals
 

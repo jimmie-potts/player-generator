@@ -523,12 +523,9 @@ def _unique_name(
 
 def _evaluate_attributes(
     stats_rows: list[dict[str, object]],
-    advanced_rows: list[dict[str, object]],
     formula: FormulaDocument,
 ) -> list[dict[str, object]]:
-    stats = pd.DataFrame(stats_rows)
-    advanced = pd.DataFrame(advanced_rows)
-    frame = stats.merge(advanced, on=["playerId", "season"], how="inner", validate="one_to_one")
+    frame = pd.DataFrame(stats_rows)
     evaluated_by_position: dict[int, dict[str, object]] = {}
     for _season, indices in frame.groupby("season", sort=True).groups.items():
         positions = [int(index) for index in indices]
@@ -590,7 +587,6 @@ def generate_roster_tables(
     used_names: set[str] = set()
     players: list[dict[str, object]] = []
     stats_rows: list[dict[str, object]] = []
-    advanced_rows: list[dict[str, object]] = []
     for ordinal, raw_template in enumerate(templates.to_dict(orient="records"), start=1):
         player_id = _player_id(actual_seed, ordinal)
         first_name, last_name = _unique_name(
@@ -624,15 +620,14 @@ def generate_roster_tables(
             }
         )
         stats = _mutate_stats(raw_template, player_id, mutation_settings, rng)
+        stats.update(_mutate_advanced(raw_template, stats, mutation_settings, rng))
         stats_rows.append(stats)
-        advanced_rows.append(_mutate_advanced(raw_template, stats, mutation_settings, rng))
 
-    attributes = _evaluate_attributes(stats_rows, advanced_rows, formula)
+    attributes = _evaluate_attributes(stats_rows, formula)
     return GeneratedRoster(
         tables={
             "players.csv": players,
             "player_stats.csv": stats_rows,
-            "player_advanced_stats.csv": advanced_rows,
             "player_attributes.csv": attributes,
         },
         seed=actual_seed,

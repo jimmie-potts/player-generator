@@ -80,12 +80,12 @@ preserve their logical independence. Mypy is installed but is not currently an e
 flowchart LR
     local["Caller-owned local Parquet"]
     reference["reference-data CLI"]
-    refpkg["Reference package v2<br/>7 CSVs + audit + manifest"]
+    refpkg["Reference profile v1<br/>5 CSVs + audit + manifest"]
     roster["roster-generator CLI"]
-    rosterpkg["Roster package v1<br/>4 CSVs + manifest"]
+    rosterpkg["Roster profile v1<br/>3 CSVs + manifest"]
     contracts["data-contracts<br/>schemas + validators"]
     engine["attribute-engine<br/>formula v1.0.0"]
-    api["FastAPI preview API<br/>read-only /api/v1; one v2 cohort"]
+    api["FastAPI preview API<br/>read-only /api/v1; one v1 cohort"]
     workbench["React workbench<br/>session-only edits + comparison lists"]
     legacy["Pinned download + wide build<br/>standalone legacy path"]
 
@@ -99,7 +99,7 @@ flowchart LR
     engine -->|calculates for| reference
     engine -->|calculates for| roster
     engine -->|calculates for| api
-    reference -. standalone compatibility .-> legacy
+    reference -. standalone legacy path .-> legacy
 ```
 
 Solid left-to-right edges carry data artifacts or HTTP requests. Engine edges identify a calculation
@@ -131,7 +131,7 @@ flowchart LR
     canonical["Canonical relational model"]
     evaluate["Evaluate supported season cohorts<br/>nullable attributes for unsupported schedules"]
     stage["Stage + validate + hash"]
-    publish["Atomic reference v2 publish"]
+    publish["Atomic reference v1 publish"]
 
     register --> registry --> verify1 --> adapt --> reconcile --> canonical --> evaluate --> stage --> publish
 ```
@@ -167,7 +167,7 @@ Implementation details:
 - another UUIDv5 derives `playerSeasonId` from `(playerId, season)`;
 - configured per-field source precedence chooses canonical bio values;
 - conflicting candidates, the selected value, and the applied rule remain in `audit.json`;
-- every season-grain table must contain the exact same canonical key set.
+- statistics and attributes must contain the exact same canonical player-season key set.
 
 This is a **fail-closed identity strategy**: lower match coverage is preferred to silent corruption.
 
@@ -179,20 +179,20 @@ The data exchange layer uses **package-as-interface** and **content-addressed pr
 
 | Package | Published content | Integrity metadata |
 |---|---|---|
-| Reference v2 | 7 contracted CSVs + audit + manifest; audit is manifest-governed | source hashes, adapter versions, formula version/hash, per-file rows/hashes, aggregate hash |
-| Roster v1 | 4 contracted CSVs + manifest | reference package hash, formula version/hash, seed, configuration hash, per-file rows/hashes, aggregate hash |
+| Reference profile v1 | 5 contracted CSVs + audit + manifest; audit is manifest-governed | source hashes, adapter versions, formula version/hash, per-file rows/hashes, aggregate hash |
+| Roster profile v1 | 3 contracted CSVs + manifest | reference package hash, formula version/hash, seed, configuration hash, per-file rows/hashes, aggregate hash |
 
-The current producer publishes reference v2. The roster consumer accepts reference v1 and v2; it
-validates v2's published attributes but recalculates roster attributes from generated statistics
-using the requested formula.
+The current producer publishes the version 1 reference profile. The roster consumer accepts only
+that profile, validates its published attributes, and recalculates roster attributes from generated
+statistics using the requested formula.
 
 Validation covers:
 
 - exact directory entries and ordered headers;
 - scalar types, finite values, null rules, bounds, dates, enums, and unique keys;
 - foreign keys and exact cross-file key sets;
-- exactly one traditional-stat row and one advanced-stat row per roster player, both for the same
-  generated season, because attributes remain player-grain;
+- exactly one consolidated statistics row per roster player for its generated season, because
+  attributes remain player-grain;
 - manifest versions, row counts, file hashes, and aggregate content hashes;
 - roster statistical identities and reference-identity leak prevention.
 
@@ -260,7 +260,7 @@ Nulls are excluded rather than median-filled, and ties receive their average ran
 The generator preserves statistical relationships by mutating **templates and primitives**, not
 independent output columns.
 
-1. Validate the exact reference package, formula compatibility, and input stability.
+1. Validate the exact reference package, formula input requirements, and input stability.
 2. Evaluate complete season cohorts, then filter by configured seasons, games, minutes, complete
    formula output, and generation viability.
 3. Sample templates with a seeded NumPy generator:
@@ -354,8 +354,8 @@ workflow requires each logical unit to be committed, pushed, and opened as a rea
 
 | Current seam | Why it remains |
 |---|---|
-| Pinned remote download and wide processed build | Standalone legacy compatibility; not part of normalized roster flow |
-| Reference formula input contract remains v1 | Reference v2 is additive and adds published attributes without changing statistical inputs |
+| Pinned remote download and wide processed build | Standalone legacy path; not part of normalized roster flow |
+| Reference and roster profiles share contract v1 | Common player fields and serialization remain parity-tested while profile extensions stay explicit |
 | Aggregate player-season grain | Team stints and traded-player team identity are intentionally deferred |
 | Conservative exact-name reconciliation | Avoids probabilistic identity corruption; ambiguous cases require review |
 | Formula schedules cover 2021–2026 | Direct evaluation rejects unlisted schedules; reference publication preserves keys with nullable attributes |
@@ -376,8 +376,8 @@ populated with placeholders.
 ```mermaid
 flowchart LR
     sources["Caller-owned Parquet"] --> reference["reference-data"]
-    reference --> refpkg["Versioned reference package<br/>v2 is current"]
-    refpkg --> roster["roster-generator"] --> rosterpkg["Player-only roster v1"]
+    reference --> refpkg["Reference profile<br/>version 1"]
+    refpkg --> roster["roster-generator"] --> rosterpkg["Player-only roster profile v1"]
     refpkg --> frame["Loaded in-memory reference data"]
     frame --> api["Current FastAPI /api/v1<br/>fixed cohort; bounded results"]
     workbench["Current React + TypeScript workbench<br/>session-only design loop"] --> api
@@ -420,7 +420,7 @@ recalculation.
 
 Implemented strategies and bounds:
 
-- load one integrity-checked version 2 reference package and one explicitly configured season;
+- load one integrity-checked version 1 reference profile and one explicitly configured season;
 - recalculate and cache the active baseline over the complete season cohort, verifying published
   attributes when the package's published formula version and hash match the active formula exactly;
 - reject more than 1,000 cohort rows, then bound representatives to at most five per tier, selected
@@ -467,8 +467,9 @@ sequenceDiagram
 ```
 
 The sequence is the implemented local design loop. The API recalculates the active baseline and
-verifies it against reference v2 attributes only when the published and active formula identities
-match exactly. The browser adds these interaction behaviors without becoming a formula evaluator:
+verifies it against published version 1 reference attributes only when the published and active
+formula identities match exactly. The browser adds these interaction behaviors without becoming a
+formula evaluator:
 
 - inspect formula eligibility, cohorts, anchors, scales, versions, and calculation explanations;
 - distinguish missing, excluded, unsupported, loading, empty, stale-version, and API-error states;
@@ -587,21 +588,21 @@ decisions rather than an extension of the current preview endpoint.
 # Reference data
 reference-data register --source-type nba_playerstats /path/to/playerstats.parquet
 reference-data register --source-type espn_player_details /path/to/player-details.parquet
-reference-data publish --output /path/to/reference-v2
+reference-data publish --output /path/to/reference-v1
 reference-data publish --formula /path/to/formula.json
 
 # Roster data
-roster-generator generate --reference-package /path/to/reference-v2
+roster-generator generate --reference-package /path/to/reference-v1
 roster-generator generate --output /path/to/roster-v1 --seed 42
 
 # Formula workbench client (run with the preview API below)
 npm run workbench:dev
 
-# Formula preview API (requires an ignored local reference v2 package)
+# Formula preview API (requires an ignored local version 1 reference profile)
 formula-preview-api --config apps/formula-workbench/api/config/default.yaml
 # equivalent: make formula-api
 
-# Standalone legacy compatibility path
+# Standalone legacy path
 reference-data download --force
 reference-data build
 

@@ -21,7 +21,7 @@ def test_active_formula_document_is_packaged_and_complete() -> None:
     formula = load_formula()
 
     assert formula.formula_version == ACTIVE_FORMULA_VERSION == "1.0.0"
-    assert REFERENCE_CONTRACT_VERSION == 2
+    assert REFERENCE_CONTRACT_VERSION == 1
     assert formula.reference_contract_version == 1
     assert [attribute.name for attribute in formula.attributes] == [
         "insideScoring",

@@ -13,7 +13,7 @@ function context(): ApiContext {
   return {
     apiVersion: "1",
     referencePackage: {
-      packageVersion: 2,
+      packageVersion: 1,
       contentHash: "a".repeat(64),
       publishedFormulaVersion: "1.0.0",
       publishedFormulaDocumentHash: "b".repeat(64),

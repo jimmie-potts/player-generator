@@ -154,16 +154,8 @@ class NormalizedSourceRow:
         return self.player_fields
 
     @property
-    def player_season(self) -> dict[str, object] | None:
-        return self.season_fields
-
-    @property
     def player_stats(self) -> dict[str, object] | None:
         return self.traditional_stats
-
-    @property
-    def player_advanced_stats(self) -> dict[str, object] | None:
-        return self.advanced_stats
 
     @property
     def sourceId(self) -> str:

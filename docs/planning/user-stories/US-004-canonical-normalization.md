@@ -47,8 +47,8 @@ applications do not depend on upstream schemas.
   source explicitly reports a single-team aggregate, while all source team labels remain audit
   context.
 - Added source-owned mappings for player bio, aggregate season context, traditional statistics, and
-  advanced statistics. ESPN version 1 maps only optional fields whose names declare their meaning
-  and units; ambiguous `height` and `weight` fields remain unavailable.
+  advanced statistics. ESPN adapter version 1 maps only optional fields whose names declare their
+  meaning and units; ambiguous `height` and `weight` fields remain unavailable.
 - Reconciliation treats source IDs as namespaced, collapses repeated IDs across seasons, applies
   reviewed overrides before conservative normalized exact-name matching, and gives ambiguous or
   unmatched identities separate stable players with explicit audit outcomes.
@@ -56,8 +56,8 @@ applications do not depend on upstream schemas.
   precedence and latest-season tie-breaking are configured, nulls fall through to the next source,
   and every distinct non-null conflict records its candidates, chosen value, and rule.
 - Focused validation covered 28 adapter and canonical cases; the full reference-data suite passed
-  46 tests. A local ignored 6,908-row NBA source normalized into 1,693 players and matching sets of
-  6,908 season, traditional-stat, and advanced-stat rows without changing or copying the input.
+  46 tests. A local ignored 6,908-row NBA source normalized into 1,693 players and 6,908 aggregate
+  player-season statistics rows without changing or copying the input.
 - PR review hardened scalar normalization: native Parquet date and timestamp birth dates now emit
   canonical `YYYY-MM-DD` values, and blank numeric text in supported numeric-text fields becomes
   null while required player ID and season wrappers still reject missing values.
@@ -78,13 +78,13 @@ applications do not depend on upstream schemas.
 - **Precedence:** NBA values lead for display name, physical, origin, college, and draft fields;
   ESPN leads for first name, last name, and birth date. Null values fall through, and equal values
   are not conflicts. Within one source type, the latest season wins deterministically.
-- **Source gaps:** NBA supplies no starts, birth date, or reliable first/last-name split. ESPN v1 has
-  no season statistics and only maps optional fields with explicit canonical names and units. Team
-  identity remains empty whenever `team_count` is not exactly one.
+- **Source gaps:** NBA supplies no starts, birth date, or reliable first/last-name split. ESPN adapter
+  version 1 has no season statistics and only maps optional fields with explicit canonical names and
+  units. Team identity remains empty whenever `team_count` is not exactly one.
 - **Validation:** `.venv/bin/python -m pytest apps/reference-data/tests -q` passed 46 tests;
   `.venv/bin/python -m ruff check apps/reference-data tests/test_architecture.py` and
   `git diff --check` passed. A local 6,908-row ignored NBA source produced 1,693 players and exactly
-  6,908 rows in each aggregate season table.
+  6,908 aggregate player-season statistics rows.
 - **Follow-up:** US-005 gives these tables public version 1 contracts, serializes their audit, and
   publishes them atomically. US-008 remains responsible for roster-package consumption.
 - **Learning:** A missing aggregate team count cannot prove single-team grain, so older records keep

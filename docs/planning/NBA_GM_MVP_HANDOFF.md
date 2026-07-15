@@ -4,9 +4,9 @@ This document is the portable version 1 handoff for the NBA-GM agent. It records
 and proposes NBA-GM review and implementation stories. NBA-GM should reconcile the proposed IDs and
 dependencies with its own roadmap before starting them.
 
-[DATA_CONTRACTS.md](DATA_CONTRACTS.md) is the normative version 1 baseline. US-016 is freezing its
-machine-readable schemas and conformance fixtures; US-017 will make the player-generator publishers
-emit the two profiles. This delivery status does not change the contract's baseline identity.
+[DATA_CONTRACTS.md](DATA_CONTRACTS.md) is the normative version 1 baseline. The player-generator
+schemas, publishers, and readers use its two profiles; US-016 and US-017 are recording final
+validation and cross-project conformance evidence.
 
 ## Agreed MVP boundary
 
@@ -29,12 +29,13 @@ player_attributes.csv
   set NBA-GM's starting season or league calendar.
 - The human-review workbook is generated separately and is never an integration input.
 
-NBA-GM continues to consume only the roster profile. Within player-generator, the corresponding
-reference `players.csv`, `player_stats.csv`, and `player_attributes.csv` files will derive shared
-fields and formatting from the same contract definitions. Both version 1 profiles publish
-advanced metrics into `player_stats.csv`. Reference-only `player_seasons.csv`, source IDs,
-provenance, reconciliation, and audit data remain behind the reference boundary and are not added to
-the NBA-GM handoff.
+NBA-GM consumes only the roster profile. Within player-generator, the corresponding reference
+`players.csv`, `player_stats.csv`, and `player_attributes.csv` files are required to derive shared
+fields and formatting from the same contract definitions; US-016 still owns that schema refactor
+and its parity tests. Both version 1 profiles publish advanced metrics in `player_stats.csv`, while
+reference season context remains a reference-only extension. Reference-only source IDs, provenance,
+reconciliation, and audit data remain behind the reference boundary and are not added to the NBA-GM
+handoff.
 
 ## Ownership baseline
 
@@ -59,7 +60,7 @@ broader ratings merely because their numeric ranges overlap.
 
 ## Cross-project contract artifacts
 
-US-016 must provide NBA-GM with:
+The US-016 handoff provides NBA-GM with:
 
 - the exact machine-readable schemas and accepted version 1 contract identity;
 - ordered headers, types, null rules, ranges, units, and primitive or derived classifications;
@@ -210,8 +211,8 @@ invalid or tampered input cannot reach domain or save-creation code.
 
 - Implement a dedicated adapter in NBA-GM's data-import package that recognizes only the accepted
   player-generator package.
-- Validate manifest compatibility, exact canonical file set, declared row counts, individual file
-  hashes, and aggregate content identity before accepting the normalized result.
+- Validate the manifest contract identity, exact canonical file set, declared row counts, individual
+  file hashes, and aggregate content identity before accepting the normalized result.
 - Validate encoding, exact ordered headers, scalar types, required and null rules, enums, bounds,
   and finite numbers.
 - Require unique IDs and the exact same player set across players, statistics, and attributes.

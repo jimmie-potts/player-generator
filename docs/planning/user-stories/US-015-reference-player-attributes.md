@@ -11,18 +11,18 @@ reference player-seasons can be inspected without running a separate formula-eva
 
 ## Acceptance criteria
 
-- Publish `player_attributes.csv` in reference package version 2 with one row for every published
+- Publish `player_attributes.csv` in the version 1 reference profile with one row for every published
   player-season.
 - Evaluate each season as a complete percentile cohort through the shared attribute engine and the
   selected declarative formula document.
 - Preserve `playerSeasonId`, `playerId`, and `season` for every row; unsupported or ineligible
   attributes remain empty rather than receiving fabricated values.
-- Govern the new CSV's ordered headers, scalar types, nullability, bounds, keys, and relationships
-  through reference contract version 2.
+- Govern the CSV's ordered headers, scalar types, nullability, bounds, keys, and relationships through
+  player data contract version 1.
 - Record the formula version and exact formula-document hash in the package manifest and include
   the attributes file in package integrity metadata.
 - Identical normalized inputs and formula bytes produce identical attribute rows and content hashes.
-- Continue to read reference package version 1 while making version 2 the publication default.
+- Validate and publish only the version 1 reference profile.
 - Roster generation continues to evaluate its requested formula rather than copying published
   reference ratings into generated roster output.
 
@@ -38,17 +38,17 @@ reference player-seasons can be inspected without running a separate formula-eva
   exact player-season key sets.
 - Publication tests cover multiple season cohorts, evaluator parity, empty ineligible ratings,
   formula provenance, determinism, and atomic failure cleanup.
-- Consumer tests cover valid version 1 and version 2 packages, integrity failures, unsupported
-  versions, and unchanged roster-generation behavior.
+- Consumer tests cover valid version 1 packages, integrity failures, unsupported contract values,
+  and unchanged roster-generation behavior.
 
 ## Implementation notes
 
 ### 2026-07-13
 
-- Started after US-005, US-007, and US-008 completed. Reference contract version 2 is additive:
-  the six version 1 inputs retain their columns and a seventh season-grain attribute table is added.
-- Formula version `1.0.0` continues to declare reference input contract version 1 because its input
-  vocabulary and calibration are unchanged. A version 2 package satisfies that input requirement.
+- Started after US-005, US-007, and US-008 completed. The reference profile publishes season-grain
+  attributes alongside the governed statistical inputs.
+- Formula version `1.0.0` declares player data contract version 1 because its input vocabulary and
+  calibration use that baseline.
 - The normalized source contains seasons outside formula version `1.0.0`'s declared schedule.
   Those player-season keys remain in `player_attributes.csv` with empty calculated values and the
   formula version, rather than silently extending the approved calibration schedule.
@@ -60,14 +60,14 @@ reference player-seasons can be inspected without running a separate formula-eva
 - **Completed:** 2026-07-13.
 - **Pull request:** [#8](https://github.com/jimmie-potts/player-generator/pull/8), opened ready
   for review as a stacked PR against the still-open EPIC-04 branch.
-- **Branch and implementation commit:** `agent/reference-attributes-v2`; `28655ea`.
-- **Delivered:** additive `reference-v2.schema.json`; season-grain `player_attributes.csv`;
-  per-season shared-engine evaluation; `publish --formula`; exact formula version/hash provenance;
-  deterministic file and package hashes; and atomic version 2 publication.
-- **Compatibility:** reference contract and package version 1 remain readable. Formula version
-  `1.0.0` still requires the unchanged version 1 input vocabulary. The roster consumer validates
-  v2 attributes but recalculates its requested formula, preserving custom proposals and the
-  reference-to-roster identity boundary.
+- **Implementation commit:** `28655ea`.
+- **Delivered:** season-grain `player_attributes.csv`; per-season shared-engine evaluation;
+  `publish --formula`; exact formula version/hash provenance; deterministic file and package hashes;
+  and atomic publication. D-035 and US-017 incorporate this behavior into the current version 1
+  reference profile.
+- **Consumer behavior:** Formula version `1.0.0` requires the version 1 input vocabulary. The roster
+  consumer validates published attributes but recalculates its requested formula, preserving custom
+  proposals and the reference-to-roster identity boundary.
 - **Historical seasons:** all 6,908 player-season keys from 2014 through 2026 are published.
   Seasons outside the formula's 2021–2026 schedule retain empty calculated values; supported but
   ineligible player-seasons follow the same empty-value contract without hiding other evaluator
@@ -81,12 +81,15 @@ reference player-seasons can be inspected without running a separate formula-eva
   `.venv/bin/python -m ruff check .`, `npm run workbench:test`, `npm run workbench:build`,
   `git diff --check`, and `sha256sum -c FILE_MANIFEST.sha256` passed. Real
   `reference-data publish` and `roster-generator generate` commands completed against the local
-  version 2 package.
+  version 1 package.
 - **Follow-ups:** explanation publication remains out of scope; US-010 may expose the evaluator's
   existing explanation model through the preview API. PR #8 should be retargeted to `main` after
   PR #7 merges.
-- **Learnings:** exact-file-set packages require explicit additive versions; evaluator identity
+- **Learnings:** exact-file-set packages require one explicit governed inventory; evaluator identity
   ordering must be checked before attaching season keys; formula schedule gaps should yield
   explicit empty outputs rather than invented policy; and published reference provenance does not
   replace consumer-selected formula evaluation. These findings are recorded in
   [LEARNINGS.md](../LEARNINGS.md#2026-07-13--us-015).
+- **2026-07-15 amendment:** Player data contract version 1 is the sole current package format.
+  Reference attributes, season context, and all governed statistics now participate in that one
+  profile and exact-file inventory.

@@ -1,6 +1,6 @@
 # US-017: Publish player data contract version 1
 
-- **Status:** ready
+- **Status:** in_progress
 - **Epic:** [EPIC-08](../epics/EPIC-08-nba-gm-mvp-handoff.md)
 - **Dependencies:** US-016
 
@@ -16,17 +16,18 @@ to evolve together.
   `player_attributes.csv`, and `manifest.json` under the contract completed by US-016.
 - Publish the reference profile's corresponding `players.csv`, consolidated `player_stats.csv`, and
   `player_attributes.csv` from the same shared definitions. Retain declared reference-only
-  `player_seasons.csv`, `player_source_ids.csv`, `sources.csv`, `audit.json`, and manifest content.
+  `player_source_ids.csv`, `sources.csv`, `audit.json`, and manifest content. Publish reference
+  season context directly in `player_stats.csv`.
 - Enforce each version 1 profile's exact canonical inventory and reject undeclared extra files. The
   roster generator must consume the validated reference profile through its public contract and
   must not recreate a private alternate field definition.
 - Apply the exact shared header, field semantics, types, base null policy, units, bounds,
   classifications, formatting, and deterministic ordering completed by US-016 to both outputs.
   Implement only the declared profile-specific keys and availability-based null overrides.
-- Publish every governed reference or roster traditional, rate, possession, and advanced metric and
-  its semantic meaning in the applicable consolidated row. Apply the reviewed representation,
-  requiredness, nullability, and bounds from US-016; do not silently drop a metric or introduce a
-  conflicting definition.
+- Publish every governed reference or roster traditional, rate, and advanced metric and its semantic
+  meaning in the applicable consolidated row, plus the roster profile's explicit `possessions`
+  extension. Apply the reviewed representation, requiredness, nullability, and bounds from US-016;
+  do not silently drop a metric or introduce a conflicting definition.
 - Preserve controlled mutation and every governed statistical consistency check.
 - Emit `season` as the statistical season-ending year and preserve the distinction from NBA-GM
   league context.
@@ -65,8 +66,10 @@ to evolve together.
 
 ## Implementation notes
 
-Append dated notes here while the story is active. Start only after US-016 has a reviewed schema and
-fixture that NBA-GM can consume independently.
+- **2026-07-15:** Started after PR review fixed the version 1 inventory: five reference-profile CSVs
+  plus audit and manifest, and three roster-profile CSVs plus manifest. Both publishers, supported
+  readers, validators, fixtures, defaults, and current-state documentation are being aligned to that
+  one format. Final validation and completion evidence remain pending.
 
 ## Completion notes
 

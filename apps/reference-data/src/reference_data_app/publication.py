@@ -27,16 +27,14 @@ from reference_data_app.config import resolve_path
 
 CSV_FILENAMES = (
     "players.csv",
-    "player_seasons.csv",
     "player_stats.csv",
-    "player_advanced_stats.csv",
     "player_attributes.csv",
     "player_source_ids.csv",
     "sources.csv",
 )
 AUDIT_FILENAME = "audit.json"
 MANIFEST_FILENAME = "manifest.json"
-REFERENCE_PACKAGE_VERSION = 2
+REFERENCE_PACKAGE_VERSION = 1
 
 
 class PublicationError(ValueError):
@@ -104,33 +102,13 @@ def _attribute_input_frame(
     bundle: CanonicalBundle,
     contract: Mapping[str, Any],
 ) -> pd.DataFrame:
-    identity = ["playerSeasonId", "playerId", "season"]
-
-    def frame(filename: str, rows: Sequence[Mapping[str, Any]]) -> pd.DataFrame:
-        return pd.DataFrame(rows, columns=_contract_headers(contract, filename))
-
-    seasons = frame("player_seasons.csv", bundle.player_seasons)
-    stats = frame("player_stats.csv", bundle.player_stats)
-    advanced = frame("player_advanced_stats.csv", bundle.player_advanced_stats)
-    try:
-        joined = seasons.merge(
-            stats,
-            on=identity,
-            how="left",
-            sort=False,
-            validate="one_to_one",
-        ).merge(
-            advanced,
-            on=identity,
-            how="left",
-            sort=False,
-            validate="one_to_one",
-        )
-    except pd.errors.MergeError as error:
-        raise PublicationError(
-            "Canonical player-season, stats, and advanced-stat rows must have one-to-one keys"
-        ) from error
-    return joined.sort_values(["season", "playerSeasonId"], kind="stable").reset_index(drop=True)
+    frame = pd.DataFrame(
+        bundle.player_stats,
+        columns=_contract_headers(contract, "player_stats.csv"),
+    )
+    return frame.sort_values(["season", "playerSeasonId"], kind="stable").reset_index(
+        drop=True
+    )
 
 
 def _attribute_rows(
@@ -145,7 +123,7 @@ def _attribute_rows(
     actual_formula_fields = _formula_output_fields(formula)
     if actual_formula_fields != expected_formula_fields:
         raise PublicationError(
-            "Formula output fields do not match reference contract version 2 "
+            "Formula output fields do not match reference contract version 1 "
             f"player_attributes.csv: expected {expected_formula_fields!r}, "
             f"found {actual_formula_fields!r}"
         )
@@ -195,9 +173,7 @@ def _bundle_tables(
         sources.append(published_source)
     return {
         "players.csv": [dict(row) for row in bundle.players],
-        "player_seasons.csv": [dict(row) for row in bundle.player_seasons],
         "player_stats.csv": [dict(row) for row in bundle.player_stats],
-        "player_advanced_stats.csv": [dict(row) for row in bundle.player_advanced_stats],
         "player_attributes.csv": _attribute_rows(bundle, contract, formula),
         "player_source_ids.csv": [dict(row) for row in bundle.player_source_ids],
         "sources.csv": sources,
@@ -207,9 +183,7 @@ def _bundle_tables(
 def _sort_rows(filename: str, rows: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
     sort_fields = {
         "players.csv": ("playerId",),
-        "player_seasons.csv": ("playerSeasonId",),
         "player_stats.csv": ("playerSeasonId",),
-        "player_advanced_stats.csv": ("playerSeasonId",),
         "player_attributes.csv": ("playerSeasonId",),
         "player_source_ids.csv": ("playerId", "sourceType", "sourcePlayerId"),
         "sources.csv": ("sourceId",),
@@ -335,11 +309,11 @@ def publish_reference_package(
     contract_filenames = tuple(contract.get("files", {}))
     if contract_filenames != CSV_FILENAMES:
         raise PublicationError(
-            "Reference contract version 2 must define exactly the seven normalized CSVs "
+            "Reference contract version 1 must define exactly the five normalized CSVs "
             "in publication order"
         )
     if contract.get("contractVersion") != REFERENCE_PACKAGE_VERSION:
-        raise PublicationError("Reference publication requires contract version 2")
+        raise PublicationError("Reference publication requires contract version 1")
 
     active_formula_path = None if formula_path is None else Path(formula_path)
     formula, formula_document_hash = load_formula_snapshot(active_formula_path)

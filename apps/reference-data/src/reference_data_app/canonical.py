@@ -32,7 +32,7 @@ PLAYER_FIELDS = (
     "draftNumber",
 )
 
-PLAYER_SEASON_FIELDS = (
+PLAYER_STATS_CONTEXT_FIELDS = (
     "season",
     "teamId",
     "teamAbbreviation",
@@ -62,9 +62,7 @@ class CanonicalValidationError(ValueError):
 @dataclass(frozen=True)
 class CanonicalBundle:
     players: list[dict[str, Any]]
-    player_seasons: list[dict[str, Any]]
     player_stats: list[dict[str, Any]]
-    player_advanced_stats: list[dict[str, Any]]
     player_source_ids: list[dict[str, Any]]
     sources: list[dict[str, Any]]
     audit: dict[str, list[dict[str, Any]]]
@@ -359,9 +357,7 @@ def canonicalize_rows(
         for (source_type, source_player_id), player_id in identity_to_player.items()
     ]
 
-    player_seasons: list[dict[str, Any]] = []
     player_stats: list[dict[str, Any]] = []
-    player_advanced_stats: list[dict[str, Any]] = []
     source_contexts: list[dict[str, Any]] = []
     seen_seasons: set[tuple[str, int]] = set()
     for row in ordered_rows:
@@ -390,14 +386,17 @@ def canonicalize_rows(
             "playerId": player_id,
             "season": season,
         }
-        player_seasons.append(
+        player_stats.append(
             {
                 **identity,
-                **{field: row.season_fields.get(field) for field in PLAYER_SEASON_FIELDS[1:]},
+                **{
+                    field: row.season_fields.get(field)
+                    for field in PLAYER_STATS_CONTEXT_FIELDS[1:]
+                },
+                **row.traditional_stats,
+                **row.advanced_stats,
             }
         )
-        player_stats.append({**identity, **row.traditional_stats})
-        player_advanced_stats.append({**identity, **row.advanced_stats})
         source_contexts.append(
             {
                 **identity,
@@ -410,11 +409,7 @@ def canonicalize_rows(
 
     bundle = CanonicalBundle(
         players=sorted(players, key=lambda item: item["playerId"]),
-        player_seasons=sorted(player_seasons, key=lambda item: item["playerSeasonId"]),
         player_stats=sorted(player_stats, key=lambda item: item["playerSeasonId"]),
-        player_advanced_stats=sorted(
-            player_advanced_stats, key=lambda item: item["playerSeasonId"]
-        ),
         player_source_ids=sorted(
             player_source_ids,
             key=lambda item: (item["playerId"], item["sourceType"], item["sourcePlayerId"]),
@@ -527,58 +522,51 @@ def _validate_player_rows(players: Sequence[Mapping[str, Any]]) -> set[str]:
 
 def validate_canonical_bundle(bundle: CanonicalBundle) -> None:
     player_ids = _validate_player_rows(bundle.players)
-    season_ids = _validate_unique(
-        bundle.player_seasons, ("playerSeasonId",), "player_seasons"
+    stats_ids = _validate_unique(
+        bundle.player_stats, ("playerSeasonId",), "player_stats"
     )
-    season_grain = _validate_unique(
-        bundle.player_seasons, ("playerId", "season"), "player_seasons"
+    stats_grain = _validate_unique(
+        bundle.player_stats, ("playerId", "season"), "player_stats"
     )
-    for index, row in enumerate(bundle.player_seasons):
+    for index, row in enumerate(bundle.player_stats):
         if row["playerId"] not in player_ids:
             raise CanonicalValidationError(
-                f"player_seasons row {index} references unknown playerId {row['playerId']}"
+                f"player_stats row {index} references unknown playerId {row['playerId']}"
             )
         if not isinstance(row["playerSeasonId"], str) or not row["playerSeasonId"].startswith(
             "playerSeason_"
         ):
             raise CanonicalValidationError(
-                f"player_seasons row {index} has an invalid playerSeasonId"
+                f"player_stats row {index} has an invalid playerSeasonId"
             )
-        _validate_number(row["season"], f"player_seasons row {index} season", integral=True)
+        _validate_number(row["season"], f"player_stats row {index} season", integral=True)
         for field in ("games", "starts", "wins", "losses"):
             _validate_number(
-                row.get(field), f"player_seasons row {index} field {field}", integral=True
+                row.get(field), f"player_stats row {index} field {field}", integral=True
             )
         for field in ("age", "minutes"):
-            _validate_number(row.get(field), f"player_seasons row {index} field {field}")
+            _validate_number(row.get(field), f"player_stats row {index} field {field}")
         for field in ("teamId", "teamAbbreviation"):
             value = row.get(field)
             if value is not None and not isinstance(value, str):
                 raise CanonicalValidationError(
-                    f"player_seasons row {index} field {field} must be text or null"
+                    f"player_stats row {index} field {field} must be text or null"
                 )
-
-    expected_season_keys = {
-        (row["playerSeasonId"], row["playerId"], row["season"])
-        for row in bundle.player_seasons
-    }
-    for table_name, rows in (
-        ("player_stats", bundle.player_stats),
-        ("player_advanced_stats", bundle.player_advanced_stats),
-    ):
-        _validate_unique(rows, ("playerSeasonId",), table_name)
-        keys = {
-            (row.get("playerSeasonId"), row.get("playerId"), row.get("season"))
-            for row in rows
-        }
-        if keys != expected_season_keys:
-            raise CanonicalValidationError(
-                f"{table_name} player-season keys do not match player_seasons"
-            )
-        for index, row in enumerate(rows):
-            for field, value in row.items():
-                if field not in {"playerSeasonId", "playerId", "season"}:
-                    _validate_number(value, f"{table_name} row {index} field {field}")
+        for field, value in row.items():
+            if field not in {
+                "playerSeasonId",
+                "playerId",
+                "season",
+                "teamId",
+                "teamAbbreviation",
+                "games",
+                "starts",
+                "wins",
+                "losses",
+                "age",
+                "minutes",
+            }:
+                _validate_number(value, f"player_stats row {index} field {field}")
 
     source_identity_keys = _validate_unique(
         bundle.player_source_ids,
@@ -588,7 +576,7 @@ def validate_canonical_bundle(bundle: CanonicalBundle) -> None:
     player_source_keys = _validate_unique(
         bundle.player_source_ids, ("playerId", "sourceType"), "player_source_ids"
     )
-    del source_identity_keys, player_source_keys, season_ids, season_grain
+    del source_identity_keys, player_source_keys, stats_ids, stats_grain
     source_types = {source.get("sourceType") for source in bundle.sources}
     for index, row in enumerate(bundle.player_source_ids):
         if row["playerId"] not in player_ids:

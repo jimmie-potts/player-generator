@@ -18,7 +18,7 @@ import type {
 export const CONTEXT: ApiContext = {
   apiVersion: "1",
   referencePackage: {
-    packageVersion: 2,
+    packageVersion: 1,
     contentHash: "reference-package-hash-2026",
     publishedFormulaVersion: "attributes-2026.1",
     publishedFormulaDocumentHash: "formula-document-hash-2026",
@@ -35,7 +35,7 @@ export const CONTEXT: ApiContext = {
 export const FORMULA_DOCUMENT: FormulaDocument = {
   schemaVersion: 1,
   formulaVersion: "attributes-2026.1",
-  referenceContractVersion: 2,
+  referenceContractVersion: 1,
   outputFields: ["overall", "shooting"],
   rules: {
     nullHandling: "exclude",

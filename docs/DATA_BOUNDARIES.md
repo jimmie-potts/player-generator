@@ -40,22 +40,21 @@ Forbidden contents:
 
 ## Application boundary
 
-The reference-data application publishes a validated version 2 normalized package with
+The reference-data application publishes the validated version 1 reference profile with
 season-relative attributes and retains its wide processed tables only as a standalone legacy
 interface. The roster generator and formula preview API validate and consume the normalized package
 and versioned manifest without importing the reference application or reading raw Parquet. The
 roster generator never publishes a template crosswalk.
 
-The accepted player data contract version 1 integration baseline, which is not yet the publisher
-default, treats reference and roster `players.csv`, `player_stats.csv`, and
-`player_attributes.csv` as two profiles of one player-data interface. US-017 owns the publisher
-cutover. The profiles' shared fields use the same ordered vocabulary, types, null representation,
+The current player data contract version 1 treats reference and roster `players.csv`,
+`player_stats.csv`, and `player_attributes.csv` as two profiles of one player-data interface. The
+profiles' shared fields use the same ordered vocabulary, types, null representation,
 units, bounds, meanings, and CSV formatting; a shared change must update both profiles together.
 Parity does not require identical IDs, row values, grains, or complete package inventories.
-Reference season context, source IDs, provenance, reconciliation, and audit data remain explicit
-reference-only extensions. Roster generation inputs and metadata remain explicit roster-only
-extensions. Neither kind of extension permits source identity or a source-to-roster crosswalk to
-enter roster output.
+Reference-only season-context columns, source IDs, provenance, reconciliation, and audit data remain
+explicit extensions. Roster generation inputs and metadata remain explicit roster-only extensions.
+Neither kind of extension permits source identity or a source-to-roster crosswalk to enter roster
+output.
 
 The local-only preview API may return the configured season's reference display names and stable
 internal player IDs for inspection. It does not expose source IDs or reconciliation mappings, write

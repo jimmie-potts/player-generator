@@ -337,11 +337,11 @@ def _validate_reference_metric_fields(
         contract = load_reference_contract(reference_contract_version)
     except ContractValidationError as error:
         raise FormulaContractError(str(error)) from error
-    supported: set[str] = set()
-    for file_name in ("player_seasons.csv", "player_stats.csv", "player_advanced_stats.csv"):
-        for column in contract["files"][file_name]["columns"]:
-            if column["type"] in {"integer", "number"}:
-                supported.add(str(column["name"]))
+    supported = {
+        str(column["name"])
+        for column in contract["files"]["player_stats.csv"]["columns"]
+        if column["type"] in {"integer", "number"}
+    }
     unknown = sorted(
         metric.field
         for metric in metrics.values()

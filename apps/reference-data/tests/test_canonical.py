@@ -123,7 +123,7 @@ def test_repeated_exact_source_id_across_seasons_has_one_stable_player(
     bundle = _canonicalize(rows, reference_config)
 
     assert len(bundle.players) == 1
-    assert len(bundle.player_seasons) == 2
+    assert len(bundle.player_stats) == 2
     assert len(bundle.player_source_ids) == 1
     reconciliation = bundle.audit["reconciliation"]
     assert reconciliation == [
@@ -137,7 +137,7 @@ def test_repeated_exact_source_id_across_seasons_has_one_stable_player(
     ]
     assert all(
         row["playerId"] == bundle.players[0]["playerId"]
-        for row in bundle.player_seasons
+        for row in bundle.player_stats
     )
 
 
@@ -271,8 +271,8 @@ def test_multi_team_identity_stays_empty_while_source_context_is_audited(
 
     bundle = _canonicalize([row], reference_config)
 
-    assert bundle.player_seasons[0]["teamId"] is None
-    assert bundle.player_seasons[0]["teamAbbreviation"] is None
+    assert bundle.player_stats[0]["teamId"] is None
+    assert bundle.player_stats[0]["teamAbbreviation"] is None
     context = bundle.audit["sourceContexts"][0]
     assert context["sourceTeamId"] == 1610612737
     assert context["sourceTeamAbbreviation"] == "TOT"
@@ -354,17 +354,17 @@ def test_validation_rejects_non_finite_metrics(reference_config: dict) -> None:
 
 def test_validation_rejects_orphan_player_relationship(reference_config: dict) -> None:
     bundle = _canonicalize([_nba_row("101", "Sample Player")], reference_config)
-    bundle.player_seasons[0]["playerId"] = "player_missing"
+    bundle.player_stats[0]["playerId"] = "player_missing"
 
     with pytest.raises(CanonicalValidationError, match="unknown playerId"):
         validate_canonical_bundle(bundle)
 
 
-def test_validation_rejects_mismatched_season_table_key_sets(reference_config: dict) -> None:
+def test_validation_rejects_invalid_player_season_id(reference_config: dict) -> None:
     bundle = _canonicalize([_nba_row("101", "Sample Player")], reference_config)
-    bundle.player_advanced_stats.clear()
+    bundle.player_stats[0]["playerSeasonId"] = "invalid"
 
-    with pytest.raises(CanonicalValidationError, match="keys do not match"):
+    with pytest.raises(CanonicalValidationError, match="invalid playerSeasonId"):
         validate_canonical_bundle(bundle)
 
 

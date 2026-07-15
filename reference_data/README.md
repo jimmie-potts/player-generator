@@ -10,8 +10,8 @@ loading.
 
 - `raw/playerstats.parquet`: pinned 2.43 MB upstream snapshot; downloaded locally and Git-ignored.
 - `registry/sources.json`: ignored local paths and provenance for registered Parquet inputs.
-- `packages/reference-v2/`: ignored normalized version 2 CSV package, attributes, audit, and
-  manifest. Existing version 1 packages remain readable.
+- `packages/reference-v1/`: ignored normalized version 1 reference profile with attributes, audit,
+  and manifest.
 - `processed/player_seasons_reference.csv`: named, rated player-season pool for end-season years
   2021 through 2026. This belongs only to the standalone legacy wide build.
 - `processed/reference_players.csv`: latest-season named legacy snapshot.
@@ -23,7 +23,7 @@ The source has no position field, so the pipeline infers replaceable guard/wing/
 height and role metrics.
 
 Raw, registered, normalized-package, and processed named data are ignored by Git. To build a version
-2 reference package from caller-owned local inputs and the active formula:
+1 reference profile from caller-owned local inputs and the active formula:
 
 ```bash
 reference-data register --source-type nba_playerstats /path/to/playerstats.parquet
@@ -32,8 +32,7 @@ reference-data publish
 reference-data publish --formula /path/to/formula.json
 ```
 
-The separate legacy path remains available for compatibility but is not consumed by normalized
-roster generation:
+The separate standalone path is not consumed by normalized roster generation:
 
 ```bash
 reference-data download

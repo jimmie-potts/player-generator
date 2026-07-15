@@ -184,9 +184,7 @@ def _package_tables(
     formula: FormulaDocument,
 ) -> tuple[dict[str, list[dict[str, object]]], pd.DataFrame, EvaluationBatch]:
     player_rows: list[dict[str, object]] = []
-    season_rows: list[dict[str, object]] = []
     stats_rows: list[dict[str, object]] = []
-    advanced_rows: list[dict[str, object]] = []
     source_id_rows: list[dict[str, object]] = []
     cohort_rows: list[dict[str, object]] = []
 
@@ -211,13 +209,7 @@ def _package_tables(
             )
         )
         season_values = {**raw, **identity}
-        season_rows.append(
-            _contract_row(contract, "player_seasons.csv", season_values)
-        )
         stats_rows.append(_contract_row(contract, "player_stats.csv", season_values))
-        advanced_rows.append(
-            _contract_row(contract, "player_advanced_stats.csv", season_values)
-        )
         source_id_rows.append(
             _contract_row(
                 contract,
@@ -272,9 +264,7 @@ def _package_tables(
     ]
     tables = {
         "players.csv": player_rows,
-        "player_seasons.csv": season_rows,
         "player_stats.csv": stats_rows,
-        "player_advanced_stats.csv": advanced_rows,
         "player_attributes.csv": attributes,
         "player_source_ids.csv": source_id_rows,
         "sources.csv": sources,
@@ -304,7 +294,7 @@ def build_reference_package(
     players: Sequence[Mapping[str, object]],
 ) -> SyntheticPackage:
     payload, formula, formula_hash = load_formula_payload_snapshot()
-    contract = load_reference_contract(2)
+    contract = load_reference_contract(1)
     tables, cohort, evaluation = _package_tables(players, contract, formula)
     path.mkdir(parents=True)
     for filename, rows in tables.items():
@@ -323,11 +313,11 @@ def build_reference_package(
     manifest = {
         "manifestVersion": 1,
         "packageType": "reference",
-        "packageVersion": 2,
+        "packageVersion": 1,
         "createdAt": "2026-07-13T12:00:00Z",
         "formulaVersion": formula.formula_version,
         "formulaDocumentHash": formula_hash,
-        "contractVersions": dict.fromkeys(tables, 2),
+        "contractVersions": dict.fromkeys(tables, 1),
         "inputs": [],
         "files": {
             filename: {
@@ -381,7 +371,7 @@ def preview_request(
 @pytest.fixture(scope="session")
 def synthetic_package(tmp_path_factory: pytest.TempPathFactory) -> SyntheticPackage:
     return build_reference_package(
-        tmp_path_factory.mktemp("preview-api") / "reference-v2",
+        tmp_path_factory.mktemp("preview-api") / "reference-v1",
         representative_players(),
     )
 
@@ -443,7 +433,7 @@ def request_payload(
 @pytest.fixture(scope="session")
 def maximum_cohort_package(tmp_path_factory: pytest.TempPathFactory) -> SyntheticPackage:
     return build_reference_package(
-        tmp_path_factory.mktemp("preview-api-performance") / "reference-v2",
+        tmp_path_factory.mktemp("preview-api-performance") / "reference-v1",
         maximum_cohort_players(1000),
     )
 

@@ -21,7 +21,7 @@ by a web client. Batch generation and interactive previews need the same evaluat
 - The engine produces deterministic 25–99 ratings and explainable intermediate values.
 - Percentile cohorts, nulls, ties, sample thresholds, overall, impact percentile, and tiers have
   regression coverage.
-- Reference package version 2 publishes the same engine's ratings for every player-season with
+- The version 1 reference profile publishes the same engine's ratings for every player-season with
   formula provenance and exact cohort keys.
 - Attributes lacking defensible inputs remain deferred.
 

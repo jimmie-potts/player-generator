@@ -18,7 +18,9 @@ can proceed independently without the two player-generator profiles drifting.
 - Freeze the roster profile whose exact package contains `players.csv`, `player_stats.csv`,
   `player_attributes.csv`, and `manifest.json`.
 - Define both profiles' `player_stats.csv` as one ordered row containing the governed traditional,
-  rate, possession, and advanced fields after their profile-specific key prefix.
+  rate (including per-100), and advanced fields after their profile-specific key prefix. Declare
+  roster-only explicit `possessions` as a profile extension; reference publishes per-100 rates but
+  no possession total.
 - Define the exact shared ordered columns, types, base null policy, meanings, units or scales,
   bounds, primitive or derived classifications, season convention, CSV encoding, line endings,
   null encoding, numeric serialization, and deterministic ordering. A shared addition, removal,
@@ -46,10 +48,10 @@ can proceed independently without the two player-generator profiles drifting.
 - Resolve and document the `age` and effective-date interpretation at the handoff. NBA-GM-owned
   fields such as `birthDate`, position, league assignment, contracts, and simulation-specific
   ratings must have an explicit owner and must not be silently fabricated by this contract.
-- Resolve the shared statistics payload so both profiles represent counts, `games`, `minutes`, the
-  possession basis, percentages, and rates consistently. If reference `player_seasons.csv` retains
-  a value also published in `player_stats.csv`, require exact equality rather than two independently
-  mutable definitions.
+- Resolve the shared statistics payload so both profiles represent shared counts, `games`,
+  `minutes`, percentages, and rates consistently. Keep the roster's explicit `possessions` total as
+  a declared extension and reference season context in `player_stats.csv` so each governed value
+  has one authoritative representation.
 - Define a common manifest envelope for contract family, version, profile, file row counts and
   hashes, formula identity, and aggregate content identity while keeping package identity separate.
   Declare reference provenance and audit metadata and roster generator, namespace, ID-scheme, seed,
@@ -90,8 +92,12 @@ can proceed independently without the two player-generator profiles drifting.
 
 - **2026-07-15:** Established the cross-project format as player data contract version 1 and removed
   package-history framing from the normative contract. Exact machine-readable schemas, declared
-  profile extensions, and paired fixtures remain active work and must be reconciled with the NBA-GM
-  review story before publication behavior changes.
+  profile extensions, and paired fixtures remain active work and are being reconciled with the
+  NBA-GM review story.
+- **2026-07-15:** PR review confirmed that version 1 begins with a single statistics surface in both
+  profiles. Reference season context and advanced metrics are columns in `player_stats.csv`; the
+  reference profile contains five CSVs plus audit and manifest, and the roster profile contains three
+  CSVs plus manifest. Runtime and conformance validation remain active before completion.
 
 ## Completion notes
 

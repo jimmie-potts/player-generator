@@ -27,7 +27,6 @@ from roster_generator.reference_package import LoadedReferencePackage
 CSV_FILENAMES = (
     "players.csv",
     "player_stats.csv",
-    "player_advanced_stats.csv",
     "player_attributes.csv",
 )
 MANIFEST_FILENAME = "manifest.json"
@@ -86,11 +85,7 @@ def _write_json(path: Path, payload: object) -> None:
 
 
 def _sort_rows(filename: str, rows: Sequence[Mapping[str, object]]) -> list[Mapping[str, object]]:
-    fields = (
-        ("playerId", "season")
-        if filename in {"player_stats.csv", "player_advanced_stats.csv"}
-        else ("playerId",)
-    )
+    fields = ("playerId", "season") if filename == "player_stats.csv" else ("playerId",)
     return sorted(rows, key=lambda row: tuple(str(row[field]) for field in fields))
 
 
@@ -197,7 +192,7 @@ def validate_published_roster_package(directory: str | Path) -> dict[str, object
         if unexpected:
             details.append(f"unexpected {', '.join(unexpected)}")
         raise RosterPublicationError(
-            "Roster package directory must contain exactly the four CSVs and manifest: "
+            "Roster package directory must contain exactly the three CSVs and manifest: "
             + "; ".join(details)
         )
     manifest_path = package_dir / MANIFEST_FILENAME
@@ -234,7 +229,7 @@ def validate_published_roster_package(directory: str | Path) -> dict[str, object
             )
     files = manifest.get("files")
     if not isinstance(files, dict) or set(files) != set(CSV_FILENAMES):
-        raise RosterPublicationError("Roster manifest must describe exactly the four roster CSVs")
+        raise RosterPublicationError("Roster manifest must describe exactly the three roster CSVs")
 
     file_hashes: dict[str, str] = {}
     for filename in CSV_FILENAMES:
@@ -309,7 +304,7 @@ def publish_roster_package(
     contract = load_roster_contract()
     if tuple(contract.get("files", {})) != CSV_FILENAMES:
         raise RosterPublicationError(
-            "Roster contract must define exactly the four normalized CSVs in publication order"
+            "Roster contract must define exactly the three normalized CSVs in publication order"
         )
     validate_roster_tables(generated.tables, contract=contract)
     _identity_leak_scan(generated.tables, reference)

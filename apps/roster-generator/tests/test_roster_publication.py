@@ -21,10 +21,9 @@ from roster_generator.publication import (
 from roster_generator.reference_package import LoadedReferencePackage
 
 GOLDEN_PACKAGE_HASHES = {
-    "manifest.json": "dd5e254162937a0eab9b3ab86dfed1e5bdc9599c530f6a942e3310c80d69daf0",
-    "player_advanced_stats.csv": "f4e02d7c3c9b570c721f4cc2b07f11783fb4a12f1d8a707bcaff2d7291356c62",
+    "manifest.json": "fa2d368ace0a0c09d18231a0e93a5ad448dad98b13efbc26df44307be7e952ad",
     "player_attributes.csv": "c44f3fcb94326efb18922b4257194f4244681124cd38f890e7a7a3aa09265ec7",
-    "player_stats.csv": "19923083d7e960f06ea69451526f5a7d4469b9e82847824aa8644e92dacb5191",
+    "player_stats.csv": "2937c1064ed440f393120d3b4548117c2a2783786ffc3ed78c2e314c4998c95f",
     "players.csv": "6b95438452cdc8834cd47e4afc67e86c6edfccfa2d3dd1deadcf9f95a09c26a3",
 }
 
@@ -129,6 +128,7 @@ def _tables(display_name: str = "Generated Player") -> dict[str, list[dict[str, 
         "defensiveWinShares": defensive_win_shares,
         "defensiveWinSharesPer36": _ratio(defensive_win_shares, minutes, 36),
     }
+    stats.update(advanced)
     attributes: dict[str, object] = {"playerId": player_id}
     attributes.update({field: 75 for field in RATING_FIELDS})
     attributes.update(
@@ -152,7 +152,6 @@ def _tables(display_name: str = "Generated Player") -> dict[str, list[dict[str, 
             }
         ],
         "player_stats.csv": [stats],
-        "player_advanced_stats.csv": [advanced],
         "player_attributes.csv": [attributes],
     }
 

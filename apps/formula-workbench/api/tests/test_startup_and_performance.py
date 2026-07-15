@@ -7,6 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 from time import perf_counter
 
+import formula_preview_api.service as service_module
 import httpx2
 import pytest
 from formula_preview_api import PreviewService, PreviewSettings, create_app
@@ -53,6 +54,25 @@ async def test_startup_rejects_missing_season_and_oversized_cohort(
         match=rf"has {len(synthetic_package.cohort)} rows; maximum is 5",
     ):
         PreviewService(replace(settings, max_cohort_size=5))
+
+
+async def test_startup_requires_exact_formula_reference_contract_version(
+    settings: PreviewSettings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload, formula, formula_hash = service_module.load_formula_payload_snapshot()
+    mismatched_formula = replace(formula, reference_contract_version=0)
+    monkeypatch.setattr(
+        service_module,
+        "load_formula_payload_snapshot",
+        lambda: (payload, mismatched_formula, formula_hash),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="requires reference contract version 0.*provides version 1",
+    ):
+        PreviewService(settings)
 
 
 async def test_startup_rejects_published_attributes_that_drift_from_matching_formula(

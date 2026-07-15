@@ -57,7 +57,7 @@ EPIC-07 remains an independent future-contract lane and does not authorize team 
 | US-014 | [Define coach and team contracts](user-stories/US-014-coach-team-contracts.md) | EPIC-07 | ready |
 | US-015 | [Publish reference player attributes](user-stories/US-015-reference-player-attributes.md) | EPIC-03 | complete |
 | US-016 | [Freeze player data contract version 1](user-stories/US-016-nba-gm-mvp-roster-contract.md) | EPIC-08 | in_progress |
-| US-017 | [Publish player data contract version 1](user-stories/US-017-publish-consolidated-mvp-roster.md) | EPIC-08 | ready |
+| US-017 | [Publish player data contract version 1](user-stories/US-017-publish-consolidated-mvp-roster.md) | EPIC-08 | in_progress |
 | US-018 | [Generate a roster review workbook](user-stories/US-018-roster-review-workbook.md) | EPIC-08 | ready |
 
 ## Planning records
@@ -82,7 +82,7 @@ The reference-data application retains its pinned download and wide processed bu
 standalone legacy interfaces. The implemented workbench and versioned API contracts are documented
 in [`apps/formula-workbench/README.md`](../../apps/formula-workbench/README.md) and
 [`apps/formula-workbench/api/README.md`](../../apps/formula-workbench/api/README.md). The implemented
-publisher outputs remain the runnable interfaces until US-017 implements the new defaults. Player
-data contract version 1 is now the NBA-GM integration baseline; US-016 is freezing its
-machine-readable schemas and fixtures, and US-017 remains responsible for publication. EPIC-07 and
-US-014 remain planned contract work and do not authorize team or coach generation.
+publisher outputs use player data contract version 1 as the current runnable interface and NBA-GM
+integration baseline. US-016 and US-017 remain in progress while their final conformance evidence,
+validation results, and completion records are assembled. EPIC-07 and US-014 remain planned contract
+work and do not authorize team or coach generation.

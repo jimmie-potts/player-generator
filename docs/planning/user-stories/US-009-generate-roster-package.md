@@ -6,14 +6,13 @@
 
 ## User story
 
-As a game developer, I want a normalized player-only CSV package so that bio, statistics, advanced
-statistics, and attributes can be loaded independently.
+As a game developer, I want a normalized player-only CSV package so that bio, statistics, and
+attributes can be loaded independently.
 
 ## Acceptance criteria
 
-- Publish `players.csv`, `player_stats.csv`, `player_advanced_stats.csv`,
-  `player_attributes.csv`, and `manifest.json` as described in
-  [DATA_CONTRACTS.md](../DATA_CONTRACTS.md).
+- Publish `players.csv`, `player_stats.csv`, `player_attributes.csv`, and `manifest.json` as described
+  in [DATA_CONTRACTS.md](../DATA_CONTRACTS.md).
 - Generate player identities independently and use a stable roster `playerId` across every file.
 - Produce traditional and advanced statistics by controlled mutation of a sampled reference
   player-season.
@@ -51,9 +50,9 @@ statistics, and attributes can be loaded independently.
 
 - **Completed:** 2026-07-13
 - **Pull request:** [PR #7](https://github.com/jimmie-potts/player-generator/pull/7)
-- **Delivered:** Roster contract version 1 governs ordered and typed `players.csv`,
-  `player_stats.csv`, `player_advanced_stats.csv`, and `player_attributes.csv` plus their unique
-  keys, exact key sets, relationships, bounds, null rules, and statistical identities. Generation
+- **Delivered:** Player data contract version 1 governs the ordered and typed roster-profile
+  `players.csv`, `player_stats.csv`, and `player_attributes.csv` files plus their unique keys, exact
+  key sets, relationships, bounds, null rules, and statistical identities. Generation
   creates independent hashed IDs and Faker names, applies bounded mutation to attempts, shooting
   accuracy, event totals, bio values, and available advanced inputs, derives all dependent fields,
   evaluates attributes with formula version `1.0.0`, scans canonical and upstream identifiers for
@@ -70,7 +69,7 @@ statistics, and attributes can be loaded independently.
   an independently mapped and bounded source metric.
   Validation uses relative tolerance `1e-8` and absolute tolerance `1e-7` for serialized derived
   values.
-- **Deviations:** Under D-003's clean version 2 break, the former combined league/team JSON, team
+- **Deviations:** Under D-003's clean redesign break, the former combined league/team JSON, team
   assignment, flattened player CSV, and comparison command/report were retired rather than wrapped.
   Packages now live under ignored `roster_data/packages/roster-v1/` so generated output cannot mix
   with stale tracked examples.
@@ -89,3 +88,6 @@ statistics, and attributes can be loaded independently.
   player-grain attribute row is never ambiguous under D-022. The focused data-contract and
   roster-generator suites passed 96 tests; the full Python suite passed 309 tests. Ruff, the
   workbench test/build, manifest verification, and diff checks also passed.
+- **2026-07-15 amendment:** D-035 makes `player_stats.csv` the roster profile's single statistics
+  surface. It contains the traditional, rate, possession, and advanced observations governed by the
+  current version 1 contract.

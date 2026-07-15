@@ -10,7 +10,6 @@ import pytest
 from player_data_contracts import (
     RATING_FIELDS,
     REFERENCE_CONTRACT_VERSION,
-    SUPPORTED_REFERENCE_CONTRACT_VERSIONS,
     ContractValidationError,
     ReferencePackageIntegrityError,
     content_hash,
@@ -23,37 +22,32 @@ from player_data_contracts.io import sha256_file
 from reference_data_app.adapters import NBA_ADVANCED_STAT_MAP, NBA_TRADITIONAL_STAT_MAP
 
 
-def _headers(
-    version: int = REFERENCE_CONTRACT_VERSION,
-) -> dict[str, tuple[str, ...]]:
-    contract = load_reference_contract(version)
+def _headers() -> dict[str, tuple[str, ...]]:
+    contract = load_reference_contract()
     return {
         file_name: tuple(column["name"] for column in file_contract["columns"])
         for file_name, file_contract in contract["files"].items()
     }
 
 
-def _row(
-    file_name: str,
-    *,
-    version: int = REFERENCE_CONTRACT_VERSION,
-    **values: object,
-) -> dict[str, object]:
-    row = dict.fromkeys(_headers(version)[file_name], None)
+def _row(file_name: str, **values: object) -> dict[str, object]:
+    row = dict.fromkeys(_headers()[file_name], None)
     row.update(values)
     return row
 
 
-def _valid_tables(
-    version: int = REFERENCE_CONTRACT_VERSION,
-) -> dict[str, list[dict[str, object]]]:
+def _valid_tables() -> dict[str, list[dict[str, object]]]:
     player_id = "player_unicode"
     player_season_id = "playerSeason_unicode_2026"
-    tables = {
+    identity = {
+        "playerSeasonId": player_season_id,
+        "playerId": player_id,
+        "season": 2026,
+    }
+    return {
         "players.csv": [
             _row(
                 "players.csv",
-                version=version,
                 playerId=player_id,
                 displayName="José Ñúñez",
                 firstName="José",
@@ -65,100 +59,65 @@ def _valid_tables(
                 draftYear=2020,
             )
         ],
-        "player_seasons.csv": [
+        "player_stats.csv": [
             _row(
-                "player_seasons.csv",
-                version=version,
-                playerSeasonId=player_season_id,
-                playerId=player_id,
-                season=2026,
+                "player_stats.csv",
+                **identity,
+                teamId="team_10",
+                teamAbbreviation="TST",
+                age=27,
                 games=72,
                 starts=None,
                 wins=48,
                 losses=24,
                 minutes=2160.5,
-            )
-        ],
-        "player_stats.csv": [
-            _row(
-                "player_stats.csv",
-                version=version,
-                playerSeasonId=player_season_id,
-                playerId=player_id,
-                season=2026,
                 points=1350,
                 twoPointPercentage=0.583,
-            )
-        ],
-        "player_advanced_stats.csv": [
-            _row(
-                "player_advanced_stats.csv",
-                version=version,
-                playerSeasonId=player_season_id,
-                playerId=player_id,
-                season=2026,
                 usagePercentage=0.287,
                 playerImpactEstimate=None,
             )
         ],
-    }
-    if version == 2:
-        tables["player_attributes.csv"] = [
+        "player_attributes.csv": [
             _row(
                 "player_attributes.csv",
-                version=version,
-                playerSeasonId=player_season_id,
-                playerId=player_id,
-                season=2026,
+                **identity,
                 insideScoring=75,
                 overall=78,
                 impactPercentile=0.8,
                 talentTier="starter",
                 formulaVersion="1.0.0",
             )
-        ]
-    tables.update(
-        {
-            "player_source_ids.csv": [
-                _row(
-                    "player_source_ids.csv",
-                    version=version,
-                    playerId=player_id,
-                    sourceType="nba_playerstats",
-                    sourcePlayerId="101",
-                )
-            ],
-            "sources.csv": [
-                _row(
-                    "sources.csv",
-                    version=version,
-                    sourceId="nba_playerstats:sample",
-                    sourceType="nba_playerstats",
-                    originalFilename="sample.parquet",
-                    sha256="a" * 64,
-                    adapterVersion=1,
-                    upstreamVersion=None,
-                    rowCount=1,
-                    processedAt="2026-07-13T12:30:00Z",
-                    licenseStatus="test-fixture",
-                )
-            ],
-        }
-    )
-    return tables
+        ],
+        "player_source_ids.csv": [
+            _row(
+                "player_source_ids.csv",
+                playerId=player_id,
+                sourceType="nba_playerstats",
+                sourcePlayerId="101",
+            )
+        ],
+        "sources.csv": [
+            _row(
+                "sources.csv",
+                sourceId="nba_playerstats:sample",
+                sourceType="nba_playerstats",
+                originalFilename="sample.parquet",
+                sha256="a" * 64,
+                adapterVersion=1,
+                upstreamVersion=None,
+                rowCount=1,
+                processedAt="2026-07-13T12:30:00Z",
+                licenseStatus="test-fixture",
+            )
+        ],
+    }
 
 
-def _write_package(
-    path: Path,
-    tables: dict[str, list[dict[str, object]]],
-    *,
-    version: int = REFERENCE_CONTRACT_VERSION,
-) -> None:
+def _write_package(path: Path, tables: dict[str, list[dict[str, object]]]) -> None:
     path.mkdir()
     for file_name, rows in tables.items():
-        header = _headers(version)[file_name]
         with (path / file_name).open("w", encoding="utf-8", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=header, lineterminator="\n")
+            writer = csv.DictWriter(handle, fieldnames=_headers()[file_name], lineterminator="\n")
             writer.writeheader()
             writer.writerows(rows)
 
@@ -166,10 +125,8 @@ def _write_package(
 def _write_published_package(
     path: Path,
     tables: dict[str, list[dict[str, object]]],
-    *,
-    version: int = REFERENCE_CONTRACT_VERSION,
 ) -> None:
-    _write_package(path, tables, version=version)
+    _write_package(path, tables)
     audit = {"unresolved": [], "duplicates": []}
     (path / "audit.json").write_text(
         json.dumps(audit, indent=2, sort_keys=True) + "\n",
@@ -180,9 +137,13 @@ def _write_published_package(
     manifest = {
         "manifestVersion": 1,
         "packageType": "reference",
-        "packageVersion": version,
+        "packageVersion": REFERENCE_CONTRACT_VERSION,
         "createdAt": "2026-07-13T12:30:00Z",
-        "contractVersions": {filename: version for filename in tables},
+        "formulaVersion": "1.0.0",
+        "formulaDocumentHash": "b" * 64,
+        "contractVersions": {
+            filename: REFERENCE_CONTRACT_VERSION for filename in tables
+        },
         "inputs": [],
         "files": {
             filename: {
@@ -193,62 +154,42 @@ def _write_published_package(
         },
         "contentHash": content_hash(hashes),
     }
-    if version >= 2:
-        manifest["formulaVersion"] = "1.0.0"
-        manifest["formulaDocumentHash"] = "b" * 64
     (path / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
 
-def test_reference_v1_contract_resource_has_adapter_metric_order() -> None:
-    contract = load_reference_contract(1)
+def test_reference_v1_is_the_only_contract_and_has_consolidated_stat_order() -> None:
+    contract = load_reference_contract()
 
-    assert contract["contractVersion"] == 1
+    assert contract["contractVersion"] == REFERENCE_CONTRACT_VERSION == 1
     assert tuple(contract["files"]) == (
         "players.csv",
-        "player_seasons.csv",
         "player_stats.csv",
-        "player_advanced_stats.csv",
-        "player_source_ids.csv",
-        "sources.csv",
-    )
-    headers = _headers(1)
-    assert headers["player_stats.csv"][3:] == tuple(NBA_TRADITIONAL_STAT_MAP.values())
-    assert headers["player_advanced_stats.csv"][3:] == tuple(NBA_ADVANCED_STAT_MAP.values())
-    assert headers["sources.csv"] == (
-        "sourceId",
-        "sourceType",
-        "originalFilename",
-        "sha256",
-        "adapterVersion",
-        "upstreamVersion",
-        "rowCount",
-        "processedAt",
-        "licenseStatus",
-    )
-
-
-def test_reference_v2_is_active_and_extends_v1_with_formula_outputs() -> None:
-    v1 = load_reference_contract(1)
-    v2 = load_reference_contract()
-
-    assert REFERENCE_CONTRACT_VERSION == 2
-    assert SUPPORTED_REFERENCE_CONTRACT_VERSIONS == (1, 2)
-    assert v2["contractVersion"] == 2
-    assert tuple(v2["files"]) == (
-        "players.csv",
-        "player_seasons.csv",
-        "player_stats.csv",
-        "player_advanced_stats.csv",
         "player_attributes.csv",
         "player_source_ids.csv",
         "sources.csv",
     )
-    for file_name, file_contract in v1["files"].items():
-        assert v2["files"][file_name] == file_contract
-
+    stats_headers = _headers()["player_stats.csv"]
+    season_context = (
+        "playerSeasonId",
+        "playerId",
+        "season",
+        "teamId",
+        "teamAbbreviation",
+        "age",
+        "games",
+        "starts",
+        "wins",
+        "losses",
+        "minutes",
+    )
+    assert stats_headers == (
+        *season_context,
+        *NBA_TRADITIONAL_STAT_MAP.values(),
+        *NBA_ADVANCED_STAT_MAP.values(),
+    )
     assert _headers()["player_attributes.csv"] == (
         "playerSeasonId",
         "playerId",
@@ -259,57 +200,22 @@ def test_reference_v2_is_active_and_extends_v1_with_formula_outputs() -> None:
         "talentTier",
         "formulaVersion",
     )
-    attributes = v2["files"]["player_attributes.csv"]
-    assert attributes["uniqueKeys"] == [["playerSeasonId"], ["playerId", "season"]]
-    columns = {column["name"]: column for column in attributes["columns"]}
-    for field in (*RATING_FIELDS, "overall"):
-        assert columns[field] == {
-            "name": field,
-            "type": "integer",
-            "required": False,
-            "nullable": True,
-            "minimum": 25,
-            "maximum": 99,
-        }
-    assert columns["impactPercentile"]["minimum"] == 0
-    assert columns["impactPercentile"]["maximum"] == 1
-    assert columns["impactPercentile"]["nullable"] is True
-    assert columns["talentTier"]["enum"] == [
-        "superstar",
-        "all_star",
-        "starter",
-        "rotation",
-        "fringe",
-    ]
-    assert columns["talentTier"]["nullable"] is True
-    assert columns["formulaVersion"]["required"] is True
-    assert columns["formulaVersion"]["nullable"] is False
-    relationship_names = {relationship["name"] for relationship in v2["relationships"]}
-    assert {
-        "playerAttributesReferencePlayers",
-        "playerAttributesReferencePlayerSeasons",
-    } <= relationship_names
     exact = next(
         relationship
-        for relationship in v2["relationships"]
-        if relationship["name"] == "aggregatePlayerSeasonGrain"
+        for relationship in contract["relationships"]
+        if relationship["name"] == "referencePlayerSeasonGrain"
     )
-    assert exact["files"] == [
-        "player_seasons.csv",
-        "player_stats.csv",
-        "player_advanced_stats.csv",
-        "player_attributes.csv",
-    ]
+    assert exact["files"] == ["player_stats.csv", "player_attributes.csv"]
+    assert exact["columns"] == ["playerSeasonId", "playerId", "season"]
 
 
-def test_supplied_v1_contract_validates_with_v2_active(tmp_path: Path) -> None:
-    contract = load_reference_contract(1)
-    tables = _valid_tables(1)
-
-    validate_reference_tables(tables, contract=contract)
-    package_dir = tmp_path / "reference-v1"
-    _write_package(package_dir, tables, version=1)
-    validate_reference_package(package_dir, contract=contract)
+@pytest.mark.parametrize("version", [99, 0, True, 1.0])
+def test_other_reference_contract_versions_are_rejected(version: object) -> None:
+    with pytest.raises(
+        ContractValidationError,
+        match=f"Unsupported reference contract version: {version}",
+    ):
+        load_reference_contract(version)  # type: ignore[arg-type]
 
 
 def test_valid_unicode_rows_and_optional_empty_values_are_accepted(tmp_path: Path) -> None:
@@ -321,7 +227,7 @@ def test_valid_unicode_rows_and_optional_empty_values_are_accepted(tmp_path: Pat
     validate_reference_package(package_dir)
 
 
-def test_integrity_loader_returns_manifest_identity_and_normalized_typed_rows(
+def test_integrity_loader_returns_v1_manifest_identity_and_typed_rows(
     tmp_path: Path,
 ) -> None:
     tables = _valid_tables()
@@ -331,33 +237,47 @@ def test_integrity_loader_returns_manifest_identity_and_normalized_typed_rows(
     loaded = load_reference_package_tables(package_dir)
 
     assert loaded.path == package_dir.resolve()
-    assert loaded.package_version == REFERENCE_CONTRACT_VERSION == 2
+    assert loaded.package_version == REFERENCE_CONTRACT_VERSION == 1
     assert loaded.content_hash == loaded.manifest["contentHash"]
-    assert loaded.contract["contractVersion"] == loaded.package_version
+    assert loaded.contract["contractVersion"] == 1
     player = loaded.tables["players.csv"][0]
-    season = loaded.tables["player_seasons.csv"][0]
+    stats = loaded.tables["player_stats.csv"][0]
     source = loaded.tables["sources.csv"][0]
     assert player["draftYear"] == 2020
     assert isinstance(player["draftYear"], int)
     assert player["weightPounds"] is None
-    assert season["minutes"] == 2160.5
-    assert isinstance(season["minutes"], float)
+    assert stats["minutes"] == 2160.5
+    assert isinstance(stats["minutes"], float)
+    assert stats["usagePercentage"] == 0.287
     assert source["processedAt"] == "2026-07-13T12:30:00+00:00"
 
 
-def test_integrity_loader_defaults_to_v2_and_allows_explicit_v1(
-    tmp_path: Path,
-) -> None:
-    package_dir = tmp_path / "reference-v1"
-    _write_published_package(package_dir, _valid_tables(1), version=1)
+def test_integrity_loader_rejects_non_v1_package(tmp_path: Path) -> None:
+    package_dir = tmp_path / "reference-package"
+    _write_published_package(package_dir, _valid_tables())
+    manifest_path = package_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["packageVersion"] = 99
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
-    with pytest.raises(ReferencePackageIntegrityError, match="unsupported packageVersion 1"):
+    with pytest.raises(
+        ReferencePackageIntegrityError,
+        match="unsupported packageVersion 99; supported version is 1",
+    ):
         load_reference_package_tables(package_dir)
 
-    loaded = load_reference_package_tables(package_dir, allowed_versions=(1, 2))
 
-    assert loaded.package_version == 1
-    assert "player_attributes.csv" not in loaded.tables
+@pytest.mark.parametrize("field", ["formulaVersion", "formulaDocumentHash"])
+def test_integrity_loader_requires_formula_provenance(field: str, tmp_path: Path) -> None:
+    package_dir = tmp_path / "reference-package"
+    _write_published_package(package_dir, _valid_tables())
+    manifest_path = package_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest.pop(field)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(ReferencePackageIntegrityError, match=field):
+        load_reference_package_tables(package_dir)
 
 
 def test_integrity_loader_rejects_manifest_row_count_mismatch(tmp_path: Path) -> None:
@@ -442,11 +362,11 @@ def test_tables_reject_duplicate_unique_key() -> None:
 
 def test_tables_reject_orphan_player_relationship() -> None:
     tables = _valid_tables()
-    tables["player_seasons.csv"][0]["playerId"] = "player_missing"
+    tables["player_stats.csv"][0]["playerId"] = "player_missing"
 
     with pytest.raises(
         ContractValidationError,
-        match=r"relationship playerSeasonsReferencePlayers.*player_seasons\.csv.*playerId",
+        match=r"relationship playerStatsReferencePlayers.*player_stats\.csv.*playerId",
     ):
         validate_reference_tables(tables)
 
@@ -462,31 +382,19 @@ def test_tables_reject_unregistered_source_type_relationship() -> None:
         validate_reference_tables(tables)
 
 
-def test_tables_reject_player_season_key_set_mismatch() -> None:
-    tables = _valid_tables()
-    tables["player_advanced_stats.csv"].clear()
-
-    with pytest.raises(
-        ContractValidationError,
-        match=r"relationship aggregatePlayerSeasonGrain key-set mismatch.*"
-        r"player_advanced_stats\.csv.*playerSeasonId, playerId, season",
-    ):
-        validate_reference_tables(tables)
-
-
-def test_v2_tables_require_one_attribute_row_per_player_season() -> None:
+def test_tables_require_one_attribute_row_per_statistics_row() -> None:
     tables = _valid_tables()
     tables["player_attributes.csv"].clear()
 
     with pytest.raises(
         ContractValidationError,
-        match=r"relationship aggregatePlayerSeasonGrain key-set mismatch.*"
+        match=r"relationship referencePlayerSeasonGrain key-set mismatch.*"
         r"player_attributes\.csv.*playerSeasonId, playerId, season",
     ):
         validate_reference_tables(tables)
 
 
-def test_v2_attribute_rows_enforce_unique_player_season_keys() -> None:
+def test_attribute_rows_enforce_unique_player_season_keys() -> None:
     tables = _valid_tables()
     tables["player_attributes.csv"].append(
         copy.deepcopy(tables["player_attributes.csv"][0])
@@ -499,28 +407,18 @@ def test_v2_attribute_rows_enforce_unique_player_season_keys() -> None:
         validate_reference_tables(tables)
 
 
-@pytest.mark.parametrize(
-    ("field", "value", "relationship"),
-    [
-        ("playerId", "player_missing", "playerAttributesReferencePlayers"),
-        (
-            "playerSeasonId",
-            "playerSeason_missing",
-            "playerAttributesReferencePlayerSeasons",
-        ),
-    ],
-)
-def test_v2_attribute_rows_enforce_foreign_keys(
-    field: str, value: str, relationship: str
-) -> None:
+def test_attribute_rows_enforce_player_foreign_key() -> None:
     tables = _valid_tables()
-    tables["player_attributes.csv"][0][field] = value
+    tables["player_attributes.csv"][0]["playerId"] = "player_missing"
 
-    with pytest.raises(ContractValidationError, match=relationship):
+    with pytest.raises(
+        ContractValidationError,
+        match="playerAttributesReferencePlayers",
+    ):
         validate_reference_tables(tables)
 
 
-def test_v2_attribute_rows_require_formula_version() -> None:
+def test_attribute_rows_require_formula_version() -> None:
     tables = _valid_tables()
     tables["player_attributes.csv"][0]["formulaVersion"] = ""
 
