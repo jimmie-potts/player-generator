@@ -1,16 +1,16 @@
-# NBA-GM MVP player-package handoff
+# NBA-GM MVP player data contract version 1
 
-This document is the portable planning handoff for the NBA-GM agent. It records the agreed boundary
+This document is the portable version 1 handoff for the NBA-GM agent. It records the agreed baseline
 and proposes NBA-GM review and implementation stories. NBA-GM should reconcile the proposed IDs and
 dependencies with its own roadmap before starting them.
 
-The implemented player-generator interface remains the four-CSV roster contract described in
-[DATA_CONTRACTS.md](DATA_CONTRACTS.md). EPIC-08 defines the planned MVP handoff; this document does
-not claim that the consolidated package exists yet.
+[DATA_CONTRACTS.md](DATA_CONTRACTS.md) is the normative version 1 baseline. US-016 is freezing its
+machine-readable schemas and conformance fixtures; US-017 will make the player-generator publishers
+emit the two profiles. This delivery status does not change the contract's baseline identity.
 
 ## Agreed MVP boundary
 
-The player-generator target is a private, build-time, manifest-backed integration package:
+The version 1 roster profile is a private, build-time, manifest-backed integration package:
 
 ```text
 manifest.json
@@ -20,8 +20,8 @@ player_attributes.csv
 ```
 
 - `players.csv` contains one generated identity and physical snapshot per player.
-- `player_stats.csv` contains one statistical-basis row per player and consolidates every roster
-  statistic currently split between the traditional and advanced files.
+- `player_stats.csv` contains one statistical-basis row per player with the governed traditional,
+  rate, possession, and advanced observations.
 - `player_attributes.csv` remains one formula-derived row per player.
 - All CSVs have exactly the same `playerId` set.
 - `season` is the four-digit ending year of the statistical season. `2025` means 2024-25.
@@ -31,7 +31,7 @@ player_attributes.csv
 
 NBA-GM continues to consume only the roster profile. Within player-generator, the corresponding
 reference `players.csv`, `player_stats.csv`, and `player_attributes.csv` files will derive shared
-fields and formatting from the same contract definitions. Both target profiles consolidate
+fields and formatting from the same contract definitions. Both version 1 profiles publish
 advanced metrics into `player_stats.csv`. Reference-only `player_seasons.csv`, source IDs,
 provenance, reconciliation, and audit data remain behind the reference boundary and are not added to
 the NBA-GM handoff.
@@ -41,7 +41,7 @@ the NBA-GM handoff.
 | Area | MVP owner |
 |---|---|
 | Generated names, roster player IDs, age, and physical values | player-generator |
-| Current traditional, rate, possession, and advanced statistics | player-generator |
+| Version 1 traditional, rate, possession, and advanced observations | player-generator |
 | Formula-derived player attributes and formula provenance | player-generator |
 | Integer statistical season-ending year | player-generator |
 | Package integrity and deterministic conformance fixture | player-generator |
@@ -61,12 +61,12 @@ broader ratings merely because their numeric ranges overlap.
 
 US-016 must provide NBA-GM with:
 
-- the exact machine-readable schema and accepted contract identifier;
+- the exact machine-readable schemas and accepted version 1 contract identity;
 - ordered headers, types, null rules, ranges, units, and primitive or derived classifications;
 - one fully synthetic golden package with pinned file and content hashes;
 - an expected joined player record;
 - explicit decisions for package namespace, player-ID handling, age/effective-date interpretation,
-  and the disposition of every current field.
+  and the disposition of every version 1 field.
 
 NBA-GM should keep the synthetic fixture self-contained so its tests do not require a
 player-generator checkout. The paired reference fixture and cross-profile parity tests remain
@@ -78,7 +78,7 @@ profile.
 - **Status:** proposed
 - **Priority:** MVP
 - **Objective:** Validate the agreed player-generator package at the internal data-import boundary,
-  preserve its current statistics as first-class MVP observations, convert them into simulation
+  preserve its version 1 statistics as first-class MVP observations, convert them into simulation
   inputs through NBA-GM's rating generator, and combine them with NBA-GM-owned league context.
 
 This is a dedicated internal adapter. It does not replace or redefine NBA-GM's public, user-authored
@@ -86,11 +86,11 @@ XLSX league-package format.
 
 ### Epic acceptance criteria
 
-- NBA-GM and player-generator share the exact schema, semantic field definitions, and synthetic
-  conformance fixture.
+- NBA-GM and player-generator share the exact version 1 roster schema, semantic field definitions,
+  and synthetic conformance fixture.
 - NBA-GM accepts the roster profile without taking ownership of player-generator's paired reference
   publication or its private provenance extensions.
-- Every current player, statistic, and attribute field has an explicit consumer disposition.
+- Every version 1 player, statistic, and attribute field has an explicit consumer disposition.
 - Statistical observations remain separate from generated ratings, tendencies, and personalities.
 - `season = 2025` deterministically becomes `2024-25`, including century-safe formatting.
 - Statistical-basis seasons never implicitly set NBA-GM's starting season.
@@ -99,13 +99,14 @@ XLSX league-package format.
 - Blocking validation failures never produce partial normalized output or partial saves.
 - Committed fixtures contain no real reference rows, provider IDs, private source hashes, or
   provider payloads.
-- Contract migration support, ESPN-derived simulation statistics, deeper metrics, and personality
-  imports or descriptions remain outside this epic.
+- ESPN-derived simulation statistics, deeper metrics, and personality imports or descriptions
+  remain outside this epic.
 
 ## NGM-PG-001: Review and accept the MVP handoff contract
 
 - **Status:** proposed
-- **Dependencies:** Player-generator US-016 contract proposal
+- **Dependencies:** Player-generator version 1 baseline; coordinate with the US-016 schemas and
+  fixture
 
 ### User story
 
@@ -139,8 +140,8 @@ projects can implement against the same semantics in parallel.
 
 ### Out of scope
 
-- Runtime implementation, compatibility with older player-generator contracts, ESPN-derived
-  simulation statistics, deeper metrics, and personality imports or descriptions.
+- Runtime implementation, ESPN-derived simulation statistics, deeper metrics, and personality
+  imports or descriptions.
 
 ## NGM-PG-002: Define normalized player-observation DTOs and season conversion
 
@@ -238,10 +239,10 @@ observations so the collected statistics materially contribute to gameplay.
 
 - Keep the transformation in NBA-GM's rating-generator boundary, not in the CSV adapter, domain
   entities, API, UI, or possession simulator.
-- Accept the normalized current statistics and the formula-derived attributes approved by
+- Accept the normalized version 1 statistics and the formula-derived attributes approved by
   NGM-PG-001.
 - Produce NBA-GM's complete MVP rating and tendency shapes.
-- Honor the field-disposition matrix; do not silently drop a current statistic or attribute. Fields
+- Honor the field-disposition matrix; do not silently drop a version 1 statistic or attribute. Fields
   intentionally unused by the first formula retain their observations and have documented rationale.
 - Avoid double-counting primitive and derived metrics and handle each percentage scale explicitly.
 - Map 25-99 player-generator attributes semantically rather than treating them as interchangeable

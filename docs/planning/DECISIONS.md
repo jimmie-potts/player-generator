@@ -1,4 +1,4 @@
-# Version 2 decision log
+# Decision log
 
 These decisions are approved defaults for the redesign. Create a new dated entry when later work
 changes one; do not rewrite history without recording the replacement.
@@ -362,26 +362,23 @@ changes one; do not rewrite history without recording the replacement.
 
 ## D-032: Consolidated NBA-GM MVP roster handoff
 
-- **Status:** accepted
+- **Status:** accepted; amended by [D-034](#d-034-player-data-contract-version-1-baseline)
 - **Decision:** Target NBA-GM's MVP build-time handoff as one manifest-backed, player-only package
   containing `players.csv`, a consolidated `player_stats.csv`, and `player_attributes.csv`.
   Consolidate every currently published roster traditional, rate, possession, and advanced metric
   into the one statistics row for each player. Keep attributes at player grain as separately
   versioned formula output. Preserve exact player-key equality across all CSVs. Retain a contract
-  identifier for reproducibility, but require no compatibility wrapper, migration path, or dual
-  publication before the first NBA-GM integration. Any generated review workbook remains outside
-  the canonical package and is values-only and nonauthoritative.
-- **Scope boundary:** The reference package retains separate `player_seasons.csv`,
-  `player_stats.csv`, and `player_advanced_stats.csv` tables. NBA-GM consumes the current roster
-  statistics as MVP simulation inputs and owns league context, positions, assignments, contracts,
-  detailed ratings, tendencies, and other simulation-specific transformations. ESPN-derived
-  simulation statistics, deeper metrics, and personality traits or descriptions require later
-  stories and do not add placeholders to the MVP contract.
-- **Current-interface note:** D-022 and the implemented roster version 1 contract remain the
-  current interface until US-017 completes. At that point this decision supersedes only D-022's
-  two-stat-file boundary; its one generated statistical season per roster player and player-grain
-  attribute rules remain in force. D-005's normalized reference split and D-006's player-only domain
-  boundary also remain in force.
+  identifier for reproducibility. Any generated review workbook remains outside the canonical
+  package and is values-only and nonauthoritative.
+- **Scope boundary:** NBA-GM consumes roster statistics as MVP simulation inputs and owns league
+  context, positions, assignments, contracts, detailed ratings, tendencies, and other
+  simulation-specific transformations. ESPN-derived simulation statistics, deeper metrics, and
+  personality traits or descriptions require later stories and do not add placeholders to the MVP
+  contract. D-033 and D-034 subsequently established the corresponding reference-profile boundary.
+- **Implementation note:** US-017 owns the publisher cutover to the consolidated baseline. D-022's
+  one generated statistical season per roster player and player-grain attribute rules remain in
+  force. D-005's normalized reference split and D-006's player-only domain boundary also remain in
+  force.
 - **Reason:** The two roster stat files are mandatory, have the same lifecycle and exact key set,
   and are always generated and validated together. One consolidated statistics table removes a
   compulsory consumer join without weakening semantic validation, while a shared schema and
@@ -389,7 +386,7 @@ changes one; do not rewrite history without recording the replacement.
 
 ## D-033: Reference and roster player-file parity
 
-- **Status:** accepted
+- **Status:** accepted; amended by [D-034](#d-034-player-data-contract-version-1-baseline)
 - **Decision:** Maintain the corresponding reference and roster `players.csv`, `player_stats.csv`,
   and `player_attributes.csv` surfaces as two profiles of one player-data contract. Shared columns
   must retain the same name, relative order, scalar representation, semantic meaning, unit or scale,
@@ -399,8 +396,7 @@ changes one; do not rewrite history without recording the replacement.
   New player-content fields default to both profiles; a one-profile field requires a dated decision
   and an explicit extension declaration. Cross-profile contract tests must fail when shared
   definitions drift. As part of EPIC-08, consolidate traditional and advanced statistics into
-  `player_stats.csv` in both published profiles and retire `player_advanced_stats.csv` from both
-  target inventories.
+  `player_stats.csv` in both published profiles.
 - **Profile boundaries:** Parity does not require equal row values, IDs, grains, or complete package
   inventories. Reference-only season context, source IDs, provenance, reconciliation, and audit data
   remain behind the reference boundary. Roster-only deterministic generation inputs and manifest
@@ -408,12 +404,32 @@ changes one; do not rewrite history without recording the replacement.
   overrides, and other extensions must be closed and explicitly declared; they must not redefine a
   shared field's type, meaning, unit, bounds, or derivation. NBA-GM continues to consume only the
   player-only roster profile.
-- **Supersedes:** This decision supersedes D-032's planned reference-package exception and, once
-  US-017 is complete, D-005's separate traditional- and advanced-stat output boundary. D-005 and
-  D-022 still describe the implemented reference version 2 and roster version 1 interfaces until
-  that story completes. D-006's player-only roster scope and the prohibition on publishing source
-  identities in roster data remain in force.
+- **Supersedes:** This decision supersedes D-032's planned reference-package exception and targets
+  D-005's separate traditional- and advanced-stat output boundary for replacement by US-017. D-005
+  and D-022 remain implementation history. D-006's player-only roster scope and the prohibition on
+  publishing source identities in roster data remain in force.
 - **Reason:** Reference data is the calibrated counterpart of roster data. Allowing their common
   player surfaces to evolve independently would duplicate contract work and invite semantic drift
   before NBA-GM integration and later enrichment. Shared definitions and synchronized delivery keep
   both outputs reviewable and compatible without weakening their provenance boundary.
+
+## D-034: Player data contract version 1 baseline
+
+- **Status:** accepted
+- **Decision:** Establish the parity-aligned player-data format as contract version 1 and the
+  baseline for player-generator and NBA-GM integration. The contract is one family with `reference`
+  and `roster` profiles. Corresponding `players.csv`, consolidated `player_stats.csv`, and
+  `player_attributes.csv` content derives from shared definitions with declared profile
+  extensions. NBA-GM consumes only the player-only roster profile. Contract version, profile,
+  package, manifest, adapter, and formula identities remain distinct version domains.
+- **Delivery:** [US-016](user-stories/US-016-nba-gm-mvp-roster-contract.md) freezes the
+  machine-readable version 1 schemas and paired synthetic fixtures. US-017 implements both
+  publishers and their supported readers against the baseline. Publication status does not create
+  another cross-project contract identity.
+- **Amends:** D-032 and D-033 remain the accepted decision history that established the consolidated
+  roster shape and reference/roster parity. This decision replaces their transitional framing with
+  one version 1 baseline while retaining their ownership, identity-boundary, deterministic
+  publication, consolidated-statistics, and parity requirements.
+- **Reason:** NBA-GM integration begins with this format. Treating internal package history as
+  cross-project contract history would imply compatibility obligations that the two projects never
+  established and would obscure the one interface they are now implementing in parallel.

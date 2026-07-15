@@ -1,4 +1,4 @@
-# US-017: Publish parity-aligned MVP player packages
+# US-017: Publish player data contract version 1
 
 - **Status:** ready
 - **Epic:** [EPIC-08](../epics/EPIC-08-nba-gm-mvp-handoff.md)
@@ -7,8 +7,8 @@
 ## User story
 
 As a player-generator maintainer, I want the reference and roster publishers to emit the finalized
-parity-aligned player files so NBA-GM can consume the roster profile while both producer profiles
-continue to evolve together.
+version 1 profiles so NBA-GM can consume the roster profile while both producer profiles continue
+to evolve together.
 
 ## Acceptance criteria
 
@@ -17,18 +17,17 @@ continue to evolve together.
 - Publish the reference profile's corresponding `players.csv`, consolidated `player_stats.csv`, and
   `player_attributes.csv` from the same shared definitions. Retain declared reference-only
   `player_seasons.csv`, `player_source_ids.csv`, `sources.csv`, `audit.json`, and manifest content.
-- Stop publishing `player_advanced_stats.csv` from both profiles. The roster generator must consume
-  the parity-aligned validated reference package through its public contract and must not recreate a
-  private alternate field definition.
+- Enforce each version 1 profile's exact canonical inventory and reject undeclared extra files. The
+  roster generator must consume the validated reference profile through its public contract and
+  must not recreate a private alternate field definition.
 - Apply the exact shared header, field semantics, types, base null policy, units, bounds,
   classifications, formatting, and deterministic ordering completed by US-016 to both outputs.
   Implement only the declared profile-specific keys and availability-based null overrides.
-- Preserve every currently published reference or roster traditional, rate, possession, and
-  advanced metric and its semantic meaning in the applicable consolidated row. Apply the reviewed
-  representation, requiredness, nullability, and bounds harmonization from US-016; do not silently
-  drop a metric or retain a conflicting legacy definition.
-- Preserve controlled mutation and every existing statistical consistency check after the output
-  consolidation.
+- Publish every governed reference or roster traditional, rate, possession, and advanced metric and
+  its semantic meaning in the applicable consolidated row. Apply the reviewed representation,
+  requiredness, nullability, and bounds from US-016; do not silently drop a metric or introduce a
+  conflicting definition.
+- Preserve controlled mutation and every governed statistical consistency check.
 - Emit `season` as the statistical season-ending year and preserve the distinction from NBA-GM
   league context.
 - Implement the manifest, deterministic package namespace, generator identity, and player-ID rules
@@ -37,14 +36,13 @@ continue to evolve together.
 - Implement the common manifest envelope and declared profile extensions from US-016 in both
   publishers. Update the roster generator and preview API reference-package readers, contract
   validators, packaged schemas, fixtures, and documentation in the same change so no supported
-  path observes a half-migrated contract.
+  path observes mixed profile definitions.
 - Preserve reference-identity leak protection, formula evaluation and provenance, deterministic
   bytes, validation-before-publication, and atomic replacement.
-- Make the consolidated profiles the reference publisher and roster generator defaults. Do not
-  dual-write the earlier stat split merely for compatibility with a consumer that has not integrated
-  it.
+- Make the version 1 profiles the reference publisher and roster generator defaults and publish only
+  their canonical inventories.
 - Make fixed-input reference publication and roster generation match their US-016 conformance
-  fixtures and update current-state documentation only after both new publication paths are
+  fixtures and update current-state documentation only after both version 1 publication paths are
   implemented.
 
 ## Out of scope

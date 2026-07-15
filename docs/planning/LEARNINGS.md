@@ -1,4 +1,4 @@
-# Version 2 learning log
+# Learning log
 
 This is an append-oriented record of reusable facts discovered while planning or implementing the
 redesign. Each completed story must add any relevant findings here and retain detailed evidence in
@@ -344,6 +344,15 @@ its completion notes.
 - Duplicated third-party prose can retain stale implementation claims after the tracked source
   manifest and data-boundary documentation have become authoritative. Remove the duplicate rather
   than preserving contradictory roadmap text.
+
+### 2026-07-15 — US-016
+
+- Cross-project contract history starts at the first interface accepted by both producer and
+  consumer. Internal package evolution should not be presented as NBA-GM contract evolution.
+- Keep normative contract identity separate from delivery status. A baseline can be version 1 while
+  its machine-readable schemas, fixtures, publishers, and consumers are still being implemented.
+- Name the contract family version and profile independently from manifest, package, adapter, and
+  formula versions so a shared number does not imply shared compatibility semantics.
 
 ## Entry format
 

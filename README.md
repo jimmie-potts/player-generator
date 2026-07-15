@@ -32,7 +32,7 @@ The batch-data foundation and local formula-design workflow are implemented:
   formula adjustments, switch among tier, baseline Top 25, and custom player comparisons, and export
   the exact server-validated proposal document.
 
-See the [version 2 planning index](docs/planning/README.md) for the remaining epics and story status.
+See the [implementation roadmap](docs/planning/README.md) for the remaining epics and story status.
 For a presentation-oriented system walkthrough, see the
 [current and projected technical architecture](docs/presentations/PLAYER_GENERATOR_TECHNICAL_OVERVIEW.md).
 

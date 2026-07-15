@@ -14,8 +14,9 @@ Implementation baseline: 2026-07-14, `agent/implement-epic-06`
 # 1. Executive state
 
 The batch-data foundation, read-only formula preview API, and interactive React formula workbench
-are implemented. The parity-aligned NBA-GM MVP handoff and future team and coach contracts remain
-planned.
+are implemented. Player data contract version 1 is now the NBA-GM integration baseline; its
+machine-readable schemas, fixtures, and publication remain roadmap work. Future team and coach
+contracts also remain planned.
 
 | Capability | Current state | Roadmap state |
 |---|---|---|
@@ -25,11 +26,11 @@ planned.
 | Deterministic player-only roster package | Implemented | EPIC-04 complete |
 | Read-only formula preview API | Implemented | EPIC-05 complete |
 | Interactive formula workbench | Implemented | EPIC-06 complete |
-| Parity-aligned NBA-GM MVP roster handoff | Proposed contract and story pack | EPIC-08 ready |
+| NBA-GM player data contract version 1 | Baseline defined; schema and fixture work in progress | EPIC-08 in progress |
 | Team and coach contract definitions | Proposed headers only | EPIC-07 ready |
 
-**Delivery:** 14 of 18 user stories are complete. US-014 and US-016 through US-018 are ready and
-unstarted.
+**Delivery:** 14 of 18 user stories are complete. US-016 is in progress; US-014, US-017, and US-018
+are ready.
 
 ---
 
@@ -498,9 +499,9 @@ At the end of the approved roadmap, the project will provide:
 - one explainable formula engine across reference publication, roster generation, and previews;
 - a read-only Python API for versioned formulas, search, calculation detail, and temporary previews;
 - a React workbench for inspection, reversible tuning, player comparison, and proposal export;
-- parity-aligned reference and roster player files with consolidated statistics, plus a
-  manifest-backed NBA-GM roster handoff, synthetic conformance fixture, and optional generated
-  review workbook;
+- player data contract version 1 with parity-aligned reference and roster files, consolidated
+  statistics, a manifest-backed NBA-GM roster handoff, synthetic conformance fixtures, and an
+  optional generated review workbook;
 - machine-validatable `teams.csv` and `coaches.csv` contract targets with stable IDs, membership by
   `teamId`, ISO 8601 dates, and 0–100 coach rating/preference scales.
 
@@ -519,7 +520,7 @@ policy, a new decision record.
 
 ---
 
-# 19. Delivery sequence and migration strategy
+# 19. Delivery sequence
 
 ```text
 Delivered dependency path
@@ -534,7 +535,7 @@ Delivered interactive client
   EPIC-06  inspect → preview → compare
 
 Next integration lane
-  EPIC-08  shared contracts + fixtures → parity-aligned publication → optional review workbook
+  EPIC-08  v1 baseline → schemas + fixtures → profile publication → optional review workbook
 
 Remaining independent contract lane
   EPIC-07 / US-014  team and coach schemas only
@@ -544,13 +545,11 @@ Epic numbering is roadmap grouping, not a strict chronological dependency graph:
 the EPIC-04 package-consumer seam, EPIC-08 returns to that seam for NBA-GM integration, and EPIC-07
 does not depend on the API or workbench.
 
-Migration has proceeded seam by seam: establish boundaries, replace the roster generator's
-raw/wide-data coupling with a published package, extract calculations into a shared engine, add the
-read-only API consumer, then add its session-only browser client. The plan permits a deliberate clean
-v2 break while keeping additive reference v1 readable after v2 added attributes. The next lane
-freezes paired reference and roster player contracts before changing either publication path, while
-the independent domain-contract lane defines teams and coaches without introducing population
-policy.
+Delivery has proceeded seam by seam: establish boundaries, replace raw/wide-data coupling with a
+published package, extract calculations into a shared engine, add the read-only API consumer, then
+add its session-only browser client. The next lane freezes the version 1 machine-readable profiles
+and conformance fixtures before changing either publication path, while the independent
+domain-contract lane defines teams and coaches without introducing population policy.
 
 ---
 
@@ -623,9 +622,9 @@ sources and then generates the roster; it does not download or register inputs a
 Repository sources used for this presentation:
 
 - [Project overview](../../README.md)
-- [Version 2 plan and live story status](../planning/README.md)
+- [Implementation roadmap and live story status](../planning/README.md)
 - [Accepted architecture decisions](../planning/DECISIONS.md)
-- [Current data contracts](../planning/DATA_CONTRACTS.md)
+- [Player data contract version 1](../planning/DATA_CONTRACTS.md)
 - [Current rating model](../RATING_MODEL.md)
 - [Current player attribute formulas](../planning/ATTRIBUTE_FORMULAS.md)
 - [Reference-data application](../../apps/reference-data/README.md)

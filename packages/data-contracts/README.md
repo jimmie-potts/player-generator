@@ -3,6 +3,12 @@
 This Python package owns shared versioned schema resources, keys, scalar types, relationships,
 rating-field identifiers, and validation for data exchanged between applications.
 
+The cross-project baseline is [player data contract version 1](../../docs/planning/DATA_CONTRACTS.md).
+The resources listed below describe the currently implemented publishers and readers. US-016 will
+freeze the baseline profile schemas and fixtures, and US-017 will update the runtime resources and
+defaults. Existing resource filenames are implementation identifiers, not separate NBA-GM contract
+versions.
+
 Packaged contract resources are:
 
 - `schemas/reference-v1.schema.json`: the ordered headers, required and nullable fields, scalar
