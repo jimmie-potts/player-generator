@@ -223,6 +223,54 @@ def test_family_rejects_enum_members_with_the_wrong_scalar_type() -> None:
         validate_player_data_contract_family(family)
 
 
+@pytest.mark.parametrize("declaration", ["shared", "extension", "profileOnly"])
+def test_family_requires_camel_case_column_names(declaration: str) -> None:
+    family = load_player_data_contract()
+    if declaration == "shared":
+        _column(family, "players.csv", "playerId")["name"] = "player_id"
+    elif declaration == "extension":
+        family["profiles"]["roster"]["extensionColumns"]["players.csv"][0][
+            "name"
+        ] = "player_age"
+    else:
+        family["profiles"]["reference"]["profileOnlyFiles"]["sources.csv"][
+            "columns"
+        ][0]["name"] = "source_id"
+
+    with pytest.raises(ContractValidationError, match="must be a lower camelCase header"):
+        validate_player_data_contract_family(family)
+
+
+@pytest.mark.parametrize("required, nullable", [(True, True), (False, False)])
+def test_family_rejects_contradictory_column_null_rules(
+    required: bool, nullable: bool
+) -> None:
+    family = load_player_data_contract()
+    display_name = _column(family, "players.csv", "displayName")
+    display_name.update({"required": required, "nullable": nullable})
+
+    with pytest.raises(
+        ContractValidationError,
+        match="must be required and non-nullable or optional and nullable",
+    ):
+        validate_player_data_contract_family(family)
+
+
+@pytest.mark.parametrize("required, nullable", [(True, True), (False, False)])
+def test_family_rejects_contradictory_availability_overrides(
+    required: bool, nullable: bool
+) -> None:
+    family = load_player_data_contract()
+    override = family["profiles"]["roster"]["availabilityOverrides"][0]
+    override.update({"required": required, "nullable": nullable})
+
+    with pytest.raises(
+        ContractValidationError,
+        match="must be required and non-nullable or optional and nullable",
+    ):
+        validate_player_data_contract_family(family)
+
+
 def test_family_rejects_unknown_authored_properties() -> None:
     family = load_player_data_contract()
     _column(family, "players.csv", "heightInches")["maximun"] = 80
@@ -466,6 +514,60 @@ def test_family_rejects_invalid_unique_keys_and_relationships() -> None:
         validate_player_data_contract_family(family)
 
 
+@pytest.mark.parametrize("field_name", ["heightInches", "age"])
+def test_family_requires_shared_and_extension_key_fields_to_be_non_nullable(
+    field_name: str,
+) -> None:
+    family = load_player_data_contract()
+    family["profiles"]["roster"]["uniqueKeys"]["players.csv"] = [[field_name]]
+
+    with pytest.raises(
+        ContractValidationError,
+        match=rf"key 1 fields must be required and non-nullable: {field_name}",
+    ):
+        validate_player_data_contract_family(family)
+
+
+def test_family_requires_profile_only_key_fields_to_be_non_nullable() -> None:
+    family = load_player_data_contract()
+    sources = family["profiles"]["reference"]["profileOnlyFiles"]["sources.csv"]
+    sources["uniqueKeys"] = [["upstreamVersion"]]
+
+    with pytest.raises(
+        ContractValidationError,
+        match="key 1 fields must be required and non-nullable: upstreamVersion",
+    ):
+        validate_player_data_contract_family(family)
+
+
+def test_family_requires_foreign_key_types_to_match() -> None:
+    family = load_player_data_contract()
+    relationship = next(
+        item
+        for item in family["profiles"]["roster"]["relationships"]
+        if item["name"] == "playerStatsReferencePlayers"
+    )
+    relationship["from"]["columns"] = ["season"]
+
+    with pytest.raises(ContractValidationError, match="must have matching scalar types"):
+        validate_player_data_contract_family(family)
+
+
+def test_family_requires_exact_key_set_types_to_match() -> None:
+    family = load_player_data_contract()
+    season = next(
+        column
+        for column in family["profiles"]["reference"]["extensionColumns"][
+            "player_attributes.csv"
+        ]
+        if column["name"] == "season"
+    )
+    season["type"] = "string"
+
+    with pytest.raises(ContractValidationError, match="must have matching scalar types"):
+        validate_player_data_contract_family(family)
+
+
 def test_family_requires_exact_key_sets_to_include_a_unique_key() -> None:
     family = load_player_data_contract()
     exact_key_set = next(
@@ -503,6 +605,18 @@ def test_family_rejects_incoherent_columns_constraints_and_csv_rules() -> None:
         validate_player_data_contract_family(family)
 
 
+@pytest.mark.parametrize("property_name", ["minimum", "maximum"])
+def test_family_rejects_explicit_null_numeric_bounds(property_name: str) -> None:
+    family = load_player_data_contract()
+    _column(family, "player_stats.csv", "season")[property_name] = None
+
+    with pytest.raises(
+        ContractValidationError,
+        match=rf"{property_name} must be finite numeric when present",
+    ):
+        validate_player_data_contract_family(family)
+
+
 @pytest.mark.parametrize("invalid_bound", [float("nan"), float("inf"), float("-inf")])
 def test_family_rejects_nonfinite_numeric_bounds(invalid_bound: float) -> None:
     family = load_player_data_contract()
@@ -517,6 +631,172 @@ def test_family_rejects_fractional_integer_bounds() -> None:
     _column(family, "player_stats.csv", "games")["minimum"] = 1.5
 
     with pytest.raises(ContractValidationError, match="minimum must be an integer bound"):
+        validate_player_data_contract_family(family)
+
+
+@pytest.mark.parametrize("current_type", ["bogus", {"absent": True}, None])
+def test_family_validates_declared_current_gap_types(current_type: object) -> None:
+    family = load_player_data_contract()
+    type_gap = next(
+        gap
+        for gap in family["declaredAlignmentGaps"]
+        if gap["profile"] == "roster"
+        and gap["file"] == "players.csv"
+        and gap.get("properties") == ["type"]
+    )
+    type_gap["currentValues"]["type"] = current_type
+
+    with pytest.raises(ContractValidationError, match="uses unsupported type"):
+        validate_player_data_contract_family(family)
+
+
+@pytest.mark.parametrize(
+    ("field_name", "property_name", "current_value", "message"),
+    [
+        (
+            "insideScoring",
+            "minimum",
+            "25",
+            "minimum must be finite numeric when present",
+        ),
+        (
+            "insideScoring",
+            "maximum",
+            None,
+            "maximum must be finite numeric when present",
+        ),
+        ("season", "enum", [], "enum must be non-empty and unique"),
+        (
+            "season",
+            "enum",
+            ["2025"],
+            "enum value '2025' does not match field type integer",
+        ),
+        ("playerId", "pattern", "[broken", "pattern is invalid"),
+    ],
+)
+def test_family_validates_declared_current_gap_constraints(
+    field_name: str,
+    property_name: str,
+    current_value: object,
+    message: str,
+) -> None:
+    family = load_player_data_contract()
+    if field_name == "season":
+        file_name = "player_stats.csv"
+    elif field_name == "insideScoring":
+        file_name = "player_attributes.csv"
+    else:
+        file_name = "players.csv"
+    family["declaredAlignmentGaps"].append(
+        {
+            "kind": "sharedDefinition",
+            "profile": "roster",
+            "file": file_name,
+            "fields": [field_name],
+            "properties": [property_name],
+            "currentValues": {property_name: current_value},
+            "rationale": "Invalid pinned current definition.",
+            "followUp": "US-017",
+        }
+    )
+
+    with pytest.raises(ContractValidationError, match=message):
+        validate_player_data_contract_family(family)
+
+
+def test_family_rechecks_relationships_against_declared_current_gap_types() -> None:
+    family = load_player_data_contract()
+    family["declaredAlignmentGaps"].append(
+        {
+            "kind": "sharedDefinition",
+            "profile": "reference",
+            "file": "player_attributes.csv",
+            "fields": ["playerId"],
+            "properties": ["type"],
+            "currentValues": {"type": "integer"},
+            "rationale": "Invalid relationship type drift.",
+            "followUp": "US-017",
+        }
+    )
+
+    with pytest.raises(ContractValidationError, match="must have matching scalar types"):
+        validate_player_data_contract_family(family)
+
+
+def test_family_checks_target_relationship_types_before_applying_gaps() -> None:
+    family = load_player_data_contract()
+    family["profiles"]["reference"]["relationships"].append(
+        {
+            "name": "invalidTargetTypeMaskedByGap",
+            "kind": "foreignKey",
+            "from": {"file": "player_stats.csv", "columns": ["season"]},
+            "to": {"file": "players.csv", "columns": ["displayName"]},
+        }
+    )
+    family["declaredAlignmentGaps"].append(
+        {
+            "kind": "sharedDefinition",
+            "profile": "reference",
+            "file": "players.csv",
+            "fields": ["displayName"],
+            "properties": ["type"],
+            "currentValues": {"type": "integer"},
+            "rationale": "Invalid attempt to mask a final relationship mismatch.",
+            "followUp": "US-017",
+        }
+    )
+
+    with pytest.raises(ContractValidationError, match="must have matching scalar types"):
+        validate_player_data_contract_family(family)
+
+
+def test_family_rechecks_constraints_against_declared_current_gap_types() -> None:
+    family = load_player_data_contract()
+    for file_name in ("players.csv", "player_stats.csv", "player_attributes.csv"):
+        family["declaredAlignmentGaps"].append(
+            {
+                "kind": "sharedDefinition",
+                "profile": "roster",
+                "file": file_name,
+                "fields": ["playerId"],
+                "properties": ["type"],
+                "currentValues": {"type": "integer"},
+                "rationale": "Invalid profile constraint type drift.",
+                "followUp": "US-017",
+            }
+        )
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"pattern requires a string field: players\.csv\.playerId",
+    ):
+        validate_player_data_contract_family(family)
+
+
+def test_family_rejects_duplicate_declared_current_gap_coordinates() -> None:
+    family = load_player_data_contract()
+    for current_type in (["bogus"], "integer"):
+        family["declaredAlignmentGaps"].append(
+            {
+                "kind": "sharedDefinition",
+                "profile": "reference",
+                "file": "player_attributes.csv",
+                "fields": ["playerId"],
+                "properties": ["type"],
+                "currentValues": {"type": current_type},
+                "rationale": "Conflicting current definition pins.",
+                "followUp": "US-017",
+            }
+        )
+
+    with pytest.raises(
+        ContractValidationError,
+        match=(
+            r"repeats current definition for "
+            r"reference\.player_attributes\.csv\.playerId\.type"
+        ),
+    ):
         validate_player_data_contract_family(family)
 
 

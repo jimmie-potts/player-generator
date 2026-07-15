@@ -84,6 +84,7 @@ _PROFILE_PROPERTIES = {
     "keyRationales",
     "relationships",
 }
+_CAMEL_CASE_HEADER_PATTERN = re.compile(r"[a-z][A-Za-z0-9]*")
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 _MISSING = object()
 
@@ -150,6 +151,128 @@ def _validate_enum_member(value: object, field_type: str, context: str) -> None:
         )
 
 
+def _validate_null_rules(value: Mapping[str, Any], context: str) -> tuple[bool, bool]:
+    required = value.get("required")
+    nullable = value.get("nullable")
+    if not isinstance(required, bool) or not isinstance(nullable, bool):
+        raise ContractValidationError(
+            f"{context} required and nullable must be boolean"
+        )
+    if required == nullable:
+        raise ContractValidationError(
+            f"{context} must be required and non-nullable or optional and nullable"
+        )
+    return required, nullable
+
+
+def _validate_bound(
+    value: object,
+    *,
+    property_name: str,
+    field_type: str,
+    context: str,
+) -> Real:
+    if (
+        value is None
+        or isinstance(value, bool)
+        or not isinstance(value, Real)
+        or not math.isfinite(float(value))
+    ):
+        raise ContractValidationError(
+            f"{context} {property_name} must be finite numeric when present"
+        )
+    if field_type not in {"integer", "number"}:
+        raise ContractValidationError(
+            f"{context} cannot bound non-numeric type {field_type}"
+        )
+    if field_type == "integer" and not float(value).is_integer():
+        raise ContractValidationError(
+            f"{context} {property_name} must be an integer bound"
+        )
+    return value
+
+
+def _validate_enum(value: object, *, field_type: str, context: str) -> None:
+    enum_values = list(_sequence(value, f"{context} enum"))
+    if not enum_values:
+        raise ContractValidationError(f"{context} enum must be non-empty and unique")
+    for enum_value in enum_values:
+        _validate_enum_member(enum_value, field_type, context)
+    if len(enum_values) != len({_value_token(item) for item in enum_values}):
+        raise ContractValidationError(f"{context} enum must be non-empty and unique")
+
+
+def _validate_pattern(value: object, *, field_type: str, context: str) -> None:
+    if field_type != "string" or not isinstance(value, str):
+        raise ContractValidationError(f"{context} pattern requires a string field")
+    try:
+        re.compile(value)
+    except re.error as error:
+        raise ContractValidationError(f"{context} pattern is invalid: {error}") from error
+
+
+def _validate_column_definition(
+    column: Mapping[str, Any],
+    context: str,
+    *,
+    semantic_metadata: bool,
+    allowed_extra_properties: set[str] | None = None,
+) -> str:
+    name = _text(column.get("name"), f"{context} name")
+    if _CAMEL_CASE_HEADER_PATTERN.fullmatch(name) is None:
+        raise ContractValidationError(
+            f"{context} name {name!r} must be a lower camelCase header"
+        )
+    field_type = column.get("type")
+    if not isinstance(field_type, str) or field_type not in _SUPPORTED_TYPES:
+        raise ContractValidationError(
+            f"{context} {name} uses unsupported type {field_type!r}"
+        )
+    allowed_properties = {"name", *_STRUCTURAL_PROPERTIES}
+    if semantic_metadata:
+        allowed_properties.update({"meaning", "unit", "classification"})
+    allowed_properties.update(allowed_extra_properties or set())
+    unexpected = set(column) - allowed_properties
+    if unexpected:
+        raise ContractValidationError(
+            f"{context} {name} has unknown properties: "
+            f"{', '.join(sorted(unexpected))}"
+        )
+    _validate_null_rules(column, f"{context} {name}")
+    bounds: dict[str, Real] = {}
+    for property_name in ("minimum", "maximum"):
+        if property_name in column:
+            bounds[property_name] = _validate_bound(
+                column[property_name],
+                property_name=property_name,
+                field_type=field_type,
+                context=f"{context} {name}",
+            )
+    if (
+        "minimum" in bounds
+        and "maximum" in bounds
+        and bounds["minimum"] > bounds["maximum"]
+    ):
+        raise ContractValidationError(
+            f"{context} {name} minimum cannot exceed maximum"
+        )
+    if "enum" in column:
+        _validate_enum(column["enum"], field_type=field_type, context=f"{context} {name}")
+    if "pattern" in column:
+        _validate_pattern(
+            column["pattern"], field_type=field_type, context=f"{context} {name}"
+        )
+    if semantic_metadata:
+        for property_name in ("meaning", "unit", "classification"):
+            _text(
+                column.get(property_name),
+                f"{context} {name} {property_name}",
+            )
+    if "derivation" in column:
+        _text(column.get("derivation"), f"{context} {name} derivation")
+    return name
+
+
 def _column_map(
     value: object,
     context: str,
@@ -162,90 +285,14 @@ def _column_map(
     result: dict[str, Mapping[str, Any]] = {}
     for index, raw_column in enumerate(columns, start=1):
         column = _mapping(raw_column, f"{context} column {index}")
-        name = _text(column.get("name"), f"{context} column {index} name")
+        name = _validate_column_definition(
+            column,
+            f"{context} column {index}",
+            semantic_metadata=semantic_metadata,
+            allowed_extra_properties=allowed_extra_properties,
+        )
         if name in result:
             raise ContractValidationError(f"{context} has duplicate column {name!r}")
-        field_type = column.get("type")
-        if field_type not in _SUPPORTED_TYPES:
-            raise ContractValidationError(
-                f"{context} column {name} uses unsupported type {field_type!r}"
-            )
-        allowed_properties = {"name", *_STRUCTURAL_PROPERTIES}
-        if semantic_metadata:
-            allowed_properties.update({"meaning", "unit", "classification"})
-        allowed_properties.update(allowed_extra_properties or set())
-        unexpected = set(column) - allowed_properties
-        if unexpected:
-            raise ContractValidationError(
-                f"{context} column {name} has unknown properties: "
-                f"{', '.join(sorted(unexpected))}"
-            )
-        for property_name in ("required", "nullable"):
-            if not isinstance(column.get(property_name), bool):
-                raise ContractValidationError(
-                    f"{context} column {name} {property_name} must be boolean"
-                )
-        for property_name in ("minimum", "maximum"):
-            bound = column.get(property_name)
-            if bound is not None and (
-                isinstance(bound, bool)
-                or not isinstance(bound, Real)
-                or not math.isfinite(float(bound))
-            ):
-                raise ContractValidationError(
-                    f"{context} column {name} {property_name} must be finite numeric"
-                )
-            if bound is not None and field_type not in {"integer", "number"}:
-                raise ContractValidationError(
-                    f"{context} column {name} cannot bound non-numeric type {field_type}"
-                )
-            if bound is not None and field_type == "integer" and not float(bound).is_integer():
-                raise ContractValidationError(
-                    f"{context} column {name} {property_name} must be an integer bound"
-                )
-        minimum = column.get("minimum")
-        maximum = column.get("maximum")
-        if minimum is not None and maximum is not None and minimum > maximum:
-            raise ContractValidationError(
-                f"{context} column {name} minimum cannot exceed maximum"
-            )
-        enum = column.get("enum")
-        if enum is not None:
-            enum_values = list(_sequence(enum, f"{context} column {name} enum"))
-            if not enum_values:
-                raise ContractValidationError(
-                    f"{context} column {name} enum must be non-empty and unique"
-                )
-            for enum_value in enum_values:
-                _validate_enum_member(
-                    enum_value,
-                    str(field_type),
-                    f"{context} column {name}",
-                )
-            if len(enum_values) != len({_value_token(item) for item in enum_values}):
-                raise ContractValidationError(
-                    f"{context} column {name} enum must be non-empty and unique"
-                )
-        pattern = column.get("pattern")
-        if pattern is not None:
-            if field_type != "string" or not isinstance(pattern, str):
-                raise ContractValidationError(
-                    f"{context} column {name} pattern requires a string field"
-                )
-            try:
-                re.compile(pattern)
-            except re.error as error:
-                raise ContractValidationError(
-                    f"{context} column {name} pattern is invalid: {error}"
-                ) from error
-        if semantic_metadata:
-            for property_name in ("meaning", "unit", "classification"):
-                _text(
-                    column.get(property_name),
-                    f"{context} column {name} {property_name}",
-                )
-        if "derivation" in column:
-            _text(column.get("derivation"), f"{context} column {name} derivation")
         result[name] = column
     if not result and not allow_empty:
         raise ContractValidationError(f"{context} must define at least one column")
@@ -255,7 +302,7 @@ def _column_map(
 def _validate_unique_key_declarations(
     value: object,
     *,
-    allowed_fields: set[str],
+    columns: Mapping[str, Mapping[str, Any]],
     context: str,
 ) -> tuple[tuple[str, ...], ...]:
     keys = list(_sequence(value, context))
@@ -267,11 +314,22 @@ def _validate_unique_key_declarations(
         fields = tuple(_text_list(raw_key, f"{context} key {index}"))
         if not fields:
             raise ContractValidationError(f"{context} key {index} must name fields")
-        unknown = set(fields) - allowed_fields
+        unknown = set(fields) - set(columns)
         if unknown:
             raise ContractValidationError(
                 f"{context} key {index} references unknown fields: "
                 f"{', '.join(sorted(unknown))}"
+            )
+        nullable_fields = [
+            field_name
+            for field_name in fields
+            if columns[field_name].get("required") is not True
+            or columns[field_name].get("nullable") is not False
+        ]
+        if nullable_fields:
+            raise ContractValidationError(
+                f"{context} key {index} fields must be required and non-nullable: "
+                f"{', '.join(nullable_fields)}"
             )
         if fields in seen:
             raise ContractValidationError(f"{context} repeats key {fields!r}")
@@ -283,7 +341,7 @@ def _validate_unique_key_declarations(
 def _relationship_side(
     value: object,
     *,
-    columns_by_file: Mapping[str, set[str]],
+    columns_by_file: Mapping[str, Mapping[str, Mapping[str, Any]]],
     context: str,
 ) -> tuple[str, tuple[str, ...]]:
     side = _mapping(value, context)
@@ -295,7 +353,7 @@ def _relationship_side(
     fields = tuple(_text_list(side.get("columns"), f"{context} columns"))
     if not fields:
         raise ContractValidationError(f"{context} must name columns")
-    unknown = set(fields) - columns_by_file[file_name]
+    unknown = set(fields) - set(columns_by_file[file_name])
     if unknown:
         raise ContractValidationError(
             f"{context} references unknown columns in {file_name}: "
@@ -304,10 +362,18 @@ def _relationship_side(
     return file_name, fields
 
 
+def _relationship_types(
+    file_name: str,
+    fields: Sequence[str],
+    columns_by_file: Mapping[str, Mapping[str, Mapping[str, Any]]],
+) -> tuple[str, ...]:
+    return tuple(str(columns_by_file[file_name][field_name]["type"]) for field_name in fields)
+
+
 def _validate_relationship_declarations(
     value: object,
     *,
-    columns_by_file: Mapping[str, set[str]],
+    columns_by_file: Mapping[str, Mapping[str, Mapping[str, Any]]],
     unique_keys_by_file: Mapping[str, Sequence[Sequence[str]]],
     context: str,
 ) -> set[tuple[str, str]]:
@@ -342,6 +408,17 @@ def _validate_relationship_declarations(
                 raise ContractValidationError(
                     f"{context} relationship {name} has different source and target arity"
                 )
+            source_types = _relationship_types(
+                source_file, source_fields, columns_by_file
+            )
+            target_types = _relationship_types(
+                target_file, target_fields, columns_by_file
+            )
+            if source_types != target_types:
+                raise ContractValidationError(
+                    f"{context} relationship {name} source and target columns must "
+                    "have matching scalar types"
+                )
             participating_fields.update(
                 (source_file, field_name) for field_name in source_fields
             )
@@ -367,12 +444,14 @@ def _validate_relationship_declarations(
                 raise ContractValidationError(
                     f"{context} relationship {name} must name columns"
                 )
+            expected_types: tuple[str, ...] | None = None
+            expected_type_file: str | None = None
             for file_name in file_names:
                 if file_name not in columns_by_file:
                     raise ContractValidationError(
                         f"{context} relationship {name} references unknown file {file_name}"
                     )
-                unknown = set(fields) - columns_by_file[file_name]
+                unknown = set(fields) - set(columns_by_file[file_name])
                 if unknown:
                     raise ContractValidationError(
                         f"{context} relationship {name} references unknown columns in "
@@ -386,6 +465,17 @@ def _validate_relationship_declarations(
                     raise ContractValidationError(
                         f"{context} relationship {name} columns must include a declared "
                         f"unique key for {file_name}"
+                    )
+                current_types = _relationship_types(
+                    file_name, fields, columns_by_file
+                )
+                if expected_types is None:
+                    expected_types = current_types
+                    expected_type_file = file_name
+                elif current_types != expected_types:
+                    raise ContractValidationError(
+                        f"{context} relationship {name} columns must have matching "
+                        f"scalar types in {expected_type_file} and {file_name}"
                     )
                 participating_fields.update(
                     (file_name, field_name) for field_name in fields
@@ -478,7 +568,7 @@ def _validate_profile_definition(
             f"{context} extensionColumns must define all three shared files"
         )
 
-    extension_names: dict[str, set[str]] = {}
+    extension_columns_by_file: dict[str, dict[str, Mapping[str, Any]]] = {}
     for file_name in _SHARED_FILE_NAMES:
         file_extensions = _column_map(
             extensions[file_name],
@@ -496,7 +586,7 @@ def _validate_profile_definition(
         for name, column in file_extensions.items():
             _text(column.get("rationale"), f"{context} extension {file_name}.{name} rationale")
             _text(column.get("decision"), f"{context} extension {file_name}.{name} decision")
-        extension_names[file_name] = set(file_extensions)
+        extension_columns_by_file[file_name] = file_extensions
 
     profile_file_columns_by_file: dict[str, dict[str, Mapping[str, Any]]] = {}
     for file_name, raw_file in profile_files.items():
@@ -537,7 +627,9 @@ def _validate_profile_definition(
     for file_name, raw_order in current_orders.items():
         order = _text_list(raw_order, f"{context} currentColumnOrder {file_name}")
         if file_name in shared_columns:
-            allowed = set(shared_columns[file_name]) | extension_names[file_name]
+            allowed = set(shared_columns[file_name]) | set(
+                extension_columns_by_file[file_name]
+            )
         else:
             declared_order = list(profile_file_columns_by_file[file_name])
             if order != declared_order:
@@ -553,6 +645,20 @@ def _validate_profile_definition(
                 f"{', '.join(sorted(unknown))}"
             )
 
+    columns_by_file: dict[str, dict[str, Mapping[str, Any]]] = {}
+    for file_name, raw_order in current_orders.items():
+        order = _text_list(raw_order, f"{context} currentColumnOrder {file_name}")
+        if file_name in shared_columns:
+            declared_columns = {
+                **shared_columns[file_name],
+                **extension_columns_by_file[file_name],
+            }
+            columns_by_file[file_name] = {
+                field_name: declared_columns[field_name] for field_name in order
+            }
+        else:
+            columns_by_file[file_name] = profile_file_columns_by_file[file_name]
+
     unique_keys = _mapping(profile.get("uniqueKeys"), f"{context} uniqueKeys")
     if set(unique_keys) != set(_SHARED_FILE_NAMES):
         raise ContractValidationError(f"{context} uniqueKeys must define all shared files")
@@ -561,9 +667,7 @@ def _validate_profile_definition(
     for file_name in _SHARED_FILE_NAMES:
         declared_keys = _validate_unique_key_declarations(
             unique_keys[file_name],
-            allowed_fields=set(
-                _text_list(current_orders[file_name], f"{context} {file_name}")
-            ),
+            columns=columns_by_file[file_name],
             context=f"{context} uniqueKeys {file_name}",
         )
         unique_keys_by_file[file_name] = declared_keys
@@ -575,9 +679,7 @@ def _validate_profile_definition(
         file_contract = _mapping(raw_file, f"{context} profileOnlyFiles {file_name}")
         unique_keys_by_file[file_name] = _validate_unique_key_declarations(
             file_contract.get("uniqueKeys"),
-            allowed_fields=set(
-                _text_list(current_orders[file_name], f"{context} {file_name}")
-            ),
+            columns=columns_by_file[file_name],
             context=f"{context} profileOnlyFiles {file_name} uniqueKeys",
         )
     for file_name, fields in row_order_fields.items():
@@ -596,10 +698,7 @@ def _validate_profile_definition(
         _text(rationale, f"{context} keyRationales {file_name}")
     relationship_fields = _validate_relationship_declarations(
         profile.get("relationships"),
-        columns_by_file={
-            file_name: set(_text_list(order, f"{context} {file_name}"))
-            for file_name, order in current_orders.items()
-        },
+        columns_by_file=columns_by_file,
         unique_keys_by_file=unique_keys_by_file,
         context=f"{context} relationships",
     )
@@ -633,12 +732,7 @@ def _validate_profile_definition(
             raise ContractValidationError(
                 f"{context} availability override {index} must name fields"
             )
-        if not isinstance(override.get("required"), bool) or not isinstance(
-            override.get("nullable"), bool
-        ):
-            raise ContractValidationError(
-                f"{context} availability override {index} required and nullable must be boolean"
-            )
+        _validate_null_rules(override, f"{context} availability override {index}")
         _text(override.get("rationale"), f"{context} availability override {index} rationale")
         _text(override.get("decision"), f"{context} availability override {index} decision")
         for field in fields:
@@ -734,6 +828,53 @@ def _shared_column_maps(
     return result
 
 
+def _validate_gap_current_definitions(
+    gaps: Sequence[Mapping[str, Any]],
+    shared_columns: Mapping[str, Mapping[str, Mapping[str, Any]]],
+) -> dict[str, dict[str, dict[str, dict[str, Any]]]]:
+    current_definitions: dict[str, dict[str, dict[str, dict[str, Any]]]] = {
+        profile_name: {
+            file_name: {
+                field_name: dict(deepcopy(column))
+                for field_name, column in file_columns.items()
+            }
+            for file_name, file_columns in shared_columns.items()
+        }
+        for profile_name in _PROFILE_NAMES
+    }
+    affected_fields: set[tuple[str, str, str]] = set()
+    for gap in gaps:
+        if gap["kind"] != "sharedDefinition":
+            continue
+        profile_name = str(gap["profile"])
+        file_name = str(gap["file"])
+        properties = [str(property_name) for property_name in gap["properties"]]
+        current_values = _mapping(
+            gap["currentValues"], "Player data alignment gap currentValues"
+        )
+        for field_name in gap["fields"]:
+            definition = current_definitions[profile_name][file_name][str(field_name)]
+            for property_name in properties:
+                current_value = current_values[property_name]
+                if current_value == {"absent": True}:
+                    definition.pop(property_name, None)
+                else:
+                    definition[property_name] = deepcopy(current_value)
+            affected_fields.add((profile_name, file_name, str(field_name)))
+
+    for profile_name, file_name, field_name in sorted(affected_fields):
+        _validate_column_definition(
+            current_definitions[profile_name][file_name][field_name],
+            (
+                "Player data declared current definition "
+                f"{profile_name} {file_name}.{field_name}"
+            ),
+            semantic_metadata=True,
+            allowed_extra_properties={"derivation"},
+        )
+    return current_definitions
+
+
 def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
     """Validate the authored family resource and its closed profile declarations."""
     unexpected_family_properties = set(contract) - _FAMILY_PROPERTIES
@@ -780,7 +921,8 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
             shared_columns,
         )
 
-    seen_gap_codes: set[str] = set()
+    declared_gaps: list[Mapping[str, Any]] = []
+    seen_gap_coordinates: set[tuple[str, str, str, str]] = set()
     for index, raw_gap in enumerate(
         _sequence(contract.get("declaredAlignmentGaps"), "Player data declaredAlignmentGaps"),
         start=1,
@@ -839,6 +981,22 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
                         f"Player data alignment gap {index} current value for {property_name} "
                         "has an invalid absence marker"
                     )
+            for field_name in _text_list(
+                gap["fields"], f"Player data alignment gap {index} fields"
+            ):
+                for property_name in properties:
+                    coordinate = (
+                        str(profile_name),
+                        str(file_name),
+                        field_name,
+                        property_name,
+                    )
+                    if coordinate in seen_gap_coordinates:
+                        raise ContractValidationError(
+                            f"Player data alignment gap {index} repeats current definition "
+                            f"for {profile_name}.{file_name}.{field_name}.{property_name}"
+                        )
+                    seen_gap_coordinates.add(coordinate)
         if "currentOrder" in gap:
             current_order = _text_list(
                 gap["currentOrder"], f"Player data alignment gap {index} currentOrder"
@@ -849,6 +1007,20 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
                     f"Player data alignment gap {index} currentOrder contains unknown fields: "
                     f"{', '.join(sorted(unknown))}"
                 )
+        declared_gaps.append(gap)
+
+    current_shared_columns = _validate_gap_current_definitions(
+        declared_gaps, shared_columns
+    )
+    for profile_name in _PROFILE_NAMES:
+        _validate_profile_definition(
+            profile_name,
+            _mapping(profiles[profile_name], f"Player data profile {profile_name}"),
+            current_shared_columns[profile_name],
+        )
+
+    seen_gap_codes: set[str] = set()
+    for index, gap in enumerate(declared_gaps, start=1):
         current_codes = _codes_for_gap(contract, gap)
         duplicates = current_codes & seen_gap_codes
         if duplicates:
