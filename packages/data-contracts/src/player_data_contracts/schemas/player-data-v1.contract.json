@@ -242,7 +242,7 @@
           {"name": "age", "type": "integer", "required": false, "nullable": true, "minimum": 18, "maximum": 45, "meaning": "Generated age snapshot at roster creation.", "unit": "years", "classification": "rosterGeneration", "rationale": "Age is the version 1 basic field; roster birthDate is absent and any fallback date is an NBA-GM-owned consumer default that is not derived from age.", "decision": "D-038"}
         ],
         "player_stats.csv": [
-          {"name": "possessions", "type": "number", "required": true, "nullable": false, "meaning": "Estimated possession total used as the denominator for per-100 roster rates.", "unit": "possessions", "classification": "rosterGeneration", "rationale": "Roster generation needs an explicit possession basis; reference publishes the rates but not this total.", "decision": "D-035"}
+          {"name": "possessions", "type": "number", "required": true, "nullable": false, "minimum": 0, "meaning": "Estimated possession total used as the denominator for per-100 roster rates.", "unit": "possessions", "classification": "rosterGeneration", "rationale": "Roster generation needs an explicit possession basis; reference publishes the rates but not this total. Structural validation rejects negative values and semantic validation requires a positive denominator.", "decision": "D-035"}
         ],
         "player_attributes.csv": []
       },

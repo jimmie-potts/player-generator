@@ -98,6 +98,7 @@ def test_shared_statistics_catalog_owns_the_final_common_payload() -> None:
     assert [column["name"] for column in roster_extensions["player_stats.csv"]] == [
         "possessions"
     ]
+    assert roster_extensions["player_stats.csv"][0]["minimum"] == 0
 
 
 def test_roster_v1_keeps_age_and_package_scoped_player_ids() -> None:
@@ -238,6 +239,49 @@ def test_family_rejects_enum_members_with_the_wrong_scalar_type() -> None:
         match=r"enum value '2025' does not match field type integer",
     ):
         validate_player_data_contract_family(family)
+
+
+def test_family_rejects_enum_members_outside_active_bounds() -> None:
+    family = load_player_data_contract()
+    _column(family, "player_stats.csv", "season")["enum"] = [999]
+
+    with pytest.raises(ContractValidationError, match=r"enum value 999 must be at least 1000"):
+        validate_player_data_contract_family(family)
+
+
+def test_family_rejects_enum_members_outside_active_patterns() -> None:
+    family = load_player_data_contract()
+    display_name = _column(family, "players.csv", "displayName")
+    display_name["enum"] = ["lowercase"]
+    display_name["pattern"] = r"^[A-Z].*"
+
+    with pytest.raises(ContractValidationError, match=r"enum value 'lowercase' must match pattern"):
+        validate_player_data_contract_family(family)
+
+
+def test_family_requires_runtime_canonical_datetime_enum_members() -> None:
+    family = load_player_data_contract()
+    processed_at = next(
+        column
+        for column in family["profiles"]["reference"]["profileOnlyFiles"]["sources.csv"][
+            "columns"
+        ]
+        if column["name"] == "processedAt"
+    )
+    processed_at["enum"] = ["2026-07-15T00:00:00Z"]
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"must use canonical datetime form '2026-07-15T00:00:00\+00:00'",
+    ):
+        validate_player_data_contract_family(family)
+
+    processed_at["enum"] = ["2026-07-15T00:00:00+00:00"]
+    validate_player_data_contract_family(family)
+    assert (
+        serialize_csv_value("2026-07-15T00:00:00Z", processed_at)
+        == "2026-07-15T00:00:00+00:00"
+    )
 
 
 @pytest.mark.parametrize("declaration", ["shared", "extension", "profileOnly"])
@@ -531,6 +575,17 @@ def test_family_rejects_invalid_unique_keys_and_relationships() -> None:
         validate_player_data_contract_family(family)
 
 
+def test_family_requires_extension_columns_in_current_order() -> None:
+    family = load_player_data_contract()
+    family["profiles"]["roster"]["currentColumnOrder"]["players.csv"].remove("age")
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"currentColumnOrder players\.csv is missing declared extension columns: age",
+    ):
+        validate_player_data_contract_family(family)
+
+
 @pytest.mark.parametrize("field_name", ["heightInches", "age"])
 def test_family_requires_shared_and_extension_key_fields_to_be_non_nullable(
     field_name: str,
@@ -567,6 +622,30 @@ def test_family_requires_foreign_key_types_to_match() -> None:
     relationship["from"]["columns"] = ["season"]
 
     with pytest.raises(ContractValidationError, match="must have matching scalar types"):
+        validate_player_data_contract_family(family)
+
+
+def test_family_requires_foreign_key_sources_to_be_non_nullable() -> None:
+    family = load_player_data_contract()
+    family["profiles"]["reference"]["relationships"].append(
+        {
+            "name": "optionalTeamAbbreviation",
+            "kind": "foreignKey",
+            "from": {
+                "file": "player_stats.csv",
+                "columns": ["teamAbbreviation"],
+            },
+            "to": {"file": "players.csv", "columns": ["displayName"]},
+        }
+    )
+
+    with pytest.raises(
+        ContractValidationError,
+        match=(
+            r"source fields must be required and non-nullable: "
+            r"player_stats\.csv\.teamAbbreviation"
+        ),
+    ):
         validate_player_data_contract_family(family)
 
 
@@ -620,6 +699,22 @@ def test_family_rejects_incoherent_columns_constraints_and_csv_rules() -> None:
     family["csv"]["headerStyle"] = "snake_case"
     with pytest.raises(ContractValidationError, match="headerStyle must be 'camelCase'"):
         validate_player_data_contract_family(family)
+
+
+def test_profile_parity_rejects_roster_extension_bound_drift() -> None:
+    roster = load_roster_contract()
+    possessions = next(
+        column
+        for column in roster["files"]["player_stats.csv"]["columns"]
+        if column["name"] == "possessions"
+    )
+    possessions.pop("minimum")
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"extension-definition:roster:player_stats\.csv:possessions",
+    ):
+        validate_player_data_profile_parity(roster_contract=roster)
 
 
 @pytest.mark.parametrize("property_name", ["minimum", "maximum"])

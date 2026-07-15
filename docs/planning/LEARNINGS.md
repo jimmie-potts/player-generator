@@ -378,6 +378,11 @@ its completion notes.
 - Keep consumer defaults visibly separate from producer facts. A global fallback can satisfy a
   downstream non-null constraint, but it must not be derived from coarser data or round-trip as an
   observed value.
+- Validate combined constraints, not only each property in isolation. Enum members must survive the
+  same bounds, patterns, and canonical temporal normalization used for runtime CSV values.
+- A closed contract declaration must materialize coherently: every extension belongs in its current
+  header, and a foreign-key source must be non-nullable unless runtime validation explicitly supports
+  optional relationships.
 
 ## Entry format
 

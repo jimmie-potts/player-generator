@@ -12,6 +12,7 @@ from importlib.resources import files
 from numbers import Integral, Real
 from typing import Any, Final
 
+from player_data_contracts.csv_contract import serialize_csv_value
 from player_data_contracts.validation import ContractValidationError
 
 PLAYER_DATA_CONTRACT_FAMILY: Final = "player-data"
@@ -192,7 +193,7 @@ def _validate_bound(
     return value
 
 
-def _validate_enum(value: object, *, field_type: str, context: str) -> None:
+def _validate_enum(value: object, *, field_type: str, context: str) -> list[object]:
     enum_values = list(_sequence(value, f"{context} enum"))
     if not enum_values:
         raise ContractValidationError(f"{context} enum must be non-empty and unique")
@@ -200,6 +201,7 @@ def _validate_enum(value: object, *, field_type: str, context: str) -> None:
         _validate_enum_member(enum_value, field_type, context)
     if len(enum_values) != len({_value_token(item) for item in enum_values}):
         raise ContractValidationError(f"{context} enum must be non-empty and unique")
+    return enum_values
 
 
 def _validate_pattern(value: object, *, field_type: str, context: str) -> None:
@@ -256,12 +258,27 @@ def _validate_column_definition(
         raise ContractValidationError(
             f"{context} {name} minimum cannot exceed maximum"
         )
-    if "enum" in column:
-        _validate_enum(column["enum"], field_type=field_type, context=f"{context} {name}")
     if "pattern" in column:
         _validate_pattern(
             column["pattern"], field_type=field_type, context=f"{context} {name}"
         )
+    if "enum" in column:
+        enum_values = _validate_enum(
+            column["enum"], field_type=field_type, context=f"{context} {name}"
+        )
+        runtime_column = dict(column)
+        runtime_column.pop("enum")
+        for enum_value in enum_values:
+            serialized = serialize_csv_value(
+                enum_value,
+                runtime_column,
+                context=f"{context} {name} enum value {enum_value!r}",
+            )
+            if field_type in {"date", "datetime"} and serialized != enum_value:
+                raise ContractValidationError(
+                    f"{context} {name} enum value {enum_value!r} must use canonical "
+                    f"{field_type} form {serialized!r}"
+                )
     if semantic_metadata:
         for property_name in ("meaning", "unit", "classification"):
             _text(
@@ -418,6 +435,17 @@ def _validate_relationship_declarations(
                 raise ContractValidationError(
                     f"{context} relationship {name} source and target columns must "
                     "have matching scalar types"
+                )
+            nullable_source_fields = [
+                f"{source_file}.{field_name}"
+                for field_name in source_fields
+                if columns_by_file[source_file][field_name].get("required") is not True
+                or columns_by_file[source_file][field_name].get("nullable") is not False
+            ]
+            if nullable_source_fields:
+                raise ContractValidationError(
+                    f"{context} relationship {name} source fields must be required and "
+                    f"non-nullable: {', '.join(nullable_source_fields)}"
                 )
             participating_fields.update(
                 (source_file, field_name) for field_name in source_fields
@@ -627,9 +655,14 @@ def _validate_profile_definition(
     for file_name, raw_order in current_orders.items():
         order = _text_list(raw_order, f"{context} currentColumnOrder {file_name}")
         if file_name in shared_columns:
-            allowed = set(shared_columns[file_name]) | set(
-                extension_columns_by_file[file_name]
-            )
+            extension_names = set(extension_columns_by_file[file_name])
+            missing_extensions = extension_names - set(order)
+            if missing_extensions:
+                raise ContractValidationError(
+                    f"{context} currentColumnOrder {file_name} is missing declared "
+                    f"extension columns: {', '.join(sorted(missing_extensions))}"
+                )
+            allowed = set(shared_columns[file_name]) | extension_names
         else:
             declared_order = list(profile_file_columns_by_file[file_name])
             if order != declared_order:

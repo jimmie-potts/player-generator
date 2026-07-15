@@ -303,6 +303,7 @@ def test_packaged_contract_version_drift_is_rejected(
         ("players.csv", "age", 17, "must be at least 18"),
         ("players.csv", "heightInches", 97, "must be at most 96"),
         ("player_stats.csv", "points", 42.5, "must be an integer"),
+        ("player_stats.csv", "possessions", -0.1, "must be at least 0"),
         ("player_attributes.csv", "overall", 100, "must be at most 99"),
         ("player_attributes.csv", "impactPercentile", -0.1, "must be at least 0"),
         ("player_attributes.csv", "talentTier", "unknown", "must be one of"),

@@ -124,6 +124,11 @@ can proceed independently without the two player-generator profiles drifting.
   player ID inside a save and uses the manifest content hash alongside it only for source-package
   traceability. Future team and coach IDs remain simple opaque league-context keys; no global
   namespace, remapping layer, UUID migration, or crosswalk was introduced.
+- **2026-07-15:** PR review hardened the authored family against five impossible or incomplete
+  declarations: enum members now satisfy their active bounds and patterns and use runtime-canonical
+  temporal forms; every extension must appear in its current header; foreign-key sources must be
+  required and non-nullable; and roster `possessions` is structurally nonnegative while retaining its
+  stricter positive-denominator semantic rule. Focused mutation tests cover every review case.
 
 ## Completion notes
 

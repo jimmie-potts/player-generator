@@ -157,7 +157,8 @@ Version 1 publishes traditional totals, rate statistics, and advanced metrics in
 Shared count, percentage, frequency, rating, per-game, per-36, and per-100 fields have one governed
 representation and semantic definition across both profiles. The roster profile additionally
 requires an explicit `possessions` total; the reference profile publishes per-100 rates but no
-possession total.
+possession total. The scalar contract rejects negative possession totals, and roster semantic
+validation requires the denominator to be strictly positive.
 
 The shared catalog includes all seven derivable percentages and per-game rates that the current
 reference schema still lacks. They remain in the alignment ledger until US-017 populates and
