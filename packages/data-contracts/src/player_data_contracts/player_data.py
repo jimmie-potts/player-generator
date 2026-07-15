@@ -90,6 +90,14 @@ _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 _MISSING = object()
 
 
+def _is_absence_marker(value: object) -> bool:
+    return (
+        isinstance(value, Mapping)
+        and set(value) == {"absent"}
+        and value["absent"] is True
+    )
+
+
 def _mapping(value: object, context: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise ContractValidationError(f"{context} must be an object")
@@ -123,12 +131,15 @@ def _validate_enum_member(value: object, field_type: str, context: str) -> None:
         valid = isinstance(value, str) and bool(value.strip())
     elif field_type == "integer":
         valid = not isinstance(value, bool) and isinstance(value, Integral)
-    elif field_type == "number":
-        valid = (
-            not isinstance(value, bool)
-            and isinstance(value, Real)
-            and math.isfinite(float(value))
-        )
+    elif (
+        field_type == "number"
+        and not isinstance(value, bool)
+        and isinstance(value, Real)
+    ):
+        try:
+            valid = math.isfinite(float(value))
+        except (OverflowError, TypeError, ValueError):
+            pass
     elif field_type == "date" and isinstance(value, str):
         try:
             date.fromisoformat(value)
@@ -274,6 +285,11 @@ def _validate_column_definition(
                 runtime_column,
                 context=f"{context} {name} enum value {enum_value!r}",
             )
+            if field_type == "number" and float(serialized) != enum_value:
+                raise ContractValidationError(
+                    f"{context} {name} enum value {enum_value!r} does not round-trip "
+                    "through IEEE-754 normalization"
+                )
             if field_type in {"date", "datetime"} and serialized != enum_value:
                 raise ContractValidationError(
                     f"{context} {name} enum value {enum_value!r} must use canonical "
@@ -830,6 +846,18 @@ def _validate_profile_definition(
             raise ContractValidationError(
                 f"{context} field constraint {index} pattern is invalid: {error}"
             ) from error
+        for file_name in constraint_files:
+            effective_column = dict(shared_columns[file_name][field_name])
+            effective_column["pattern"] = pattern
+            _validate_column_definition(
+                effective_column,
+                (
+                    f"{context} field constraint {index} effective "
+                    f"{file_name}.{field_name}"
+                ),
+                semantic_metadata=True,
+                allowed_extra_properties={"derivation"},
+            )
         _text(constraint.get("rationale"), f"{context} field constraint {index} rationale")
         _text(constraint.get("decision"), f"{context} field constraint {index} decision")
 
@@ -889,7 +917,7 @@ def _validate_gap_current_definitions(
             definition = current_definitions[profile_name][file_name][str(field_name)]
             for property_name in properties:
                 current_value = current_values[property_name]
-                if current_value == {"absent": True}:
+                if _is_absence_marker(current_value):
                     definition.pop(property_name, None)
                 else:
                     definition[property_name] = deepcopy(current_value)
@@ -1009,7 +1037,7 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
                     f"Player data alignment gap {index} currentValues must match properties"
                 )
             for property_name, value in current_values.items():
-                if isinstance(value, Mapping) and value != {"absent": True}:
+                if isinstance(value, Mapping) and not _is_absence_marker(value):
                     raise ContractValidationError(
                         f"Player data alignment gap {index} current value for {property_name} "
                         "has an invalid absence marker"
@@ -1129,7 +1157,7 @@ def _value_token(value: object) -> str:
 
 
 def _declared_current_value(value: object) -> object:
-    return _MISSING if value == {"absent": True} else value
+    return _MISSING if _is_absence_marker(value) else value
 
 
 def _definition_issue_code(

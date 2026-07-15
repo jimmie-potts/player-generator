@@ -380,6 +380,11 @@ its completion notes.
   observed value.
 - Validate combined constraints, not only each property in isolation. Enum members must survive the
   same bounds, patterns, and canonical temporal normalization used for runtime CSV values.
+- Revalidate the effective profile column after applying a profile constraint. Independently valid
+  shared enums and profile patterns can still compose into a contract with no valid value.
+- Treat structured sentinel values as typed protocol tokens. Equality is insufficient when the host
+  language considers booleans and numbers equal, and numeric enum values must survive the exact
+  IEEE-754 normalization used by CSV serialization.
 - A closed contract declaration must materialize coherently: every extension belongs in its current
   header, and a foreign-key source must be non-nullable unless runtime validation explicitly supports
   optional relationships.

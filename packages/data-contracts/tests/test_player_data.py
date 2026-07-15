@@ -284,6 +284,28 @@ def test_family_requires_runtime_canonical_datetime_enum_members() -> None:
     )
 
 
+def test_family_rejects_number_enums_that_do_not_round_trip() -> None:
+    family = load_player_data_contract()
+    minutes = _column(family, "player_stats.csv", "minutes")
+    minutes["enum"] = [9_007_199_254_740_993]
+
+    with pytest.raises(
+        ContractValidationError,
+        match="does not round-trip through IEEE-754 normalization",
+    ):
+        validate_player_data_contract_family(family)
+
+    minutes["enum"] = [10**400]
+    with pytest.raises(
+        ContractValidationError,
+        match="does not match field type number",
+    ):
+        validate_player_data_contract_family(family)
+
+    minutes["enum"] = [9_007_199_254_740_992]
+    validate_player_data_contract_family(family)
+
+
 @pytest.mark.parametrize("declaration", ["shared", "extension", "profileOnly"])
 def test_family_requires_camel_case_column_names(declaration: str) -> None:
     family = load_player_data_contract()
@@ -512,6 +534,27 @@ def test_family_restricts_pattern_constraints_to_string_fields() -> None:
     with pytest.raises(
         ContractValidationError,
         match=r"pattern requires a string field: player_stats\.csv\.season",
+    ):
+        validate_player_data_contract_family(family)
+
+
+def test_family_composes_profile_patterns_with_shared_enums() -> None:
+    family = load_player_data_contract()
+    _column(family, "players.csv", "displayName")["enum"] = ["alice"]
+    family["profiles"]["roster"]["fieldConstraints"].append(
+        {
+            "files": ["players.csv"],
+            "field": "displayName",
+            "property": "pattern",
+            "value": r"^[A-Z].*",
+            "rationale": "Exercise the effective profile constraint.",
+            "decision": "D-033",
+        }
+    )
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"enum value 'alice' must match pattern",
     ):
         validate_player_data_contract_family(family)
 
@@ -759,6 +802,22 @@ def test_family_validates_declared_current_gap_types(current_type: object) -> No
     type_gap["currentValues"]["type"] = current_type
 
     with pytest.raises(ContractValidationError, match="uses unsupported type"):
+        validate_player_data_contract_family(family)
+
+
+@pytest.mark.parametrize("marker", [1, 1.0])
+def test_family_requires_strict_boolean_absence_markers(marker: object) -> None:
+    family = load_player_data_contract()
+    type_gap = next(
+        gap
+        for gap in family["declaredAlignmentGaps"]
+        if gap["profile"] == "roster"
+        and gap["file"] == "players.csv"
+        and gap.get("properties") == ["type"]
+    )
+    type_gap["currentValues"]["type"] = {"absent": marker}
+
+    with pytest.raises(ContractValidationError, match="invalid absence marker"):
         validate_player_data_contract_family(family)
 
 

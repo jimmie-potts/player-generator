@@ -129,6 +129,11 @@ can proceed independently without the two player-generator profiles drifting.
   temporal forms; every extension must appear in its current header; foreign-key sources must be
   required and non-nullable; and roster `possessions` is structurally nonnegative while retaining its
   stricter positive-denominator semantic rule. Focused mutation tests cover every review case.
+- **2026-07-15:** Follow-up review made absence markers strict boolean protocol tokens, revalidated
+  each effective shared column after applying a profile pattern constraint, and rejected `number`
+  enum members that cannot round-trip through the contract's IEEE-754 CSV normalization. Focused
+  regressions cover numeric lookalike markers, shared-enum/profile-pattern conflicts, and the exact
+  representability boundary.
 
 ## Completion notes
 
