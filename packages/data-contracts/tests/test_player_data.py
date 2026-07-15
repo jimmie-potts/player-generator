@@ -212,6 +212,17 @@ def test_family_rejects_semantic_metadata_omissions() -> None:
         validate_player_data_contract_family(family)
 
 
+def test_family_rejects_enum_members_with_the_wrong_scalar_type() -> None:
+    family = load_player_data_contract()
+    _column(family, "player_stats.csv", "season")["enum"] = ["2025"]
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"enum value '2025' does not match field type integer",
+    ):
+        validate_player_data_contract_family(family)
+
+
 def test_family_rejects_unknown_authored_properties() -> None:
     family = load_player_data_contract()
     _column(family, "players.csv", "heightInches")["maximun"] = 80
@@ -237,6 +248,22 @@ def test_family_requires_complete_valid_row_order_rules() -> None:
     family["profiles"]["roster"]["rowOrder"]["players.csv"] = ["ghostField"]
 
     with pytest.raises(ContractValidationError, match="references unknown fields: ghostField"):
+        validate_player_data_contract_family(family)
+
+
+def test_family_requires_row_order_to_include_a_unique_key() -> None:
+    family = load_player_data_contract()
+    family["profiles"]["roster"]["rowOrder"]["player_stats.csv"] = ["season"]
+
+    with pytest.raises(ContractValidationError, match="must include a declared unique key"):
+        validate_player_data_contract_family(family)
+
+    family = load_player_data_contract()
+    family["profiles"]["reference"]["rowOrder"]["player_source_ids.csv"] = [
+        "sourcePlayerId"
+    ]
+
+    with pytest.raises(ContractValidationError, match="must include a declared unique key"):
         validate_player_data_contract_family(family)
 
 
@@ -302,6 +329,18 @@ def test_family_rejects_shared_files_disguised_as_profile_only() -> None:
     with pytest.raises(
         ContractValidationError,
         match=r"profile-only files overlap shared files: players\.csv",
+    ):
+        validate_player_data_contract_family(family)
+
+
+def test_family_keeps_profile_only_column_order_single_sourced() -> None:
+    family = load_player_data_contract()
+    order = family["profiles"]["reference"]["currentColumnOrder"]["sources.csv"]
+    order[0], order[1] = order[1], order[0]
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"currentColumnOrder sources\.csv must match its profile-only column declaration",
     ):
         validate_player_data_contract_family(family)
 
@@ -424,6 +463,18 @@ def test_family_rejects_invalid_unique_keys_and_relationships() -> None:
     family = load_player_data_contract()
     family["profiles"]["roster"]["relationships"] = [{"nonsense": True}]
     with pytest.raises(ContractValidationError, match="name must be non-empty text"):
+        validate_player_data_contract_family(family)
+
+
+def test_family_requires_exact_key_sets_to_include_a_unique_key() -> None:
+    family = load_player_data_contract()
+    exact_key_set = next(
+        relationship
+        for relationship in family["profiles"]["reference"]["relationships"]
+        if relationship["kind"] == "exactKeySet"
+    )
+    exact_key_set["columns"] = ["season"]
+    with pytest.raises(ContractValidationError, match="must include a declared unique key"):
         validate_player_data_contract_family(family)
 
 

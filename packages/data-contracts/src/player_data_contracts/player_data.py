@@ -7,8 +7,9 @@ import math
 import re
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
+from datetime import date, datetime
 from importlib.resources import files
-from numbers import Real
+from numbers import Integral, Real
 from typing import Any, Final
 
 from player_data_contracts.validation import ContractValidationError
@@ -83,6 +84,7 @@ _PROFILE_PROPERTIES = {
     "keyRationales",
     "relationships",
 }
+_SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 _MISSING = object()
 
 
@@ -111,6 +113,41 @@ def _text_list(value: object, context: str) -> list[str]:
     if len(items) != len(set(items)):
         raise ContractValidationError(f"{context} contains duplicate field names")
     return items
+
+
+def _validate_enum_member(value: object, field_type: str, context: str) -> None:
+    valid = False
+    if field_type == "string":
+        valid = isinstance(value, str) and bool(value.strip())
+    elif field_type == "integer":
+        valid = not isinstance(value, bool) and isinstance(value, Integral)
+    elif field_type == "number":
+        valid = (
+            not isinstance(value, bool)
+            and isinstance(value, Real)
+            and math.isfinite(float(value))
+        )
+    elif field_type == "date" and isinstance(value, str):
+        try:
+            date.fromisoformat(value)
+        except ValueError:
+            pass
+        else:
+            valid = True
+    elif field_type == "datetime" and isinstance(value, str):
+        normalized = f"{value[:-1]}+00:00" if value.endswith("Z") else value
+        try:
+            parsed = datetime.fromisoformat(normalized)
+        except ValueError:
+            pass
+        else:
+            valid = parsed.tzinfo is not None and parsed.utcoffset() is not None
+    elif field_type == "sha256":
+        valid = isinstance(value, str) and _SHA256_PATTERN.fullmatch(value) is not None
+    if not valid:
+        raise ContractValidationError(
+            f"{context} enum value {value!r} does not match field type {field_type}"
+        )
 
 
 def _column_map(
@@ -175,9 +212,17 @@ def _column_map(
         enum = column.get("enum")
         if enum is not None:
             enum_values = list(_sequence(enum, f"{context} column {name} enum"))
-            if not enum_values or len(enum_values) != len(
-                {_value_token(item) for item in enum_values}
-            ):
+            if not enum_values:
+                raise ContractValidationError(
+                    f"{context} column {name} enum must be non-empty and unique"
+                )
+            for enum_value in enum_values:
+                _validate_enum_member(
+                    enum_value,
+                    str(field_type),
+                    f"{context} column {name}",
+                )
+            if len(enum_values) != len({_value_token(item) for item in enum_values}):
                 raise ContractValidationError(
                     f"{context} column {name} enum must be non-empty and unique"
                 )
@@ -212,11 +257,12 @@ def _validate_unique_key_declarations(
     *,
     allowed_fields: set[str],
     context: str,
-) -> None:
+) -> tuple[tuple[str, ...], ...]:
     keys = list(_sequence(value, context))
     if not keys:
         raise ContractValidationError(f"{context} must define at least one key")
     seen: set[tuple[str, ...]] = set()
+    declared_keys: list[tuple[str, ...]] = []
     for index, raw_key in enumerate(keys, start=1):
         fields = tuple(_text_list(raw_key, f"{context} key {index}"))
         if not fields:
@@ -230,6 +276,8 @@ def _validate_unique_key_declarations(
         if fields in seen:
             raise ContractValidationError(f"{context} repeats key {fields!r}")
         seen.add(fields)
+        declared_keys.append(fields)
+    return tuple(declared_keys)
 
 
 def _relationship_side(
@@ -260,6 +308,7 @@ def _validate_relationship_declarations(
     value: object,
     *,
     columns_by_file: Mapping[str, set[str]],
+    unique_keys_by_file: Mapping[str, Sequence[Sequence[str]]],
     context: str,
 ) -> set[tuple[str, str]]:
     relationships = list(_sequence(value, context))
@@ -329,6 +378,15 @@ def _validate_relationship_declarations(
                         f"{context} relationship {name} references unknown columns in "
                         f"{file_name}: {', '.join(sorted(unknown))}"
                     )
+                relationship_fields = set(fields)
+                if not any(
+                    set(unique_key).issubset(relationship_fields)
+                    for unique_key in unique_keys_by_file[file_name]
+                ):
+                    raise ContractValidationError(
+                        f"{context} relationship {name} columns must include a declared "
+                        f"unique key for {file_name}"
+                    )
                 participating_fields.update(
                     (file_name, field_name) for field_name in fields
                 )
@@ -360,6 +418,7 @@ def _validate_profile_definition(
     row_orders = _mapping(profile.get("rowOrder"), f"{context} rowOrder")
     if set(row_orders) != set(current_orders):
         raise ContractValidationError(f"{context} rowOrder must define every CSV file")
+    row_order_fields: dict[str, list[str]] = {}
     for file_name, raw_fields in row_orders.items():
         fields = _text_list(raw_fields, f"{context} rowOrder {file_name}")
         if not fields:
@@ -372,6 +431,7 @@ def _validate_profile_definition(
                 f"{context} rowOrder {file_name} references unknown fields: "
                 f"{', '.join(sorted(unknown))}"
             )
+        row_order_fields[file_name] = fields
     package_extensions = _mapping(
         profile.get("packageFileExtensions"), f"{context} packageFileExtensions"
     )
@@ -438,6 +498,7 @@ def _validate_profile_definition(
             _text(column.get("decision"), f"{context} extension {file_name}.{name} decision")
         extension_names[file_name] = set(file_extensions)
 
+    profile_file_columns_by_file: dict[str, dict[str, Mapping[str, Any]]] = {}
     for file_name, raw_file in profile_files.items():
         if not isinstance(file_name, str) or not file_name.endswith(".csv"):
             raise ContractValidationError(f"{context} has invalid profile-only file {file_name!r}")
@@ -461,6 +522,7 @@ def _validate_profile_definition(
             semantic_metadata=True,
             allowed_extra_properties={"rationale", "decision", "derivation"},
         )
+        profile_file_columns_by_file[file_name] = profile_file_columns
         for name, column in profile_file_columns.items():
             _text(
                 column.get("rationale"),
@@ -477,15 +539,13 @@ def _validate_profile_definition(
         if file_name in shared_columns:
             allowed = set(shared_columns[file_name]) | extension_names[file_name]
         else:
-            profile_file = _mapping(profile_files[file_name], f"{context} {file_name}")
-            allowed = set(
-                _column_map(
-                    profile_file.get("columns"),
-                    f"{context} profileOnlyFiles {file_name}",
-                    semantic_metadata=True,
-                    allowed_extra_properties={"rationale", "decision", "derivation"},
+            declared_order = list(profile_file_columns_by_file[file_name])
+            if order != declared_order:
+                raise ContractValidationError(
+                    f"{context} currentColumnOrder {file_name} must match its "
+                    "profile-only column declaration"
                 )
-            )
+            allowed = set(declared_order)
         unknown = set(order) - allowed
         if unknown:
             raise ContractValidationError(
@@ -497,28 +557,38 @@ def _validate_profile_definition(
     if set(unique_keys) != set(_SHARED_FILE_NAMES):
         raise ContractValidationError(f"{context} uniqueKeys must define all shared files")
     protected_fields: set[tuple[str, str]] = set()
+    unique_keys_by_file: dict[str, tuple[tuple[str, ...], ...]] = {}
     for file_name in _SHARED_FILE_NAMES:
-        _validate_unique_key_declarations(
+        declared_keys = _validate_unique_key_declarations(
             unique_keys[file_name],
             allowed_fields=set(
                 _text_list(current_orders[file_name], f"{context} {file_name}")
             ),
             context=f"{context} uniqueKeys {file_name}",
         )
-        for raw_key in _sequence(unique_keys[file_name], f"{context} uniqueKeys {file_name}"):
+        unique_keys_by_file[file_name] = declared_keys
+        for declared_key in declared_keys:
             protected_fields.update(
-                (file_name, field_name)
-                for field_name in _text_list(raw_key, f"{context} uniqueKeys {file_name}")
+                (file_name, field_name) for field_name in declared_key
             )
     for file_name, raw_file in profile_files.items():
         file_contract = _mapping(raw_file, f"{context} profileOnlyFiles {file_name}")
-        _validate_unique_key_declarations(
+        unique_keys_by_file[file_name] = _validate_unique_key_declarations(
             file_contract.get("uniqueKeys"),
             allowed_fields=set(
                 _text_list(current_orders[file_name], f"{context} {file_name}")
             ),
             context=f"{context} profileOnlyFiles {file_name} uniqueKeys",
         )
+    for file_name, fields in row_order_fields.items():
+        row_fields = set(fields)
+        if not any(
+            set(unique_key).issubset(row_fields)
+            for unique_key in unique_keys_by_file[file_name]
+        ):
+            raise ContractValidationError(
+                f"{context} rowOrder {file_name} must include a declared unique key"
+            )
     key_rationales = _mapping(profile.get("keyRationales"), f"{context} keyRationales")
     if set(key_rationales) != set(_SHARED_FILE_NAMES):
         raise ContractValidationError(f"{context} keyRationales must define all shared files")
@@ -530,6 +600,7 @@ def _validate_profile_definition(
             file_name: set(_text_list(order, f"{context} {file_name}"))
             for file_name, order in current_orders.items()
         },
+        unique_keys_by_file=unique_keys_by_file,
         context=f"{context} relationships",
     )
     protected_fields.update(
