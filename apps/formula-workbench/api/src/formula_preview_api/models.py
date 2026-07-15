@@ -4,6 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from formula_preview_api.config import API_V1_MAX_SELECTED_PLAYERS
+
 
 def _camel_case(value: str) -> str:
     head, *tail = value.split("_")
@@ -162,7 +164,10 @@ class PreviewRequest(APIInputModel):
     formula_version: str = Field(min_length=1)
     formula_document_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     season: int = Field(ge=1)
-    selected_player_ids: list[str] = Field(min_length=1, max_length=25)
+    selected_player_ids: list[str] = Field(
+        min_length=1,
+        max_length=API_V1_MAX_SELECTED_PLAYERS,
+    )
     selected_attribute: str = Field(default="overall", min_length=1)
     adjustments: PreviewAdjustments = Field(default_factory=PreviewAdjustments)
 

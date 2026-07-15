@@ -43,7 +43,8 @@ reference-data build
 Never load this directory from the game runtime. Current game-facing output lives under
 `roster_data/` and contains no source IDs or source-player names. Do not commit or redistribute
 the raw Parquet file or the derived named tables. The pinned `llimllib/nba_data` snapshot had no
-observed root license file; see `THIRD_PARTY_NOTICES.md`.
+observed root license file; its exact source, hash, and license-status note are recorded in
+[`source_manifest.json`](source_manifest.json).
 
 [EPIC-02](../docs/planning/epics/EPIC-02-reference-data.md) implements local registration,
 source-specific normalization, reconciliation, relational CSV contracts, and atomic publication.

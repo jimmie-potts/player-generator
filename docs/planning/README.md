@@ -63,6 +63,10 @@ team or coach generation.
 - [Data contracts](DATA_CONTRACTS.md)
 - [Current player attribute formulas](ATTRIBUTE_FORMULAS.md)
 
+## Maintenance records
+
+- [2026-07-14 implementation alignment](maintenance/2026-07-14-implementation-alignment.md)
+
 ## Current-state warning
 
 EPIC-01 through EPIC-06 and US-015 establish the application boundaries, normalized reference
