@@ -41,7 +41,7 @@ previews use exactly the same calculations.
 
 - Started after US-005 and EPIC-02 were completed and merged in PR #4.
 - The formula contract and evaluator are owned by `packages/attribute-engine`; the current
-  reference-data wide-table build may call that shared engine, but migration of the roster
+  reference-data wide-table build may call that shared engine, but moving the roster
   generator to normalized reference packages remains US-008 work and the preview API remains
   US-010 work.
 - Declarative formulas are restricted to a supported schema and metric vocabulary. They do not
@@ -72,7 +72,7 @@ previews use exactly the same calculations.
   temporal null columns as null rather than allowing Pandas' integer sentinel into evaluation.
 - **Delivered:** packaged formula contract version 1 and active formula version `1.0.0`; typed
   semantic validation; a public, application-independent evaluator returning ordered rows and
-  reconstructable JSON explanations; and migration of the current reference-data batch seam to
+  reconstructable JSON explanations; and conversion of the current reference-data batch seam to
   the shared evaluator.
 - **Failure behavior:** unsupported schema/reference versions, unknown or cyclic metrics, invalid
   numeric values, weights, directions, anchors, schedules, tiers, output collisions, missing input

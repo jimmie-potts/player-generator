@@ -53,7 +53,7 @@ async def test_formula_endpoint_returns_the_exact_active_document_and_identity(
     assert context == {
         "apiVersion": "1",
         "referencePackage": {
-            "packageVersion": 2,
+            "packageVersion": 1,
             "contentHash": synthetic_package.content_hash,
             "publishedFormulaVersion": synthetic_package.formula.formula_version,
             "publishedFormulaDocumentHash": synthetic_package.formula_hash,

@@ -21,7 +21,7 @@ function formula(): FormulaDocument {
   return {
     schemaVersion: 1,
     formulaVersion: "1.0.0",
-    referenceContractVersion: 2,
+    referenceContractVersion: 1,
     outputFields: ["playerId", "overall", "formulaVersion"],
     rules: {
       nullHandling: "exclude",

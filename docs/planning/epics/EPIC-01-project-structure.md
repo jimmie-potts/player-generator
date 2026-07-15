@@ -1,7 +1,7 @@
 # EPIC-01: Repository structure and terminology
 
 - **Status:** complete
-- **Outcome:** Separate the version 2 responsibilities and adopt reference/roster domain language.
+- **Outcome:** Separate application responsibilities and adopt reference/roster domain language.
 - **Dependencies:** none
 
 ## Why
@@ -19,13 +19,13 @@ independently.
 
 - The planned applications and shared packages are independently testable.
 - Reference building does not depend on roster generation.
-- Current behavior remains truthfully documented throughout the migration.
+- Current behavior remains truthfully documented throughout delivery.
 - Deprecated terminology is removed from user-facing and implementation surfaces.
 
 ## Non-goals
 
 - Implementing new adapters, data contracts, formulas, or web features.
-- Preserving version 1 commands and output compatibility.
+- Retaining wrapper interfaces for superseded commands and outputs.
 
 ## Risks
 

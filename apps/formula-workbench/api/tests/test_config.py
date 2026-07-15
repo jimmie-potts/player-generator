@@ -17,7 +17,7 @@ from formula_preview_api.config import (
 
 def _maximum_settings() -> PreviewSettings:
     return PreviewSettings(
-        reference_package=Path("reference-v2"),
+        reference_package=Path("reference-v1"),
         season=2026,
         default_sample_size=API_V1_MAX_BASELINE_PLAYERS,
         max_pinned_players=API_V1_MAX_PINNED_PLAYERS,
@@ -60,7 +60,7 @@ def test_version_1_contract_maxima_and_reduced_limits_are_valid() -> None:
 
 def test_direct_construction_inherits_the_pin_limit_for_selected_players() -> None:
     settings = PreviewSettings(
-        reference_package=Path("reference-v2"),
+        reference_package=Path("reference-v1"),
         season=2026,
         default_sample_size=10,
         max_pinned_players=7,
@@ -99,7 +99,7 @@ def test_legacy_yaml_inherits_the_pin_limit_for_selected_players(tmp_path: Path)
     config_path.write_text(
         yaml.safe_dump(
             {
-                "paths": {"reference_package_dir": "reference-v2"},
+                "paths": {"reference_package_dir": "reference-v1"},
                 "preview": {
                     "season": 2026,
                     "default_sample_size": 10,
@@ -127,7 +127,7 @@ def test_yaml_can_narrow_pin_and_selected_player_limits_independently(
     config_path.write_text(
         yaml.safe_dump(
             {
-                "paths": {"reference_package_dir": "reference-v2"},
+                "paths": {"reference_package_dir": "reference-v1"},
                 "preview": {
                     "season": 2026,
                     "default_sample_size": 10,

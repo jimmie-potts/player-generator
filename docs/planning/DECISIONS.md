@@ -1,4 +1,4 @@
-# Version 2 decision log
+# Decision log
 
 These decisions are approved defaults for the redesign. Create a new dated entry when later work
 changes one; do not rewrite history without recording the replacement.
@@ -19,25 +19,25 @@ changes one; do not rewrite history without recording the replacement.
 - **Reason:** Domain data should be handled through the same entity vocabulary regardless of its
   origin.
 
-## D-003: Clean version 2 break
+## D-003: Clean redesign break
 
-- **Status:** accepted
-- **Decision:** Version 2 may replace current commands, paths, and output contracts without a
-  compatibility wrapper.
-- **Reason:** Compatibility would preserve the coupling and wide-file assumptions that the redesign
-  is intended to remove.
+- **Status:** accepted; superseded by [D-035](#d-035-current-version-1-package-inventory)
+- **Decision:** The repository redesign may replace the commands, paths, and output contracts that
+  predated the application split without retaining wrapper interfaces.
+- **Reason:** Retaining superseded wrapper interfaces would preserve the coupling and wide-file
+  assumptions that the redesign is intended to remove.
 
 ## D-004: Local Parquet input
 
 - **Status:** accepted
-- **Decision:** Version 2 accepts local Parquet files. Automated remote download is not part of the
-  initial reference-data application.
+- **Decision:** The normalized reference-data application accepts local Parquet files. Automated
+  remote download is not part of its publication path.
 - **Reason:** Local input makes provenance explicit and avoids making ingestion depend on upstream
   availability or redistribution rights.
 
 ## D-005: Normalized reference outputs
 
-- **Status:** accepted
+- **Status:** accepted; superseded by [D-035](#d-035-current-version-1-package-inventory)
 - **Decision:** Publish normalized player, season, traditional-stat, advanced-stat, source-ID, and
   provenance CSVs rather than one wide table.
 - **Reason:** Stable domain tables isolate source schema drift and allow downstream consumers to load
@@ -45,7 +45,7 @@ changes one; do not rewrite history without recording the replacement.
 
 ## D-006: Player-only roster package
 
-- **Status:** accepted
+- **Status:** accepted; amended by [D-035](#d-035-current-version-1-package-inventory)
 - **Decision:** The first roster package contains player bio, traditional stats, advanced stats,
   attributes, and a manifest. Team assignment, coaches, and contracts are deferred.
 - **Reason:** Those domains require inputs or generation policy not supplied by the initial Parquet
@@ -91,10 +91,12 @@ changes one; do not rewrite history without recording the replacement.
 
 ## D-012: Aggregate player-season grain
 
-- **Status:** accepted
-- **Decision:** Contract version 1 uses one aggregate row per player and season across season,
-  traditional-stat, and advanced-stat tables. Team identity is optional and present only for a
-  single-team aggregate. Team stints are deferred.
+- **Status:** accepted; amended by [D-035](#d-035-current-version-1-package-inventory)
+- **Decision:** Contract version 1 uses one aggregate `player_stats.csv` row per player and season,
+  containing season context and traditional, rate, and advanced observations. The roster profile
+  additionally requires an explicit `possessions` total; the reference profile publishes per-100
+  rates but no possession total. Team identity is optional and present only for a single-team
+  aggregate. Team stints are deferred.
 - **Reason:** The initial source is already unique by player and year, and treating multi-team labels
   as canonical team IDs would create incorrect joins.
 
@@ -134,8 +136,8 @@ changes one; do not rewrite history without recording the replacement.
 ## D-017: Shared evaluator consumer sequencing
 
 - **Status:** accepted
-- **Decision:** EPIC-03 publishes the application-independent formula evaluator and migrates the
-  current batch compatibility path to it. The preview API remains a US-010 deliverable and must
+- **Decision:** EPIC-03 publishes the application-independent formula evaluator and moves the
+  standalone batch path to it. The preview API remains a US-010 deliverable and must
   import that evaluator when implemented; EPIC-03 does not pull the API forward solely to create a
   second consumer.
 - **Reason:** This satisfies the single-evaluator architecture without violating the dependency
@@ -163,13 +165,13 @@ changes one; do not rewrite history without recording the replacement.
   and rebound percentage as distinct upstream metrics. Preserving their domain definitions avoids
   silently collapsing separate statistics while still making derived roster values reproducible.
 
-## D-020: Versioned reference player attributes
+## D-020: Reference player attributes
 
-- **Status:** accepted
-- **Decision:** Reference package version 2 adds `player_attributes.csv` at the aggregate
-  player-season grain. Every season is evaluated independently through the shared declarative
-  engine, and the manifest records the formula version and exact document hash. Version 1 remains
-  readable, while new publication defaults to version 2.
+- **Status:** accepted; amended by [D-035](#d-035-current-version-1-package-inventory)
+- **Decision:** Publish `player_attributes.csv` at the aggregate player-season grain. Every season is
+  evaluated independently through the shared declarative engine, and the manifest records the
+  formula version and exact document hash. D-035 incorporates this output into the current version 1
+  reference profile.
 - **Reason:** Reference ratings are season-relative derived data. Publishing them with the inputs,
   cohort keys, formula provenance, and package integrity metadata makes the results inspectable and
   reproducible without weakening formula ownership or copying reference identities into roster
@@ -188,12 +190,12 @@ changes one; do not rewrite history without recording the replacement.
 
 ## D-022: One generated season per roster player
 
-- **Status:** accepted
-- **Decision:** Roster contract version 1 permits exactly one `player_stats.csv` row and one aligned
-  `player_advanced_stats.csv` row per `playerId`. `player_attributes.csv` remains at player grain.
+- **Status:** accepted; amended by [D-035](#d-035-current-version-1-package-inventory)
+- **Decision:** The version 1 roster profile permits exactly one `player_stats.csv` row per
+  `playerId`. `player_attributes.csv` remains at player grain.
 - **Reason:** Generation samples one reference player-season for each roster player. Allowing more
   than one generated season would leave the player-grain attribute row unable to identify which
-  season it rates, even when the two stat tables share the same multi-season key set.
+  season it rates.
 
 ## D-023: FastAPI preview application with API-owned contracts
 
@@ -237,7 +239,7 @@ changes one; do not rewrite history without recording the replacement.
 - **Status:** accepted
 - **Decision:** Put reusable reference manifest, exact-file-set, hash, row-count, contract, and
   mutation-window checks in `data-contracts`, then let each application apply its own joining and
-  compatibility policy. The preview API recalculates its baseline with the active shared-engine
+  input-requirement policy. The preview API recalculates its baseline with the active shared-engine
   formula and exposes the package identity, active formula identity, and configured season as context
   tokens. It compares published reference attributes with the recalculation only when their formula
   version and exact document hash match the active formula.
@@ -362,34 +364,32 @@ changes one; do not rewrite history without recording the replacement.
 
 ## D-032: Consolidated NBA-GM MVP roster handoff
 
-- **Status:** accepted
+- **Status:** accepted; amended by [D-034](#d-034-player-data-contract-version-1-baseline) and
+  [D-035](#d-035-current-version-1-package-inventory)
 - **Decision:** Target NBA-GM's MVP build-time handoff as one manifest-backed, player-only package
   containing `players.csv`, a consolidated `player_stats.csv`, and `player_attributes.csv`.
   Consolidate every currently published roster traditional, rate, possession, and advanced metric
   into the one statistics row for each player. Keep attributes at player grain as separately
   versioned formula output. Preserve exact player-key equality across all CSVs. Retain a contract
-  identifier for reproducibility, but require no compatibility wrapper, migration path, or dual
-  publication before the first NBA-GM integration. Any generated review workbook remains outside
-  the canonical package and is values-only and nonauthoritative.
-- **Scope boundary:** The reference package retains separate `player_seasons.csv`,
-  `player_stats.csv`, and `player_advanced_stats.csv` tables. NBA-GM consumes the current roster
-  statistics as MVP simulation inputs and owns league context, positions, assignments, contracts,
-  detailed ratings, tendencies, and other simulation-specific transformations. ESPN-derived
-  simulation statistics, deeper metrics, and personality traits or descriptions require later
-  stories and do not add placeholders to the MVP contract.
-- **Current-interface note:** D-022 and the implemented roster version 1 contract remain the
-  current interface until US-017 completes. At that point this decision supersedes only D-022's
-  two-stat-file boundary; its one generated statistical season per roster player and player-grain
-  attribute rules remain in force. D-005's normalized reference split and D-006's player-only domain
-  boundary also remain in force.
-- **Reason:** The two roster stat files are mandatory, have the same lifecycle and exact key set,
-  and are always generated and validated together. One consolidated statistics table removes a
-  compulsory consumer join without weakening semantic validation, while a shared schema and
-  synthetic fixture let player-generator and NBA-GM implement the handoff independently.
+  identifier for reproducibility. Any generated review workbook remains outside the canonical
+  package and is values-only and nonauthoritative.
+- **Scope boundary:** NBA-GM consumes roster statistics as MVP simulation inputs and owns league
+  context, positions, assignments, contracts, detailed ratings, tendencies, and other
+  simulation-specific transformations. ESPN-derived simulation statistics, deeper metrics, and
+  personality traits or descriptions require later stories and do not add placeholders to the MVP
+  contract. D-033 and D-034 subsequently established the corresponding reference-profile boundary.
+- **Implementation note:** US-017 applies the consolidated baseline to both publishers. D-022's one
+  generated statistical season per roster player and player-grain attribute rules remain in force.
+  D-006's player-only domain boundary also remains in force.
+- **Reason:** Traditional, rate, possession, and advanced observations have the same lifecycle and
+  player key. One consolidated statistics table avoids a compulsory consumer join without weakening
+  semantic validation, while a shared schema and synthetic fixture let player-generator and NBA-GM
+  implement the handoff independently.
 
 ## D-033: Reference and roster player-file parity
 
-- **Status:** accepted
+- **Status:** accepted; amended by [D-034](#d-034-player-data-contract-version-1-baseline) and
+  [D-035](#d-035-current-version-1-package-inventory)
 - **Decision:** Maintain the corresponding reference and roster `players.csv`, `player_stats.csv`,
   and `player_attributes.csv` surfaces as two profiles of one player-data contract. Shared columns
   must retain the same name, relative order, scalar representation, semantic meaning, unit or scale,
@@ -399,8 +399,7 @@ changes one; do not rewrite history without recording the replacement.
   New player-content fields default to both profiles; a one-profile field requires a dated decision
   and an explicit extension declaration. Cross-profile contract tests must fail when shared
   definitions drift. As part of EPIC-08, consolidate traditional and advanced statistics into
-  `player_stats.csv` in both published profiles and retire `player_advanced_stats.csv` from both
-  target inventories.
+  `player_stats.csv` in both published profiles.
 - **Profile boundaries:** Parity does not require equal row values, IDs, grains, or complete package
   inventories. Reference-only season context, source IDs, provenance, reconciliation, and audit data
   remain behind the reference boundary. Roster-only deterministic generation inputs and manifest
@@ -408,12 +407,51 @@ changes one; do not rewrite history without recording the replacement.
   overrides, and other extensions must be closed and explicitly declared; they must not redefine a
   shared field's type, meaning, unit, bounds, or derivation. NBA-GM continues to consume only the
   player-only roster profile.
-- **Supersedes:** This decision supersedes D-032's planned reference-package exception and, once
-  US-017 is complete, D-005's separate traditional- and advanced-stat output boundary. D-005 and
-  D-022 still describe the implemented reference version 2 and roster version 1 interfaces until
-  that story completes. D-006's player-only roster scope and the prohibition on publishing source
-  identities in roster data remain in force.
+- **Supersedes:** This decision supersedes D-032's planned reference-package exception. D-035 fixes
+  the current version 1 inventories. D-006's player-only roster scope and the prohibition on
+  publishing source identities in roster data remain in force.
 - **Reason:** Reference data is the calibrated counterpart of roster data. Allowing their common
   player surfaces to evolve independently would duplicate contract work and invite semantic drift
   before NBA-GM integration and later enrichment. Shared definitions and synchronized delivery keep
   both outputs reviewable and compatible without weakening their provenance boundary.
+
+## D-034: Player data contract version 1 baseline
+
+- **Status:** accepted; amended by [D-035](#d-035-current-version-1-package-inventory)
+- **Decision:** Establish the parity-aligned player-data format as contract version 1 and the
+  baseline for player-generator and NBA-GM integration. The contract is one family with `reference`
+  and `roster` profiles. Corresponding `players.csv`, consolidated `player_stats.csv`, and
+  `player_attributes.csv` content derives from shared definitions with declared profile
+  extensions. NBA-GM consumes only the player-only roster profile. Contract version, profile,
+  package, manifest, adapter, and formula identities remain distinct version domains.
+- **Delivery:** [US-016](user-stories/US-016-nba-gm-mvp-roster-contract.md) governs the
+  machine-readable version 1 schemas and paired synthetic fixtures. US-017 applies the profiles to
+  both publishers and their supported readers. Both stories remain in progress until final
+  validation and completion evidence are recorded.
+- **Amends:** D-032 and D-033 remain the accepted decision history that established the consolidated
+  roster shape and reference/roster parity. This decision replaces their transitional framing with
+  one version 1 baseline while retaining their ownership, identity-boundary, deterministic
+  publication, consolidated-statistics, and parity requirements.
+- **Reason:** NBA-GM integration begins with this format. Treating internal package history as
+  cross-project contract history would imply support obligations that the two projects never
+  established and would obscure the one interface they are now implementing in parallel.
+
+## D-035: Current version 1 package inventory
+
+- **Status:** accepted
+- **Accepted:** 2026-07-15
+- **Decision:** Player data contract version 1 is the only normalized package contract. Its
+  reference profile contains `players.csv`, `player_stats.csv`, `player_attributes.csv`,
+  `player_source_ids.csv`, `sources.csv`, `audit.json`, and `manifest.json`. Its roster profile
+  contains `players.csv`, `player_stats.csv`, `player_attributes.csv`, and `manifest.json`. Season
+  context and traditional, rate, and advanced observations are governed columns in each profile's
+  `player_stats.csv`. The roster profile additionally requires explicit `possessions`; the reference
+  profile publishes per-100 rates but no possession total. Exact-file validation rejects every
+  undeclared package entry.
+- **Amends:** This decision gives D-034 its exact current inventory and replaces D-003's transitional
+  numbering, D-005's split reference surfaces, D-020's additive package framing, and D-022's split
+  roster-stat surface. Their provenance, identity, formula, single-season, determinism, and atomic
+  publication requirements remain in force.
+- **Reason:** NBA-GM integration starts with this format, and no external consumer depends on another
+  normalized layout. One current contract and one statistics surface per profile avoid ambiguous
+  package histories and unnecessary joins.

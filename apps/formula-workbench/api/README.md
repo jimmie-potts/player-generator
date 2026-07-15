@@ -1,7 +1,7 @@
 # Formula preview API
 
 This Python application is the read-only calculation boundary for the formula workbench. It loads
-one integrity-checked version 2 reference package, keeps one configured season cohort in memory, and
+one integrity-checked version 1 reference profile, keeps one configured season cohort in memory, and
 uses `player_attribute_engine` for both the cached baseline and every temporary preview. The API does
 not read Parquet, import source adapters, or implement rating calculations itself.
 
@@ -12,7 +12,7 @@ version 1 and is owned by the API's Pydantic models and generated OpenAPI docume
 ## Run locally
 
 Publish or select a local reference package first. The default configuration expects the ignored
-package at `reference_data/packages/reference-v2`.
+package at `reference_data/packages/reference-v1`.
 
 ```bash
 formula-preview-api --config apps/formula-workbench/api/config/default.yaml
@@ -33,7 +33,7 @@ The default YAML configuration is:
 
 ```yaml
 paths:
-  reference_package_dir: reference_data/packages/reference-v2
+  reference_package_dir: reference_data/packages/reference-v1
 
 preview:
   season: 2026
@@ -63,7 +63,7 @@ package; `cohortSize` counts every loaded row for the configured season, not onl
 {
   "apiVersion": "1",
   "referencePackage": {
-    "packageVersion": 2,
+    "packageVersion": 1,
     "contentHash": "<reference package SHA-256>",
     "publishedFormulaVersion": "1.0.0",
     "publishedFormulaDocumentHash": "<published formula SHA-256>"

@@ -1,15 +1,15 @@
 # Reference-data application
 
 This Python application owns local source registration, source-specific adapters, reconciliation,
-canonical normalization, and processed reference outputs. Its current wide build invokes the shared
-declarative attribute engine as a legacy compatibility path.
+canonical normalization, and processed reference outputs. Its standalone wide build invokes the
+shared declarative attribute engine as a legacy path.
 
 ```bash
 reference-data --help
 reference-data register --source-type nba_playerstats /path/to/playerstats.parquet
 reference-data register --source-type espn_player_details /path/to/player-details.parquet
 reference-data publish
-reference-data publish --output /path/to/reference-v2
+reference-data publish --output /path/to/reference-v1
 reference-data publish --formula /path/to/player-attributes.json
 reference-data download
 reference-data build
@@ -34,12 +34,14 @@ processed named data remain local and untracked. The remote download and wide CS
 standalone legacy behavior and are not consumed by the normalized roster generator.
 The canonical model already produces validated relational tables and audit records in memory.
 `publish` evaluates each complete season cohort through one immutable snapshot of the selected
-formula, then writes the six canonical tables plus season-grain `player_attributes.csv`,
-deterministic audit and integrity metadata, and a version 2 package manifest. The manifest records
-the formula version and exact document hash. Ineligible player-seasons and historical seasons
+formula, then writes the five version 1 reference-profile CSVs, deterministic audit and integrity
+metadata, and a version 1 package manifest. Season context and all traditional, per-100, rate, and
+advanced observations are columns in `player_stats.csv`; the reference profile does not publish an
+explicit possession total. The manifest records the formula
+version and exact document hash. Ineligible player-seasons and historical seasons
 outside the formula's declared schedule retain their keys with empty calculated attributes.
 Publication defaults to the ignored
-`reference_data/packages/reference-v2` directory and stages and validates the complete package
+`reference_data/packages/reference-v1` directory and stages and validates the complete package
 before replacing an existing destination atomically.
 
 The application may import `player_data_contracts` and `player_attribute_engine`. It must never

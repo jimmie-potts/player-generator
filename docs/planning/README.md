@@ -1,4 +1,4 @@
-# Version 2 redesign
+# Implementation roadmap
 
 This directory tracks implementation of the separation between reference-data construction, roster
 generation, and formula exploration. Stories marked complete describe delivered behavior; other
@@ -29,14 +29,13 @@ published reference package rather than upstream source files.
 4. [EPIC-04: Player roster package](epics/EPIC-04-roster-package.md)
 5. [EPIC-05: Formula preview API](epics/EPIC-05-formula-api.md)
 6. [EPIC-06: Formula workbench](epics/EPIC-06-workbench.md)
-7. [EPIC-08: Parity-aligned NBA-GM MVP roster handoff](epics/EPIC-08-nba-gm-mvp-handoff.md)
+7. [EPIC-08: NBA-GM player data contract version 1](epics/EPIC-08-nba-gm-mvp-handoff.md)
 8. [EPIC-07: Future domain contracts](epics/EPIC-07-domain-contracts.md)
 
 EPIC-01 through EPIC-04 form the batch-data foundation. EPIC-05 and EPIC-06 add an interactive
-view over the same formula engine. EPIC-08 next aligns the corresponding reference and roster
-player-file contracts, publishes both profiles, and provides the roster profile as the NBA-GM MVP
-handoff. EPIC-07 remains an independent future-contract lane and does not authorize team or coach
-generation.
+view over the same formula engine. EPIC-08 establishes player data contract version 1, publishes
+its reference and roster profiles, and provides the roster profile as the NBA-GM MVP handoff.
+EPIC-07 remains an independent future-contract lane and does not authorize team or coach generation.
 
 ## User story index
 
@@ -57,8 +56,8 @@ generation.
 | US-013 | [Compare representative players](user-stories/US-013-compare-players.md) | EPIC-06 | complete |
 | US-014 | [Define coach and team contracts](user-stories/US-014-coach-team-contracts.md) | EPIC-07 | ready |
 | US-015 | [Publish reference player attributes](user-stories/US-015-reference-player-attributes.md) | EPIC-03 | complete |
-| US-016 | [Define parity-aligned MVP player contracts](user-stories/US-016-nba-gm-mvp-roster-contract.md) | EPIC-08 | ready |
-| US-017 | [Publish parity-aligned MVP player packages](user-stories/US-017-publish-consolidated-mvp-roster.md) | EPIC-08 | ready |
+| US-016 | [Freeze player data contract version 1](user-stories/US-016-nba-gm-mvp-roster-contract.md) | EPIC-08 | in_progress |
+| US-017 | [Publish player data contract version 1](user-stories/US-017-publish-consolidated-mvp-roster.md) | EPIC-08 | in_progress |
 | US-018 | [Generate a roster review workbook](user-stories/US-018-roster-review-workbook.md) | EPIC-08 | ready |
 
 ## Planning records
@@ -83,7 +82,7 @@ The reference-data application retains its pinned download and wide processed bu
 standalone legacy interfaces. The implemented workbench and versioned API contracts are documented
 in [`apps/formula-workbench/README.md`](../../apps/formula-workbench/README.md) and
 [`apps/formula-workbench/api/README.md`](../../apps/formula-workbench/api/README.md). The implemented
-reference interface remains version 2 and the roster interface remains the four-CSV version 1
-package until EPIC-08 stories are completed. The parity-aligned reference profile and three-CSV
-NBA-GM roster handoff are planned targets only. EPIC-07 and US-014 remain planned contract work and
-do not authorize team or coach generation.
+publisher outputs use player data contract version 1 as the current runnable interface and NBA-GM
+integration baseline. US-016 and US-017 remain in progress while their final conformance evidence,
+validation results, and completion records are assembled. EPIC-07 and US-014 remain planned contract
+work and do not authorize team or coach generation.

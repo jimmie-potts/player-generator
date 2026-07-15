@@ -106,13 +106,6 @@ def _valid_tables(*, rounded: bool = False) -> dict[str, list[dict[str, object]]
                 blocksPer100=derived(10 / 600 * 100),
                 twoPointAttemptFrequency=derived(200 / 350),
                 threePointAttemptFrequency=derived(150 / 350),
-            )
-        ],
-        "player_advanced_stats.csv": [
-            _row(
-                "player_advanced_stats.csv",
-                playerId=PLAYER_ID,
-                season=2026,
                 estimatedOffensiveRating=116,
                 offensiveRating=115,
                 estimatedDefensiveRating=107,
@@ -165,7 +158,6 @@ def test_roster_contract_has_exact_normalized_csv_headers() -> None:
     assert tuple(contract["files"]) == (
         "players.csv",
         "player_stats.csv",
-        "player_advanced_stats.csv",
         "player_attributes.csv",
     )
     assert _headers()["players.csv"] == (
@@ -227,10 +219,6 @@ def test_roster_contract_has_exact_normalized_csv_headers() -> None:
         "blocksPer100",
         "twoPointAttemptFrequency",
         "threePointAttemptFrequency",
-    )
-    assert _headers()["player_advanced_stats.csv"] == (
-        "playerId",
-        "season",
         "estimatedOffensiveRating",
         "offensiveRating",
         "estimatedDefensiveRating",
@@ -282,12 +270,13 @@ def test_valid_tables_and_csv_package_are_accepted(tmp_path: Path) -> None:
     validate_roster_package(package_dir)
 
 
-def test_forward_contract_version_is_rejected() -> None:
+@pytest.mark.parametrize("version", [2, 0, True, 1.0])
+def test_other_roster_contract_versions_are_rejected(version: object) -> None:
     with pytest.raises(
         ContractValidationError,
-        match="Unsupported roster contract version: 2",
+        match=f"Unsupported roster contract version: {version}",
     ):
-        load_roster_contract(version=2)
+        load_roster_contract(version=version)  # type: ignore[arg-type]
 
 
 def test_packaged_contract_version_drift_is_rejected(
@@ -318,19 +307,19 @@ def test_packaged_contract_version_drift_is_rejected(
         ("player_attributes.csv", "impactPercentile", -0.1, "must be at least 0"),
         ("player_attributes.csv", "talentTier", "unknown", "must be one of"),
         (
-            "player_advanced_stats.csv",
+            "player_stats.csv",
             "playerImpactEstimate",
             1.1,
             "must be at most 1",
         ),
         (
-            "player_advanced_stats.csv",
+            "player_stats.csv",
             "effectiveFieldGoalPercentage",
             1.50000001,
             "must be at most 1.5",
         ),
         (
-            "player_advanced_stats.csv",
+            "player_stats.csv",
             "trueShootingPercentage",
             1.50000001,
             "must be at most 1.5",
@@ -347,7 +336,7 @@ def test_scalar_patterns_ranges_and_enums_are_enforced(
         validate_roster_tables(tables)
 
 
-def test_player_and_player_season_exact_key_sets_are_enforced() -> None:
+def test_player_exact_key_set_is_enforced() -> None:
     tables = _valid_tables()
     second_id = "player_fedcba9876543210"
     second_player = copy.deepcopy(tables["players.csv"][0])
@@ -360,33 +349,22 @@ def test_player_and_player_season_exact_key_sets_are_enforced() -> None:
     ):
         validate_roster_tables(tables)
 
+def test_each_roster_player_has_exactly_one_stat_season() -> None:
     tables = _valid_tables()
-    tables["player_advanced_stats.csv"][0]["season"] = 2025
+    second_season = copy.deepcopy(tables["player_stats.csv"][0])
+    second_season["season"] = 2025
+    tables["player_stats.csv"].append(second_season)
+
     with pytest.raises(
         ContractValidationError,
-        match=r"relationship rosterPlayerSeasonGrain key-set mismatch",
+        match=r"violates unique key \(playerId\)",
     ):
         validate_roster_tables(tables)
 
 
-def test_each_roster_player_has_exactly_one_stat_season() -> None:
-    for file_name in ("player_stats.csv", "player_advanced_stats.csv"):
-        tables = _valid_tables()
-        second_season = copy.deepcopy(tables[file_name][0])
-        second_season["season"] = 2025
-        tables[file_name].append(second_season)
-
-        with pytest.raises(
-            ContractValidationError,
-            match=r"violates unique key \(playerId\)",
-        ):
-            validate_roster_tables(tables)
-
-
-def test_every_roster_player_requires_stats_and_advanced_stats() -> None:
+def test_every_roster_player_requires_stats() -> None:
     tables = _valid_tables()
     tables["player_stats.csv"] = []
-    tables["player_advanced_stats.csv"] = []
 
     with pytest.raises(
         ContractValidationError,
@@ -434,7 +412,7 @@ def test_traditional_stat_invariants_are_enforced(field: str, value: object, mes
 )
 def test_advanced_stat_invariants_are_enforced(field: str, value: object, message: str) -> None:
     tables = _valid_tables()
-    tables["player_advanced_stats.csv"][0][field] = value
+    tables["player_stats.csv"][0][field] = value
 
     with pytest.raises(ContractValidationError, match=message):
         validate_roster_tables(tables)
@@ -467,7 +445,7 @@ def test_shooting_efficiencies_above_one_are_valid_through_one_point_five() -> N
             "threePointAttemptFrequency": 1,
         }
     )
-    advanced = tables["player_advanced_stats.csv"][0]
+    advanced = stats
     play_ending_denominator = 100 + 120 + 40
     advanced.update(
         {
@@ -492,7 +470,7 @@ def test_zero_turnovers_require_finite_assist_turnover_ratio() -> None:
             "turnoversPer100": 0,
         }
     )
-    advanced = tables["player_advanced_stats.csv"][0]
+    advanced = stats
     play_ending_denominator = 350 + 0.44 * 100 + 120
     advanced.update(
         {
@@ -541,7 +519,7 @@ def test_zero_denominators_require_empty_derived_values() -> None:
     stats["freeThrowAttemptsPer36"] = 0
     stats["pointsPer36"] = 0
     stats["pointsPer100"] = 0
-    advanced = tables["player_advanced_stats.csv"][0]
+    advanced = stats
     advanced["effectiveFieldGoalPercentage"] = None
     advanced["trueShootingPercentage"] = None
     advanced["assistRatio"] = 75
@@ -583,7 +561,7 @@ def test_nullable_source_counts_and_their_rates_are_accepted() -> None:
 
 def test_unavailable_advanced_operands_require_empty_result() -> None:
     tables = _valid_tables()
-    advanced = tables["player_advanced_stats.csv"][0]
+    advanced = tables["player_stats.csv"][0]
     advanced["estimatedOffensiveRating"] = None
     advanced["estimatedNetRating"] = None
     advanced["offensiveReboundPercentage"] = None

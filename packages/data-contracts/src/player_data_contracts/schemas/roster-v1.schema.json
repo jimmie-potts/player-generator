@@ -67,14 +67,7 @@
         {"name": "stealsPer100", "type": "number", "required": false, "nullable": true, "minimum": 0},
         {"name": "blocksPer100", "type": "number", "required": false, "nullable": true, "minimum": 0},
         {"name": "twoPointAttemptFrequency", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
-        {"name": "threePointAttemptFrequency", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1}
-      ],
-      "uniqueKeys": [["playerId"], ["playerId", "season"]]
-    },
-    "player_advanced_stats.csv": {
-      "columns": [
-        {"name": "playerId", "type": "string", "required": true, "nullable": false, "pattern": "^player_[0-9a-f]{16}$"},
-        {"name": "season", "type": "integer", "required": true, "nullable": false, "minimum": 1},
+        {"name": "threePointAttemptFrequency", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 1},
         {"name": "estimatedOffensiveRating", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 200},
         {"name": "offensiveRating", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 200},
         {"name": "estimatedDefensiveRating", "type": "number", "required": false, "nullable": true, "minimum": 0, "maximum": 200},
@@ -128,12 +121,6 @@
       "to": {"file": "players.csv", "columns": ["playerId"]}
     },
     {
-      "name": "playerAdvancedStatsReferencePlayers",
-      "kind": "foreignKey",
-      "from": {"file": "player_advanced_stats.csv", "columns": ["playerId"]},
-      "to": {"file": "players.csv", "columns": ["playerId"]}
-    },
-    {
       "name": "playerAttributesReferencePlayers",
       "kind": "foreignKey",
       "from": {"file": "player_attributes.csv", "columns": ["playerId"]},
@@ -142,14 +129,8 @@
     {
       "name": "rosterPlayerSet",
       "kind": "exactKeySet",
-      "files": ["players.csv", "player_stats.csv", "player_advanced_stats.csv", "player_attributes.csv"],
+      "files": ["players.csv", "player_stats.csv", "player_attributes.csv"],
       "columns": ["playerId"]
-    },
-    {
-      "name": "rosterPlayerSeasonGrain",
-      "kind": "exactKeySet",
-      "files": ["player_stats.csv", "player_advanced_stats.csv"],
-      "columns": ["playerId", "season"]
     }
   ]
 }

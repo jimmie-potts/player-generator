@@ -13,13 +13,9 @@ from player_data_contracts.csv_contract import (
 )
 from player_data_contracts.validation import ContractValidationError
 
-REFERENCE_CONTRACT_VERSION: Final = 2
-SUPPORTED_REFERENCE_CONTRACT_VERSIONS: Final = (1, 2)
+REFERENCE_CONTRACT_VERSION: Final = 1
 
-_REFERENCE_SCHEMA_NAMES: Final = {
-    1: "schemas/reference-v1.schema.json",
-    2: "schemas/reference-v2.schema.json",
-}
+_REFERENCE_SCHEMA_NAME = "schemas/reference-v1.schema.json"
 _CONTRACT_NAME = "Reference"
 
 
@@ -30,11 +26,11 @@ def load_reference_contract(
     if (
         isinstance(version, bool)
         or not isinstance(version, int)
-        or version not in SUPPORTED_REFERENCE_CONTRACT_VERSIONS
+        or version != REFERENCE_CONTRACT_VERSION
     ):
         raise ContractValidationError(f"Unsupported reference contract version: {version}")
 
-    resource = files("player_data_contracts").joinpath(_REFERENCE_SCHEMA_NAMES[version])
+    resource = files("player_data_contracts").joinpath(_REFERENCE_SCHEMA_NAME)
     try:
         with resource.open("r", encoding="utf-8") as handle:
             contract = json.load(handle)
@@ -58,7 +54,7 @@ def _declared_contract_version(contract: Mapping[str, Any]) -> int:
     version = contract.get("contractVersion")
     if isinstance(version, bool) or not isinstance(version, int):
         raise ContractValidationError(f"Unsupported reference contract version: {version!r}")
-    if version not in SUPPORTED_REFERENCE_CONTRACT_VERSIONS:
+    if version != REFERENCE_CONTRACT_VERSION:
         raise ContractValidationError(f"Unsupported reference contract version: {version}")
     return version
 

@@ -59,19 +59,17 @@ def _write_csv(path: Path, rows: list[dict[str, object]]) -> None:
         writer.writerows(rows)
 
 
-def _write_manifest(
-    package: Path, row_counts: dict[str, int], *, version: int = REFERENCE_CONTRACT_VERSION
-) -> None:
-    contract = load_reference_contract(version)
+def _write_manifest(package: Path, row_counts: dict[str, int]) -> None:
+    contract = load_reference_contract()
     filenames = (*contract["files"], "audit.json")
     hashes = {filename: sha256_file(package / filename) for filename in filenames}
     manifest = {
         "manifestVersion": 1,
         "packageType": "reference",
-        "packageVersion": version,
+        "packageVersion": REFERENCE_CONTRACT_VERSION,
         "createdAt": "2026-07-13T12:00:00Z",
         "contractVersions": {
-            filename: version for filename in contract["files"]
+            filename: REFERENCE_CONTRACT_VERSION for filename in contract["files"]
         },
         "inputs": [],
         "files": {
@@ -79,10 +77,9 @@ def _write_manifest(
             for filename in filenames
         },
         "contentHash": content_hash(hashes),
+        "formulaVersion": load_formula().formula_version,
+        "formulaDocumentHash": formula_content_hash(),
     }
-    if version >= 2:
-        manifest["formulaVersion"] = load_formula().formula_version
-        manifest["formulaDocumentHash"] = formula_content_hash()
     (package / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
@@ -98,17 +95,6 @@ def _refresh_hashes(package: Path) -> None:
     manifest_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-
-
-def _convert_to_v1(package: Path) -> None:
-    (package / "player_attributes.csv").unlink()
-    contract = load_reference_contract(1)
-    row_counts: dict[str, int] = {}
-    for filename in contract["files"]:
-        with (package / filename).open(encoding="utf-8") as handle:
-            row_counts[filename] = sum(1 for _ in handle) - 1
-    row_counts["audit.json"] = 0
-    _write_manifest(package, row_counts, version=1)
 
 
 @pytest.fixture
@@ -132,27 +118,17 @@ def reference_package(tmp_path: Path) -> Path:
         )
         for index, player_id in enumerate(player_ids, start=1)
     ]
-    seasons = [
-        _row(
-            files["player_seasons.csv"],
-            playerSeasonId=season_id,
-            playerId=player_id,
-            season=2024,
-            teamId=f"reference-team-{index}",
-            teamAbbreviation=f"R{index}",
-            games=60 + index,
-            minutes=1500.0 + index * 100,
-        )
-        for index, (season_id, player_id) in enumerate(
-            zip(season_ids, player_ids, strict=True), start=1
-        )
-    ]
     stats = [
         _row(
             files["player_stats.csv"],
             playerSeasonId=season_id,
             playerId=player_id,
             season=2024,
+            teamId=f"reference-team-{index}",
+            teamAbbreviation=f"R{index}",
+            age=24 + index,
+            games=60 + index,
+            minutes=1500.0 + index * 100,
             fieldGoalsMade=300.0 + index,
             fieldGoalsAttempted=700.0 + index,
             twoPointersMade=200.0 + index,
@@ -169,17 +145,6 @@ def reference_package(tmp_path: Path) -> Path:
             pointsPer100=20.0 + index,
             twoPointAttemptFrequency=0.5,
             threePointAttemptFrequency=0.4,
-        )
-        for index, (season_id, player_id) in enumerate(
-            zip(season_ids, player_ids, strict=True), start=1
-        )
-    ]
-    advanced = [
-        _row(
-            files["player_advanced_stats.csv"],
-            playerSeasonId=season_id,
-            playerId=player_id,
-            season=2024,
             estimatedDefensiveRating=110.0 - index,
             estimatedNetRating=2.0 + index,
             assistPercentage=10.0 + index,
@@ -219,9 +184,7 @@ def reference_package(tmp_path: Path) -> Path:
     ]
     tables = {
         "players.csv": players,
-        "player_seasons.csv": seasons,
         "player_stats.csv": stats,
-        "player_advanced_stats.csv": advanced,
         "player_source_ids.csv": source_ids,
         "sources.csv": sources,
     }
@@ -291,17 +254,6 @@ def test_load_reference_package_validates_and_joins_typed_rows(
     assert "reference player 1" in loaded.forbidden_names
 
 
-def test_load_reference_package_preserves_version_1_compatibility(
-    reference_package: Path,
-) -> None:
-    _convert_to_v1(reference_package)
-
-    loaded = load_reference_package(reference_package, load_formula())
-
-    assert loaded.manifest["packageVersion"] == 1
-    assert len(loaded.frame) == 3
-
-
 def test_load_reference_package_allows_a_different_requested_formula(
     reference_package: Path,
 ) -> None:
@@ -320,7 +272,7 @@ def test_load_reference_package_allows_a_different_requested_formula(
         ("formulaDocumentHash", "invalid", "formulaDocumentHash must be a lowercase SHA-256"),
     ],
 )
-def test_load_reference_package_requires_v2_formula_provenance(
+def test_load_reference_package_requires_formula_provenance(
     reference_package: Path, field: str, value: object, message: str
 ) -> None:
     manifest_path = reference_package / "manifest.json"
@@ -410,8 +362,8 @@ def test_load_reference_package_rejects_row_count_mismatch(reference_package: Pa
         ("packageVersion", 3, "unsupported packageVersion 3"),
         (
             "contractVersions.players.csv",
-            1,
-            "players.csv.*unsupported contract version 1",
+            2,
+            "players.csv.*unsupported contract version 2",
         ),
     ],
 )
@@ -433,17 +385,7 @@ def test_load_reference_package_rejects_unsupported_package_contract_versions(
 def test_load_reference_package_rejects_incompatible_formula(reference_package: Path) -> None:
     formula = SimpleNamespace(reference_contract_version=3)
 
-    with pytest.raises(ReferencePackageError, match="formula requires 3"):
-        load_reference_package(reference_package, formula)
-
-
-def test_version_1_package_rejects_formula_requiring_version_2(
-    reference_package: Path,
-) -> None:
-    _convert_to_v1(reference_package)
-    formula = replace(load_formula(), reference_contract_version=2)
-
-    with pytest.raises(ReferencePackageError, match="formula requires 2, package provides 1"):
+    with pytest.raises(ReferencePackageError, match="formula declares 3"):
         load_reference_package(reference_package, formula)
 
 
@@ -456,10 +398,10 @@ def test_load_reference_package_rejects_incompatible_formula_outputs(
         load_reference_package(reference_package, formula)
 
 
-def _formula_requiring_starts() -> FormulaDocument:
+def _formula_requiring_source_id() -> FormulaDocument:
     formula = load_formula()
     metrics = dict(formula.metrics)
-    metrics["games"] = replace(metrics["games"], field="starts")
+    metrics["games"] = replace(metrics["games"], field="sourcePlayerId")
     return replace(formula, metrics=metrics)
 
 
@@ -472,14 +414,17 @@ def test_load_reference_package_rejects_unavailable_typed_formula_inputs_before_
         lambda *_args, **_kwargs: pytest.fail("typed reads must not start"),
     )
 
-    with pytest.raises(ReferencePackageError, match=r"attribute-evaluation frame: starts\."):
-        load_reference_package(reference_package, _formula_requiring_starts())
+    with pytest.raises(
+        ReferencePackageError,
+        match=r"attribute-evaluation frame: sourcePlayerId\.",
+    ):
+        load_reference_package(reference_package, _formula_requiring_source_id())
 
 
 def test_load_reference_package_rejects_unavailable_mapping_formula_inputs(
     reference_package: Path,
 ) -> None:
-    formula = _formula_requiring_starts()
+    formula = _formula_requiring_source_id()
     mapping_formula = {
         "referenceContractVersion": formula.reference_contract_version,
         "outputFields": formula.output_fields,
@@ -491,12 +436,15 @@ def test_load_reference_package_rejects_unavailable_mapping_formula_inputs(
         },
     }
 
-    with pytest.raises(ReferencePackageError, match=r"attribute-evaluation frame: starts\."):
+    with pytest.raises(
+        ReferencePackageError,
+        match=r"attribute-evaluation frame: sourcePlayerId\.",
+    ):
         load_reference_package(reference_package, mapping_formula)
 
 
 def test_load_reference_package_names_orphan_relationship(reference_package: Path) -> None:
-    path = reference_package / "player_seasons.csv"
+    path = reference_package / "player_stats.csv"
     rows = list(csv.DictReader(path.open(encoding="utf-8", newline="")))
     rows[0]["playerId"] = "missing-player"
     _write_csv(path, rows)
@@ -504,7 +452,7 @@ def test_load_reference_package_names_orphan_relationship(reference_package: Pat
 
     with pytest.raises(
         ReferencePackageError,
-        match="relationship playerSeasonsReferencePlayers.*player_seasons.csv",
+        match=r"relationship .*player_stats\.csv.*playerId",
     ):
         load_reference_package(reference_package, load_formula())
 
@@ -655,7 +603,6 @@ def test_cli_publishes_player_only_roster_package(
     assert {path.name for path in output.iterdir()} == {
         "players.csv",
         "player_stats.csv",
-        "player_advanced_stats.csv",
         "player_attributes.csv",
         "manifest.json",
     }

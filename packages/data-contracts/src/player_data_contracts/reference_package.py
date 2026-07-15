@@ -13,7 +13,7 @@ from player_data_contracts.csv_contract import validate_csv_package
 from player_data_contracts.io import sha256_file
 from player_data_contracts.package import content_hash
 from player_data_contracts.reference import (
-    SUPPORTED_REFERENCE_CONTRACT_VERSIONS,
+    REFERENCE_CONTRACT_VERSION,
     load_reference_contract,
 )
 from player_data_contracts.validation import ContractValidationError
@@ -96,35 +96,12 @@ def _read_manifest(directory: Path) -> dict[str, Any]:
     return manifest
 
 
-def _allowed_versions(values: Sequence[int]) -> tuple[int, ...]:
-    versions = tuple(values)
-    if (
-        not versions
-        or any(isinstance(version, bool) or not isinstance(version, int) for version in versions)
-        or len(set(versions)) != len(versions)
-    ):
-        raise ReferencePackageIntegrityError(
-            "Reference package allowed_versions must contain unique integer versions."
-        )
-    unsupported = set(versions) - set(SUPPORTED_REFERENCE_CONTRACT_VERSIONS)
-    if unsupported:
-        joined = ", ".join(str(version) for version in sorted(unsupported))
-        raise ReferencePackageIntegrityError(
-            f"Reference package allowed_versions contains unsupported versions: {joined}."
-        )
-    return versions
-
-
-def _package_version(
-    manifest: Mapping[str, Any], allowed_versions: tuple[int, ...]
-) -> int:
+def _package_version(manifest: Mapping[str, Any]) -> int:
     package_version = _manifest_integer(manifest.get("packageVersion"), "packageVersion")
-    if package_version not in allowed_versions:
-        supported = ", ".join(str(version) for version in allowed_versions)
-        noun = "version is" if len(allowed_versions) == 1 else "versions are"
+    if package_version != REFERENCE_CONTRACT_VERSION:
         raise ReferencePackageIntegrityError(
             "Reference manifest uses unsupported packageVersion "
-            f"{package_version}; supported {noun} {supported}."
+            f"{package_version}; supported version is {REFERENCE_CONTRACT_VERSION}."
         )
     return package_version
 
@@ -204,9 +181,8 @@ def _validate_manifest(
                 f"package version {package_version} requires contract version {package_version}."
             )
 
-    if package_version >= 2:
-        _manifest_text(manifest.get("formulaVersion"), "formulaVersion")
-        _manifest_hash(manifest.get("formulaDocumentHash"), "formulaDocumentHash")
+    _manifest_text(manifest.get("formulaVersion"), "formulaVersion")
+    _manifest_hash(manifest.get("formulaDocumentHash"), "formulaDocumentHash")
 
     for filename in expected_data_files:
         entry = _manifest_mapping(file_entries[filename], f"files.{filename}")
@@ -276,10 +252,7 @@ def _validate_row_counts(
 def _validate_attribute_formula_version(
     tables: Mapping[str, Sequence[Mapping[str, object]]],
     manifest: Mapping[str, Any],
-    package_version: int,
 ) -> None:
-    if package_version < 2:
-        return
     expected = _manifest_text(manifest.get("formulaVersion"), "formulaVersion")
     values = {
         str(row["formulaVersion"])
@@ -296,7 +269,6 @@ def _validate_attribute_formula_version(
 
 def load_reference_package_tables(
     path: str | Path,
-    allowed_versions: Sequence[int] = (2,),
 ) -> LoadedReferencePackageTables:
     """Load a complete published reference package after integrity and contract checks."""
     directory = Path(path).expanduser().resolve()
@@ -305,9 +277,8 @@ def load_reference_package_tables(
             f"Reference package directory does not exist: {directory}"
         )
 
-    versions = _allowed_versions(allowed_versions)
     manifest = _read_manifest(directory)
-    package_version = _package_version(manifest, versions)
+    package_version = _package_version(manifest)
     contract = load_reference_contract(package_version)
     file_entries, data_filenames, declared_content_hash = _validate_manifest(
         directory, manifest, contract, package_version
@@ -333,7 +304,7 @@ def load_reference_package_tables(
             f"Reference package contract validation failed: {error}"
         ) from error
     _validate_row_counts(tables, file_entries)
-    _validate_attribute_formula_version(tables, manifest, package_version)
+    _validate_attribute_formula_version(tables, manifest)
 
     audit_count = _audit_row_count(directory / AUDIT_FILENAME)
     expected_audit_count = _manifest_integer(

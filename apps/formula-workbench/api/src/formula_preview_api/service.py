@@ -50,7 +50,6 @@ from formula_preview_api.models import (
     ValueChange,
 )
 
-_IDENTITY_FIELDS = ("playerSeasonId", "playerId", "season")
 _OUTPUT_METADATA_FIELDS = {"playerId", "formulaVersion"}
 
 
@@ -130,15 +129,12 @@ class PreviewService:
     def __init__(self, settings: PreviewSettings) -> None:
         self.settings = settings
         try:
-            package = load_reference_package_tables(
-                settings.reference_package,
-                allowed_versions=(2,),
-            )
+            package = load_reference_package_tables(settings.reference_package)
         except ReferencePackageIntegrityError as error:
             raise ValueError(f"Unable to load preview reference package: {error}") from error
 
         payload, formula, formula_hash = load_formula_payload_snapshot()
-        if formula.reference_contract_version > package.package_version:
+        if formula.reference_contract_version != package.package_version:
             raise ValueError(
                 "Active formula requires reference contract version "
                 f"{formula.reference_contract_version}, but the preview package provides "
@@ -214,28 +210,15 @@ class PreviewService:
         season: int,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         frames = {name: pd.DataFrame(rows) for name, rows in tables.items()}
-        seasons = frames["player_seasons.csv"]
-        seasons = seasons.loc[seasons["season"] == season].copy()
-        keys = list(_IDENTITY_FIELDS)
+        stats = frames["player_stats.csv"]
+        stats = stats.loc[stats["season"] == season].copy()
         try:
-            cohort = seasons.merge(
+            cohort = stats.merge(
                 frames["players.csv"],
                 on="playerId",
                 how="left",
                 sort=False,
                 validate="many_to_one",
-            ).merge(
-                frames["player_stats.csv"],
-                on=keys,
-                how="left",
-                sort=False,
-                validate="one_to_one",
-            ).merge(
-                frames["player_advanced_stats.csv"],
-                on=keys,
-                how="left",
-                sort=False,
-                validate="one_to_one",
             )
         except pd.errors.MergeError as error:
             raise ValueError(

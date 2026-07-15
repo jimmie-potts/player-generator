@@ -66,9 +66,9 @@ without remote downloads or redistribution.
   readability validation; and an ignored, atomically written provenance registry with stable source
   IDs, input paths, filenames, hashes, adapter versions, row counts, timestamps, upstream versions,
   and license status.
-- **Compatibility boundary:** The existing `download` and wide `build` commands remain as explicit
-  legacy interfaces until US-008 moves roster generation to the normalized reference package. No
-  remote acquisition behavior was added to the version 2 registration path.
+- **Command boundary:** The existing `download` and wide `build` commands were retained as explicit
+  legacy interfaces. US-008 subsequently moved roster generation to the normalized reference
+  package. No remote acquisition behavior was added to the normalized registration path.
 - **Validation:** `.venv/bin/python -m pytest apps/reference-data/tests/test_registration.py -q`
   passed 11 tests; `.venv/bin/python -m pytest apps/reference-data/tests tests/test_architecture.py
   tests/test_entrypoints.py -q` passed 24 tests; targeted Ruff and `git diff --check` passed; and a

@@ -1,27 +1,26 @@
-# US-016: Define parity-aligned MVP player contracts
+# US-016: Freeze player data contract version 1
 
-- **Status:** ready
+- **Status:** in_progress
 - **Epic:** [EPIC-08](../epics/EPIC-08-nba-gm-mvp-handoff.md)
 - **Dependencies:** US-009, US-015, and versioned contract conventions from US-005
 
 ## User story
 
-As a player-data integrator, I want reference and roster player files to derive from shared contract
-definitions, with a finalized roster fixture for NBA-GM, so producer and consumer work can proceed
-independently without the two player-generator profiles drifting.
+As a player-data integrator, I want the baseline version 1 reference and roster profiles to derive
+from shared definitions, with a finalized roster fixture for NBA-GM, so producer and consumer work
+can proceed independently without the two player-generator profiles drifting.
 
 ## Acceptance criteria
 
-- Define one machine-readable contract family with reference and roster profiles for corresponding
-  `players.csv`, `player_stats.csv`, and `player_attributes.csv` files. Derive every shared field
-  definition from one source rather than copying it between profile schemas.
-- Define and version the roster profile whose exact package contains
-  `players.csv`, `player_stats.csv`, `player_attributes.csv`, and `manifest.json`. The version is an
-  interface identifier; no compatibility wrapper or dual publication is required before the first
-  NBA-GM integration.
-- Define both profiles' `player_stats.csv` as their current traditional-stat fields followed by the
-  corresponding current advanced-stat fields, excluding duplicate key columns. Retire
-  `player_advanced_stats.csv` from both target profiles.
+- Freeze one machine-readable contract family at version 1 with reference and roster profiles for
+  corresponding `players.csv`, `player_stats.csv`, and `player_attributes.csv` files. Derive every
+  shared field definition from one source rather than copying it between profile schemas.
+- Freeze the roster profile whose exact package contains `players.csv`, `player_stats.csv`,
+  `player_attributes.csv`, and `manifest.json`.
+- Define both profiles' `player_stats.csv` as one ordered row containing the governed traditional,
+  rate (including per-100), and advanced fields after their profile-specific key prefix. Declare
+  roster-only explicit `possessions` as a profile extension; reference publishes per-100 rates but
+  no possession total.
 - Define the exact shared ordered columns, types, base null policy, meanings, units or scales,
   bounds, primitive or derived classifications, season convention, CSV encoding, line endings,
   null encoding, numeric serialization, and deterministic ordering. A shared addition, removal,
@@ -49,14 +48,14 @@ independently without the two player-generator profiles drifting.
 - Resolve and document the `age` and effective-date interpretation at the handoff. NBA-GM-owned
   fields such as `birthDate`, position, league assignment, contracts, and simulation-specific
   ratings must have an explicit owner and must not be silently fabricated by this contract.
-- Resolve the shared statistics payload so both profiles represent counts, `games`, `minutes`, the
-  possession basis, percentages, and rates consistently. If reference `player_seasons.csv` retains
-  a value also published in `player_stats.csv`, require exact equality rather than two independently
-  mutable definitions.
-- Define a common manifest envelope for package type and contract identity, file row counts and
-  hashes, formula identity, and aggregate content identity. Declare reference provenance and audit
-  metadata and roster generator, namespace, ID-scheme, seed, configuration, and reference-package
-  identity as profile extensions.
+- Resolve the shared statistics payload so both profiles represent shared counts, `games`,
+  `minutes`, percentages, and rates consistently. Keep the roster's explicit `possessions` total as
+  a declared extension and reference season context in `player_stats.csv` so each governed value
+  has one authoritative representation.
+- Define a common manifest envelope for contract family, version, profile, file row counts and
+  hashes, formula identity, and aggregate content identity while keeping package identity separate.
+  Declare reference provenance and audit metadata and roster generator, namespace, ID-scheme, seed,
+  configuration, and reference-package identity as profile extensions.
 - Publish a fully synthetic, redistributable golden package with known hashes and at least one
   expected joined player record for cross-repository conformance.
 - Publish paired synthetic reference- and roster-profile fixtures that exercise every shared field
@@ -91,11 +90,17 @@ independently without the two player-generator profiles drifting.
 
 ## Implementation notes
 
-Append dated notes here while the story is active. Reconcile the final contract and fixture with the
-NBA-GM review story before changing publication behavior.
+- **2026-07-15:** Established the cross-project format as player data contract version 1 and removed
+  package-history framing from the normative contract. Exact machine-readable schemas, declared
+  profile extensions, and paired fixtures remain active work and are being reconciled with the
+  NBA-GM review story.
+- **2026-07-15:** PR review confirmed that version 1 begins with a single statistics surface in both
+  profiles. Reference season context and advanced metrics are columns in `player_stats.csv`; the
+  reference profile contains five CSVs plus audit and manifest, and the roster profile contains three
+  CSVs plus manifest. Runtime and conformance validation remain active before completion.
 
 ## Completion notes
 
-Pending. Record the reviewed contract identifiers, declared profile extensions, exact fixtures,
-cross-project decisions, validation results, deviations, follow-ups, decisions, and learnings before
-changing status to `complete`.
+Pending. Record the reviewed version 1 contract identity, declared profile extensions, exact
+fixtures, cross-project decisions, validation results, deviations, follow-ups, decisions, and
+learnings before changing status to `complete`.

@@ -12,7 +12,7 @@ The implemented monorepo has two Python data applications under `apps/reference-
 
 The remaining redesign is documented in [docs/planning/README.md](docs/planning/README.md). Planning
 documents describe future behavior unless their stories are marked complete. The reference builder
-now supports registered local inputs, canonical normalization, and version 2 CSV publication with
+now supports registered local inputs, canonical normalization, and version 1 CSV publication with
 season-relative attributes; its pinned download and wide tables remain standalone legacy
 interfaces. The roster generator consumes only a validated published reference package and
 atomically emits the normalized player-only roster package. Player attributes use the versioned
@@ -108,7 +108,8 @@ Use the workflow in
   use a profile extension to create two definitions of the same shared field.
 - Add cross-profile contract tests for shared ordered fields, types, base null rules and declared
   overrides, units, bounds, and serialization so parity cannot drift silently.
-- Use camelCase CSV headers, UTF-8, ISO 8601 dates, and stable internal IDs in version 2 interfaces.
+- Use camelCase CSV headers, UTF-8, ISO 8601 dates, and stable internal IDs in player data contract
+  version 1 interfaces.
 - Formula weights must be finite and nonnegative and normalize to 1. Ratings use the configured
   25–99 scale.
 - Identical input files, contracts, formulas, configuration, and seed must produce identical data

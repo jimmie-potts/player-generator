@@ -26,7 +26,11 @@ _ABSOLUTE_TOLERANCE = 1e-7
 
 def load_roster_contract(version: int = ROSTER_CONTRACT_VERSION) -> dict[str, Any]:
     """Load the machine-readable normalized roster CSV contract."""
-    if version != ROSTER_CONTRACT_VERSION:
+    if (
+        isinstance(version, bool)
+        or not isinstance(version, int)
+        or version != ROSTER_CONTRACT_VERSION
+    ):
         raise ContractValidationError(f"Unsupported roster contract version: {version}")
 
     resource = files("player_data_contracts").joinpath(_ROSTER_SCHEMA_NAME)
@@ -321,10 +325,9 @@ def _validate_traditional_row(row: Mapping[str, object], row_index: int) -> None
 
 def _validate_advanced_row(
     row: Mapping[str, object],
-    stats: Mapping[str, object],
     row_index: int,
 ) -> None:
-    file_name = "player_advanced_stats.csv"
+    file_name = "player_stats.csv"
     _validate_difference(
         row,
         file_name=file_name,
@@ -342,9 +345,9 @@ def _validate_advanced_row(
         subtrahend_field="defensiveRating",
     )
 
-    field_goals_attempted = _number(stats, "fieldGoalsAttempted")
-    effective_numerator = _number(stats, "fieldGoalsMade") + 0.5 * _number(
-        stats, "threePointersMade"
+    field_goals_attempted = _number(row, "fieldGoalsAttempted")
+    effective_numerator = _number(row, "fieldGoalsMade") + 0.5 * _number(
+        row, "threePointersMade"
     )
     _validate_derived(
         row,
@@ -357,39 +360,39 @@ def _validate_advanced_row(
     )
 
     true_shooting_denominator = 2 * (
-        field_goals_attempted + 0.44 * _number(stats, "freeThrowsAttempted")
+        field_goals_attempted + 0.44 * _number(row, "freeThrowsAttempted")
     )
     _validate_derived(
         row,
         file_name=file_name,
         row_index=row_index,
         field="trueShootingPercentage",
-        numerator=_number(stats, "points"),
+        numerator=_number(row, "points"),
         denominator=true_shooting_denominator,
         formula="points / (2 * (fieldGoalsAttempted + 0.44 * freeThrowsAttempted))",
     )
-    turnovers = _number(stats, "turnovers")
+    turnovers = _number(row, "turnovers")
     _validate_derived(
         row,
         file_name=file_name,
         row_index=row_index,
         field="assistTurnoverRatio",
-        numerator=_number(stats, "assists"),
+        numerator=_number(row, "assists"),
         denominator=None if turnovers is None else max(turnovers, 1),
         formula="assists / max(turnovers, 1)",
     )
     play_ending_denominator = (
-        _number(stats, "fieldGoalsAttempted")
-        + 0.44 * _number(stats, "freeThrowsAttempted")
-        + _number(stats, "assists")
-        + _number(stats, "turnovers")
+        _number(row, "fieldGoalsAttempted")
+        + 0.44 * _number(row, "freeThrowsAttempted")
+        + _number(row, "assists")
+        + _number(row, "turnovers")
     )
     _validate_derived(
         row,
         file_name=file_name,
         row_index=row_index,
         field="assistRatio",
-        numerator=_number(stats, "assists"),
+        numerator=_number(row, "assists"),
         denominator=play_ending_denominator,
         formula=(
             "assists / (fieldGoalsAttempted + 0.44 * freeThrowsAttempted + assists + "
@@ -402,7 +405,7 @@ def _validate_advanced_row(
         file_name=file_name,
         row_index=row_index,
         field="estimatedTurnoverPercentage",
-        numerator=_number(stats, "turnovers"),
+        numerator=_number(row, "turnovers"),
         denominator=play_ending_denominator,
         formula=(
             "turnovers / (fieldGoalsAttempted + 0.44 * freeThrowsAttempted + assists + "
@@ -416,7 +419,7 @@ def _validate_advanced_row(
         row_index=row_index,
         field="defensiveWinSharesPer36",
         numerator=_number(row, "defensiveWinShares"),
-        denominator=_number(stats, "minutes"),
+        denominator=_number(row, "minutes"),
         formula="defensiveWinShares / minutes * 36",
         scale=36,
     )
@@ -425,14 +428,9 @@ def _validate_advanced_row(
 def _validate_semantics(
     tables: Mapping[str, Sequence[Mapping[str, object]]],
 ) -> None:
-    stats_rows = tables["player_stats.csv"]
-    for row_index, row in enumerate(stats_rows, start=1):
+    for row_index, row in enumerate(tables["player_stats.csv"], start=1):
         _validate_traditional_row(row, row_index)
-
-    stats_by_key = {(row["playerId"], row["season"]): row for row in stats_rows}
-    for row_index, row in enumerate(tables["player_advanced_stats.csv"], start=1):
-        key = (row["playerId"], row["season"])
-        _validate_advanced_row(row, stats_by_key[key], row_index)
+        _validate_advanced_row(row, row_index)
 
 
 def validate_roster_tables(
@@ -456,7 +454,7 @@ def validate_roster_package(
     *,
     contract: Mapping[str, Any] | None = None,
 ) -> None:
-    """Read and validate the four normalized CSVs in a roster package directory."""
+    """Read and validate the three normalized CSVs in a roster package directory."""
     active_contract = contract if contract is not None else load_roster_contract()
     normalized_tables = validate_csv_package(
         package_dir,

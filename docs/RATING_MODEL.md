@@ -68,6 +68,6 @@ continues to use its declared average-rank percentile semantics for components a
 - The current formula supports only the attributes listed in
   [ATTRIBUTE_FORMULAS.md](planning/ATTRIBUTE_FORMULAS.md). Unsupported play-style, physical, and
   tendency attributes are absent rather than filled with placeholders.
-- The standalone wide reference build remains a legacy compatibility consumer. Normalized reference
+- The standalone wide reference build remains a legacy consumer. Normalized reference
   publication, normalized roster generation, and the formula preview API evaluate their respective
   complete season cohorts through the same formula engine.

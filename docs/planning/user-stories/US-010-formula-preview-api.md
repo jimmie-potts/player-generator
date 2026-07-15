@@ -81,7 +81,7 @@ the authoritative calculations without reimplementing them.
   commit `f4ac1a7`.
 - **Delivered:** Added the read-only `/api/v1` formula, metric, baseline-player, normalized search,
   player-detail, and temporary-preview endpoints. Every success response identifies the loaded
-  version 2 reference package, active formula, configured season, and cohort size. Previews apply
+  version 1 reference profile, active formula, configured season, and cohort size. Previews apply
   request-local weight, inverse-direction, and complete rating-anchor edits through the shared
   evaluator, then return selected players' baseline/preview rows, deltas, full-cohort rank movement,
   and authoritative calculation explanations without writing files.

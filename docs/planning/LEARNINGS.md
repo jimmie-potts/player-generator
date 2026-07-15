@@ -1,4 +1,4 @@
-# Version 2 learning log
+# Learning log
 
 This is an append-oriented record of reusable facts discovered while planning or implementing the
 redesign. Each completed story must add any relevant findings here and retain detailed evidence in
@@ -10,14 +10,13 @@ its completion notes.
   generation, comparison, and CLI orchestration directly import one another.
 - Current rating formulas are Python dictionaries in `ratings.py`; weights and inputs cannot be
   edited safely by a browser without first extracting a declarative contract.
-- The current source manifest downloads one pinned `playerstats.parquet` URL. Version 2 local-file
-  ingestion is a behavior change, not just a new command name.
+- The pinned source command and registered local-input publication path have different provenance
+  boundaries; local-file ingestion is a behavior change, not just a new command name.
 - The current processed model uses wide player-season and latest-season CSVs. Moving to normalized
   contracts requires explicit keys, join validation, and provenance tables.
-- The current generator emits a combined roster JSON and a flattened player CSV. Version 2 instead
-  publishes a player-only package split by concern.
-- Current team definitions and assignments exist, but first-release version 2 team output is
-  deliberately out of scope.
+- The normalized generator publishes a player-only package split by concern.
+- Team definitions and assignments exist outside the normalized player-only package and remain out
+  of scope.
 - The upstream `llimllib/nba_data` snapshot has no observed root license. Raw and transformed named
   reference data should remain local and untracked unless redistribution rights are established.
 - ESPN play-style data can improve future attributes, but source-ID reconciliation and schema
@@ -29,8 +28,8 @@ its completion notes.
   root editable install and separate console entrypoints.
 - Physical directories alone do not enforce application separation; AST import tests make the
   reference-to-roster prohibition executable.
-- The current processed player-season CSV is only a transitional application seam. It is not the
-  versioned normalized reference package planned by US-005 and US-008.
+- The standalone processed player-season CSV is an application-local seam. It is not the normalized
+  reference package consumed by other applications.
 - A static React shell is sufficient to prove the frontend build, test, and runtime boundary without
   pulling formula or API behavior forward from later epics.
 - Root aggregate commands must include source acquisition or verification so they work from a clean
@@ -146,7 +145,7 @@ its completion notes.
   weighted sampling so unsupported templates cannot fail only for particular seeds.
 - An exact package boundary must compare every directory entry, not only regular files; otherwise
   an unmanifested source-data directory can bypass the file-set check.
-- Formula compatibility must cover the inputs available to every evaluation stage. A formula can
+- Formula input validation must cover the fields available to every evaluation stage. A formula can
   be valid against reference data and still be unusable after roster mutation if it requires a
   season or provenance field that is absent from the generated evaluation frame.
 
@@ -203,7 +202,7 @@ its completion notes.
 - A published attribute table is a useful parity oracle only when its formula version and exact
   document hash match the active evaluator input. Otherwise its provenance remains valid package
   context, while the consumer must label and recalculate its own active baseline.
-- Reference-package integrity is consumer-independent, but joining, formula compatibility, identity
+- Reference-package integrity is consumer-independent, but joining, formula requirements, identity
   exposure, and selection policy are application concerns. Sharing the former prevents duplicated
   mutation-window checks without coupling applications through one consumer's policy.
 - Package and active-formula hashes plus the configured season are practical optimistic context
@@ -344,6 +343,20 @@ its completion notes.
 - Duplicated third-party prose can retain stale implementation claims after the tracked source
   manifest and data-boundary documentation have become authoritative. Remove the duplicate rather
   than preserving contradictory roadmap text.
+
+### 2026-07-15 — US-016
+
+- Cross-project contract history starts at the first interface accepted by both producer and
+  consumer. Internal package evolution should not be presented as NBA-GM contract evolution.
+- Keep normative contract identity separate from story status. Version 1 remains the current runtime
+  truth while its final conformance evidence and completion record are assembled.
+- Name the contract family version and profile independently from manifest, package, adapter, and
+  formula versions so a shared number does not imply shared support semantics.
+- Season context and advanced observations do not need separate package files. Keeping them as
+  governed columns in `player_stats.csv` removes duplicate key sets and consumer joins without
+  removing their semantics.
+- Exact package inventories should reject undeclared files. A single accepted version 1 format is
+  clearer than preserving unused internal package history as an apparent public contract.
 
 ## Entry format
 

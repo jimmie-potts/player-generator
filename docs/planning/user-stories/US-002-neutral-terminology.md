@@ -15,10 +15,10 @@ domain vocabulary regardless of provenance.
 - Remove deprecated identity qualifiers from filenames, paths, CLI text, package metadata, schemas,
   comments, errors, tests, examples, and documentation.
 - Move the legacy output directory to `roster_data/` and replace its identity-qualified flattened
-  player filename as part of the version 2 contract migration.
+  player filename as part of the normalized package redesign.
 - Preserve the provenance boundary: source IDs and actual-player mappings remain reference-only.
 - Update the root README, data READMEs, notices, configuration, and contributor instructions.
-- A repository search finds no deprecated terminology except historical decision or migration notes
+- A repository search finds no deprecated terminology except historical decision notes
   that explicitly require it.
 
 ## Out of scope
@@ -28,7 +28,7 @@ domain vocabulary regardless of provenance.
 ## Validation
 
 - Terminology search over tracked files.
-- Current and planned command/path documentation matches implemented behavior after migration.
+- Current and planned command/path documentation matches implemented behavior after delivery.
 
 ## Implementation notes
 
@@ -50,7 +50,7 @@ domain vocabulary regardless of provenance.
   `roster_data/players.csv`; neutral roster schema title and generator messages; roster-oriented
   comparison JSON keys and CSV headers; and updated README, notices, data documentation, and
   contributor guidance.
-- **Migration impact:** The old combined CLI, old output directory, identity-qualified flat CSV,
+- **Change impact:** The old combined CLI, old output directory, identity-qualified flat CSV,
   root config, and script wrappers were removed as the approved clean break. Consumers must use the
   two new CLIs and roster paths.
 - **Validation:** Repository content search found no deprecated identity qualifiers or old output

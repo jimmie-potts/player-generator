@@ -11,12 +11,11 @@ consumed without Parquet or source-specific knowledge.
 
 ## Acceptance criteria
 
-- Publish `players.csv`, `player_seasons.csv`, `player_stats.csv`,
-  `player_advanced_stats.csv`, `player_source_ids.csv`, and `sources.csv`.
-- Use the proposed interfaces in [DATA_CONTRACTS.md](../DATA_CONTRACTS.md), resolving the exact
-  traditional and advanced metric lists before assigning contract version 1.
-- `player_seasons.csv`, `player_stats.csv`, and `player_advanced_stats.csv` share the same aggregate
-  `playerSeasonId` grain.
+- Establish normalized player, statistics, source-identity, and provenance publication. The current
+  exact version 1 inventory is governed by [DATA_CONTRACTS.md](../DATA_CONTRACTS.md).
+- Resolve the exact traditional and advanced metric lists before assigning contract version 1.
+- Use `playerSeasonId` as the aggregate reference statistics grain and keep season context and all
+  statistical observations in `player_stats.csv`.
 - Every header, key, type, required field, uniqueness rule, and relationship is governed by a
   versioned machine-readable contract.
 - Missing optional values are empty; the builder does not fabricate unavailable fields.
@@ -43,14 +42,13 @@ consumed without Parquet or source-specific knowledge.
 
 - Started after US-004 completed in commit `d5148fc`; publication consumes only the validated
   canonical bundle and does not change the roster generator's US-008-owned legacy seam.
-- Selected one machine-readable reference contract version governing all six relational CSVs, with
-  exact ordered headers, scalar types, nullability, unique keys, and cross-table relationships.
+- Selected one machine-readable reference contract governing exact ordered headers, scalar types,
+  nullability, unique keys, and cross-table relationships.
 - Selected sibling-directory staging with validation before a directory-level replacement. Failed
   writes or validation restore an existing package and remove temporary output.
-- Finalized version 1 with 37 traditional and 19 advanced metric fields, each copied from the
-  canonical adapter without ratings or later formula behavior. The packaged schema governs all six
-  ordered CSV headers, scalar types, required/null rules, unique keys, player relationships, source
-  types, and exact aggregate player-season key-set equality.
+- Finalized the initial normalized vocabulary with 37 traditional and 19 advanced metric fields,
+  each copied from the canonical adapter without ratings or later formula behavior. D-035 and US-017
+  place that vocabulary, season context, and later attributes in the current version 1 profile.
 - Added `reference-data publish [--output PATH]`. Publication writes deterministic UTF-8/LF CSVs
   with empty optional cells, deterministic `audit.json`, and `manifest.json` containing input,
   contract, row-count, per-file hash, and package content-hash metadata.
@@ -62,31 +60,32 @@ consumed without Parquet or source-specific knowledge.
   before staging or replacing a package, while the existing destination remains intact.
 - Review follow-up validation passed 20 focused registration/publication tests and all 98 Python
   tests, plus Ruff, workbench tests, and the production workbench build.
+- **2026-07-15:** D-035 superseded the original split-table inventory. The version 1 reference
+  profile now has one `player_stats.csv` surface for season context and every governed statistic.
 
 ## Completion notes
 
 - **Completed:** 2026-07-13
 - **Branch and implementation commit:** `agent/implement-us-003-us-005`; `07c63ef`.
-- **Delivered:** `reference-data publish`; the packaged `reference-v1.schema.json` contract and
-  reusable table/package validators; six contract-ordered UTF-8/LF CSVs; deterministic
-  reconciliation audit; manifest version 1; and staged, validated, backup-restored directory
-  replacement with failure cleanup.
-- **Contract version and metrics:** Reference contract version 1 uses the exact headers in
-  [DATA_CONTRACTS.md](../DATA_CONTRACTS.md): 37 traditional and 19 advanced metrics after the three
-  aggregate player-season identity columns. Missing optional values are empty, and starts, birth
-  data, or other unavailable inputs are not invented.
-- **Manifest and determinism:** The manifest records version 1 for every CSV, registered input
-  hashes and adapter versions, row counts, file hashes, and a content hash over all six CSVs plus
-  `audit.json`. `createdAt` is the only per-publication timestamp and is excluded from that hash;
+- **Delivered:** `reference-data publish`; reusable table/package validators; contract-ordered
+  UTF-8/LF CSV publication; deterministic reconciliation audit; a manifest; and staged, validated,
+  backup-restored directory replacement with failure cleanup. D-035 and US-017 govern the current
+  version 1 inventory.
+- **Contract and metrics:** The current exact headers live in
+  [DATA_CONTRACTS.md](../DATA_CONTRACTS.md). Missing optional values are empty, and starts, birth data,
+  or other unavailable inputs are not invented.
+- **Manifest and determinism:** The manifest records version 1, registered input hashes and adapter
+  versions, row counts, file hashes, and a content hash over the exact profile inventory.
+  `createdAt` is the only per-publication timestamp and is excluded from that hash;
   stable registration timestamps remain part of `sources.csv`.
 - **Local package sample:** The ignored pinned NBA file produced 1,693 player rows, 1,693 source-ID
-  rows, one provenance row, and 6,908 rows in each season-grain table. Two publications produced
+  rows, one provenance row, and 6,908 player-season statistics rows. Two publications produced
   byte-identical CSVs and audit plus content hash
   `8cffd80a96a8fe5d2e0a937eadf788601e1c185d1175baeb8858b5ba285264a5` while their `createdAt`
   values differed.
-- **Compatibility boundary:** The legacy pinned `download` and wide `build` remain only because the
-  current roster generator consumes that interface. US-008 owns its move to this package; no roster
-  runtime, formula, rating, or generated identity behavior changed here.
+- **Command boundary:** The pinned `download` and wide `build` are standalone commands outside the
+  normalized package flow. No roster runtime, formula, rating, or generated identity behavior changed
+  in the original story.
 - **Validation:** `.venv/bin/python -m pytest -q` passed 88 tests; `.venv/bin/python -m ruff check .`,
   `git diff --check`, `npm run workbench:test`, and `npm run workbench:build` passed. Golden headers,
   optional empties, type errors, missing required values, duplicates, orphans, mismatched season key

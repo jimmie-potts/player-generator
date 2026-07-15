@@ -11,7 +11,7 @@ npm run workbench:test
 npm run workbench:build
 ```
 
-Run the API after a local version 2 reference package exists, then start the Vite client in a second
+Run the API after a local version 1 reference profile exists, then start the Vite client in a second
 terminal:
 
 ```bash

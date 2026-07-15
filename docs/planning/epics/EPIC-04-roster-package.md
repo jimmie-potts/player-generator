@@ -17,7 +17,7 @@ source-specific schemas, and consumers should load player data by concern.
 
 ## Success criteria
 
-- Reference schema compatibility is checked before generation.
+- Reference contract conformance is checked before generation.
 - A fixed input package, configuration, formula version, and seed reproduce the same rows.
 - Related statistical values remain internally consistent after controlled mutation.
 - Roster output does not expose upstream identities or source identifiers.

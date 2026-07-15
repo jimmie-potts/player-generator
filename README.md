@@ -21,8 +21,8 @@ supporting application over the shared contracts and calculation engine.
 The batch-data foundation and local formula-design workflow are implemented:
 
 - Reference data can register and normalize local NBA and ESPN Parquet inputs and atomically publish
-  a validated version 2 CSV package with season-relative attributes. The pinned download and wide
-  build remain standalone legacy commands.
+  the validated version 1 reference profile with season-relative attributes. The pinned download
+  and wide build remain standalone legacy commands.
 - Roster generation validates that published package, selects deterministic templates, applies
   controlled statistical mutation, and atomically publishes a normalized player-only CSV package.
 - Player attributes use the validated declarative formula document and shared Python evaluator.
@@ -32,7 +32,7 @@ The batch-data foundation and local formula-design workflow are implemented:
   formula adjustments, switch among tier, baseline Top 25, and custom player comparisons, and export
   the exact server-validated proposal document.
 
-See the [version 2 planning index](docs/planning/README.md) for the remaining epics and story status.
+See the [implementation roadmap](docs/planning/README.md) for the remaining epics and story status.
 For a presentation-oriented system walkthrough, see the
 [current and projected technical architecture](docs/presentations/PLAYER_GENERATOR_TECHNICAL_OVERVIEW.md).
 
@@ -79,7 +79,7 @@ normalized roster package. It does not download, repair, or register reference i
 reference-data --help
 reference-data register --source-type nba_playerstats /path/to/playerstats.parquet
 reference-data publish
-reference-data publish --output /path/to/reference-v2
+reference-data publish --output /path/to/reference-v1
 reference-data publish --formula /path/to/formula.json
 reference-data download
 reference-data build
@@ -88,9 +88,9 @@ reference-data build
 Registration validates and records local files without copying them into the repository. Source
 types `nba_playerstats` and `espn_player_details` use adapter schema version 1, and their ignored
 local provenance registry lives at `reference_data/registry/sources.json`. The current legacy
-download remains pinned by `reference_data/source_manifest.json`. `publish` writes the version 2
+download remains pinned by `reference_data/source_manifest.json`. `publish` writes the version 1
 relational CSVs, season-relative player attributes, reconciliation audit, and deterministic
-manifest under `reference_data/packages/reference-v2` by default. Registry and package output
+manifest under `reference_data/packages/reference-v1` by default. Registry and package output
 remain ignored.
 
 ### Roster generator
@@ -98,7 +98,7 @@ remain ignored.
 ```bash
 roster-generator --help
 roster-generator generate
-roster-generator generate --reference-package /path/to/reference-v2
+roster-generator generate --reference-package /path/to/reference-v1
 roster-generator generate --output /path/to/roster-v1 --seed 42
 ```
 
@@ -109,7 +109,6 @@ reference-data application and never reads Parquet. Its default output is:
 roster_data/packages/roster-v1/
   players.csv
   player_stats.csv
-  player_advanced_stats.csv
   player_attributes.csv
   manifest.json
 ```
@@ -139,7 +138,7 @@ npm run workbench:test
 npm run workbench:build
 ```
 
-The API loads the ignored local version 2 reference package by default, evaluates the complete
+The API loads the ignored local version 1 reference profile by default, evaluates the complete
 configured 2026 cohort through the shared engine, and serves bounded baseline, tier-representative,
 search, detail, and request-local preview responses under `/api/v1`. It never writes formula
 configuration, reference data, or presets. See the

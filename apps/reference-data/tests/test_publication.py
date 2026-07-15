@@ -58,25 +58,19 @@ def _bundle() -> CanonicalBundle:
                 },
             )
         ],
-        player_seasons=[
-            _contract_row(
-                contract,
-                "player_seasons.csv",
-                {**identity, "games": 72, "minutes": 2160.5},
-            )
-        ],
         player_stats=[
             _contract_row(
                 contract,
                 "player_stats.csv",
-                {**identity, "points": 1234, "pointsPer36": 22.5},
-            )
-        ],
-        player_advanced_stats=[
-            _contract_row(
-                contract,
-                "player_advanced_stats.csv",
-                {**identity, "usagePercentage": 0.287, "trueShootingPercentage": 0.621},
+                {
+                    **identity,
+                    "games": 72,
+                    "minutes": 2160.5,
+                    "points": 1234,
+                    "pointsPer36": 22.5,
+                    "usagePercentage": 0.287,
+                    "trueShootingPercentage": 0.621,
+                },
             )
         ],
         player_source_ids=[
@@ -129,9 +123,7 @@ def _bundle() -> CanonicalBundle:
 def _cohort_bundle(seasons: tuple[int, ...] = (2025, 2026)) -> CanonicalBundle:
     contract = load_reference_contract()
     players: list[dict[str, object]] = []
-    player_seasons: list[dict[str, object]] = []
     player_stats: list[dict[str, object]] = []
-    player_advanced_stats: list[dict[str, object]] = []
     player_source_ids: list[dict[str, object]] = []
     source_contexts: list[dict[str, object]] = []
     for season in seasons:
@@ -152,19 +144,14 @@ def _cohort_bundle(seasons: tuple[int, ...] = (2025, 2026)) -> CanonicalBundle:
                     {"playerId": player_id, "displayName": f"Player {season} {index}"},
                 )
             )
-            player_seasons.append(
-                _contract_row(
-                    contract,
-                    "player_seasons.csv",
-                    {**identity, "games": games, "minutes": minutes},
-                )
-            )
             player_stats.append(
                 _contract_row(
                     contract,
                     "player_stats.csv",
                     {
                         **identity,
+                        "games": games,
+                        "minutes": minutes,
                         "fieldGoalsAttempted": 500,
                         "twoPointersMade": 100 + index,
                         "twoPointersAttempted": 250,
@@ -180,15 +167,6 @@ def _cohort_bundle(seasons: tuple[int, ...] = (2025, 2026)) -> CanonicalBundle:
                         "blocksPer100": 0.5 + index / 10,
                         "twoPointAttemptFrequency": 0.55,
                         "threePointAttemptFrequency": 0.35,
-                    },
-                )
-            )
-            player_advanced_stats.append(
-                _contract_row(
-                    contract,
-                    "player_advanced_stats.csv",
-                    {
-                        **identity,
                         "estimatedDefensiveRating": 110.0 - index,
                         "estimatedNetRating": 3.0 + index,
                         "assistPercentage": 0.20 + index / 100,
@@ -224,9 +202,7 @@ def _cohort_bundle(seasons: tuple[int, ...] = (2025, 2026)) -> CanonicalBundle:
             )
     return CanonicalBundle(
         players=players,
-        player_seasons=player_seasons,
         player_stats=player_stats,
-        player_advanced_stats=player_advanced_stats,
         player_source_ids=player_source_ids,
         sources=[
             {
@@ -237,7 +213,7 @@ def _cohort_bundle(seasons: tuple[int, ...] = (2025, 2026)) -> CanonicalBundle:
                 "sha256": "a" * 64,
                 "adapterVersion": 1,
                 "upstreamVersion": None,
-                "rowCount": len(player_seasons),
+                "rowCount": len(player_stats),
                 "processedAt": "2026-07-13T12:00:00Z",
                 "licenseStatus": "test-fixture",
             }
@@ -269,7 +245,7 @@ def test_publish_writes_golden_headers_values_and_empty_optionals(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    output_path = _publish_fixture(monkeypatch, tmp_path / "reference-v2")
+    output_path = _publish_fixture(monkeypatch, tmp_path / "reference-v1")
     contract = load_reference_contract()
 
     assert {path.name for path in output_path.iterdir()} == {
@@ -288,7 +264,6 @@ def test_publish_writes_golden_headers_values_and_empty_optionals(
 
     _headers, players = _read_csv(output_path / "players.csv")
     _headers, stats = _read_csv(output_path / "player_stats.csv")
-    _headers, advanced = _read_csv(output_path / "player_advanced_stats.csv")
     _headers, attributes = _read_csv(output_path / "player_attributes.csv")
     _headers, sources = _read_csv(output_path / "sources.csv")
     assert players[0]["displayName"] == "José Example"
@@ -296,7 +271,7 @@ def test_publish_writes_golden_headers_values_and_empty_optionals(
     assert players[0]["birthDate"] == ""
     assert stats[0]["points"] == "1234"
     assert stats[0]["pointsPer36"] == "22.5"
-    assert advanced[0]["usagePercentage"] == "0.287"
+    assert stats[0]["usagePercentage"] == "0.287"
     assert attributes[0]["playerSeasonId"] == "playerSeason_fixture"
     assert attributes[0]["playerId"] == "player_fixture"
     assert attributes[0]["season"] == "2026"
@@ -310,14 +285,14 @@ def test_manifest_records_inputs_file_hashes_rows_and_content_hash(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    output_path = _publish_fixture(monkeypatch, tmp_path / "reference-v2")
+    output_path = _publish_fixture(monkeypatch, tmp_path / "reference-v1")
     manifest = json.loads((output_path / "manifest.json").read_text(encoding="utf-8"))
 
     assert manifest["manifestVersion"] == 1
     assert manifest["packageType"] == "reference"
-    assert manifest["packageVersion"] == 2
+    assert manifest["packageVersion"] == 1
     assert manifest["createdAt"] == "2026-07-13T14:00:00Z"
-    assert manifest["contractVersions"] == {filename: 2 for filename in CSV_FILENAMES}
+    assert manifest["contractVersions"] == {filename: 1 for filename in CSV_FILENAMES}
     _formula, formula_document_hash = load_formula_snapshot()
     assert manifest["formulaVersion"] == "1.0.0"
     assert manifest["formulaDocumentHash"] == formula_document_hash
@@ -378,7 +353,7 @@ def test_attributes_evaluate_complete_season_cohorts_and_keep_ineligible_rows(
     monkeypatch.setattr(publication, "evaluate_player_attributes", record_cohort)
 
     output_path = publish_reference_package(
-        {}, tmp_path / "reference-v2", created_at=CREATED_AT
+        {}, tmp_path / "reference-v1", created_at=CREATED_AT
     )
 
     assert calls == [
@@ -424,7 +399,7 @@ def test_unsupported_historical_seasons_keep_empty_attribute_rows(
     )
 
     output_path = publish_reference_package(
-        {}, tmp_path / "reference-v2", created_at=CREATED_AT
+        {}, tmp_path / "reference-v1", created_at=CREATED_AT
     )
 
     assert evaluated_seasons == [2026]
@@ -460,14 +435,14 @@ def test_evaluator_player_order_mismatch_is_rejected(
     monkeypatch.setattr(publication, "evaluate_player_attributes", change_player_id)
 
     with pytest.raises(publication.PublicationError, match="playerId/order mismatch"):
-        publish_reference_package({}, tmp_path / "reference-v2", created_at=CREATED_AT)
+        publish_reference_package({}, tmp_path / "reference-v1", created_at=CREATED_AT)
 
 
 def test_formula_and_evaluation_failures_preserve_existing_package(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    output_path = tmp_path / "reference-v2"
+    output_path = tmp_path / "reference-v1"
     output_path.mkdir()
     marker = output_path / "old-package.txt"
     marker.write_text("keep me", encoding="utf-8")
@@ -495,15 +470,15 @@ def test_formula_and_evaluation_failures_preserve_existing_package(
 
     assert marker.read_text(encoding="utf-8") == "keep me"
     assert list(output_path.iterdir()) == [marker]
-    assert not list(tmp_path.glob(".reference-v2.tmp-*"))
-    assert not list(tmp_path.glob(".reference-v2.backup-*"))
+    assert not list(tmp_path.glob(".reference-v1.tmp-*"))
+    assert not list(tmp_path.glob(".reference-v1.backup-*"))
 
 
 def test_validation_failure_preserves_old_package_and_cleans_staging(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    output_path = tmp_path / "reference-v2"
+    output_path = tmp_path / "reference-v1"
     output_path.mkdir()
     marker = output_path / "old-package.txt"
     marker.write_text("keep me", encoding="utf-8")
@@ -519,15 +494,15 @@ def test_validation_failure_preserves_old_package_and_cleans_staging(
 
     assert marker.read_text(encoding="utf-8") == "keep me"
     assert list(output_path.iterdir()) == [marker]
-    assert not list(tmp_path.glob(".reference-v2.tmp-*"))
-    assert not list(tmp_path.glob(".reference-v2.backup-*"))
+    assert not list(tmp_path.glob(".reference-v1.tmp-*"))
+    assert not list(tmp_path.glob(".reference-v1.backup-*"))
 
 
 def test_failed_final_replace_restores_existing_package_and_cleans_backup(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    output_path = tmp_path / "reference-v2"
+    output_path = tmp_path / "reference-v1"
     output_path.mkdir()
     marker = output_path / "old-package.txt"
     marker.write_text("keep me", encoding="utf-8")
@@ -535,7 +510,7 @@ def test_failed_final_replace_restores_existing_package_and_cleans_backup(
     real_replace = os.replace
 
     def fail_stage_replace(source, destination) -> None:
-        if Path(source).name.startswith(".reference-v2.tmp-") and Path(destination) == output_path:
+        if Path(source).name.startswith(".reference-v1.tmp-") and Path(destination) == output_path:
             raise OSError("replace failure")
         real_replace(source, destination)
 
@@ -546,8 +521,8 @@ def test_failed_final_replace_restores_existing_package_and_cleans_backup(
 
     assert marker.read_text(encoding="utf-8") == "keep me"
     assert list(output_path.iterdir()) == [marker]
-    assert not list(tmp_path.glob(".reference-v2.tmp-*"))
-    assert not list(tmp_path.glob(".reference-v2.backup-*"))
+    assert not list(tmp_path.glob(".reference-v1.tmp-*"))
+    assert not list(tmp_path.glob(".reference-v1.backup-*"))
 
 
 def _nba_row(**overrides: object) -> dict[str, object]:
@@ -642,7 +617,7 @@ def test_publish_rejects_replaced_registered_source_and_preserves_existing_packa
     reference_config: dict,
 ) -> None:
     config, source_path = _registered_nba_config(tmp_path, reference_config)
-    output_path = tmp_path / "reference-v2"
+    output_path = tmp_path / "reference-v1"
     output_path.mkdir()
     marker = output_path / "old-package.txt"
     marker.write_text("keep me", encoding="utf-8")
@@ -662,8 +637,8 @@ def test_publish_rejects_replaced_registered_source_and_preserves_existing_packa
     assert "rebuild its local registration before publishing" in message
     assert marker.read_text(encoding="utf-8") == "keep me"
     assert list(output_path.iterdir()) == [marker]
-    assert not list(tmp_path.glob(".reference-v2.tmp-*"))
-    assert not list(tmp_path.glob(".reference-v2.backup-*"))
+    assert not list(tmp_path.glob(".reference-v1.tmp-*"))
+    assert not list(tmp_path.glob(".reference-v1.backup-*"))
 
 
 def test_publish_rechecks_source_after_normalization(
@@ -672,7 +647,7 @@ def test_publish_rechecks_source_after_normalization(
     monkeypatch,
 ) -> None:
     config, source_path = _registered_nba_config(tmp_path, reference_config)
-    output_path = tmp_path / "reference-v2"
+    output_path = tmp_path / "reference-v1"
     output_path.mkdir()
     marker = output_path / "old-package.txt"
     marker.write_text("keep me", encoding="utf-8")
@@ -693,5 +668,5 @@ def test_publish_rechecks_source_after_normalization(
 
     assert marker.read_text(encoding="utf-8") == "keep me"
     assert list(output_path.iterdir()) == [marker]
-    assert not list(tmp_path.glob(".reference-v2.tmp-*"))
-    assert not list(tmp_path.glob(".reference-v2.backup-*"))
+    assert not list(tmp_path.glob(".reference-v1.tmp-*"))
+    assert not list(tmp_path.glob(".reference-v1.backup-*"))

@@ -14,10 +14,9 @@ from roster_generator.publication import publish_roster_package
 from roster_generator.reference_package import LoadedReferencePackage
 
 GOLDEN_GENERATED_PACKAGE_HASHES = {
-    "manifest.json": "9c17c615dfc423582f1eab283d1964112502805155b0e5f05644863fd4a926e2",
-    "player_advanced_stats.csv": "71640a5a53c275cf11d64f47ffc584dedc5afa9803ad000bfcb1a7a3f78144ae",
+    "manifest.json": "5de716579602c67928d97db5fe888ee9be6884ab4b91d9dbe3c1ab78feb2b623",
     "player_attributes.csv": "5de0e6605b0b11e390fa92526988efaadaade243e1c5ff1cee399c719529c6a6",
-    "player_stats.csv": "dfcfdc1ab61ee16b896373d57e8e633339895bb40693103f2c0fe96a814f6b31",
+    "player_stats.csv": "bf356e49702b8540d090204e016b36c2e716665ddf413c51fd3ffbd387277f9f",
     "players.csv": "691c899c1f66b6232ef41e80be8fc7eac0f0e6057f706b2f573619d41d54b8d1",
 }
 
@@ -152,13 +151,9 @@ def test_generation_is_deterministic_consistent_and_identity_safe(
     assert not {
         str(row["displayName"]).casefold() for row in players
     } & package.forbidden_names
-    for stats, advanced in zip(
-        first.tables["player_stats.csv"],
-        first.tables["player_advanced_stats.csv"],
-        strict=True,
-    ):
-        assert advanced["assistRatio"] != stats["assistsPer100"]
-        assert advanced["estimatedTurnoverPercentage"] != stats["turnoversPer100"]
+    for stats in first.tables["player_stats.csv"]:
+        assert stats["assistRatio"] != stats["assistsPer100"]
+        assert stats["estimatedTurnoverPercentage"] != stats["turnoversPer100"]
 
     output = publish_roster_package(
         first,
@@ -181,11 +176,7 @@ def test_published_attributes_are_reproducible_through_shared_engine(
     generated = generate_roster_tables(
         _package(tmp_path), formula, _config(roster_config), seed=77
     )
-    frame = pd.DataFrame(generated.tables["player_stats.csv"]).merge(
-        pd.DataFrame(generated.tables["player_advanced_stats.csv"]),
-        on=["playerId", "season"],
-        validate="one_to_one",
-    )
+    frame = pd.DataFrame(generated.tables["player_stats.csv"])
 
     reevaluated = evaluate_player_attributes(frame, formula)
 
@@ -222,14 +213,13 @@ def test_zero_turnovers_generate_and_publish_complete_attributes(
         package, formula, _config(roster_config), seed=10
     )
 
-    for stats, advanced, attributes in zip(
+    for stats, attributes in zip(
         generated.tables["player_stats.csv"],
-        generated.tables["player_advanced_stats.csv"],
         generated.tables["player_attributes.csv"],
         strict=True,
     ):
         assert stats["turnovers"] == 0
-        assert advanced["assistTurnoverRatio"] == stats["assists"]
+        assert stats["assistTurnoverRatio"] == stats["assists"]
         assert all(attributes[field] is not None for field in formula.output_fields)
     validate_roster_tables(generated.tables)
 

@@ -9,7 +9,7 @@ from typing import Any
 import pandas as pd
 from player_attribute_engine import FormulaDocument
 from player_data_contracts import (
-    SUPPORTED_REFERENCE_CONTRACT_VERSIONS,
+    REFERENCE_CONTRACT_VERSION,
     ReferencePackageIntegrityError,
     load_reference_package_tables,
     load_roster_contract,
@@ -68,11 +68,10 @@ def _read_manifest(path: Path) -> dict[str, Any]:
 
 def _package_version(manifest: Mapping[str, Any]) -> int:
     package_version = _manifest_integer(manifest.get("packageVersion"), "packageVersion")
-    if package_version not in SUPPORTED_REFERENCE_CONTRACT_VERSIONS:
-        supported = ", ".join(str(version) for version in SUPPORTED_REFERENCE_CONTRACT_VERSIONS)
+    if package_version != REFERENCE_CONTRACT_VERSION:
         raise ReferencePackageError(
             "Reference manifest uses unsupported packageVersion "
-            f"{package_version}; supported versions are {supported}."
+            f"{package_version}; supported version is {REFERENCE_CONTRACT_VERSION}."
         )
     return package_version
 
@@ -131,13 +130,10 @@ def _formula_input_fields(formula: object) -> frozenset[str]:
 
 def _validate_formula_compatibility(formula: object, package_version: int) -> None:
     formula_version = _formula_contract_version(formula)
-    if (
-        formula_version not in SUPPORTED_REFERENCE_CONTRACT_VERSIONS
-        or formula_version > package_version
-    ):
+    if formula_version != package_version:
         raise ReferencePackageError(
             "Formula reference contract version is incompatible with the reference package: "
-            f"formula requires {formula_version}, package provides {package_version}."
+            f"formula declares {formula_version}, package provides {package_version}."
         )
 
     roster_contract = load_roster_contract()
@@ -153,8 +149,7 @@ def _validate_formula_compatibility(formula: object, package_version: int) -> No
         )
     evaluation_inputs = {
         str(column["name"])
-        for filename in ("player_stats.csv", "player_advanced_stats.csv")
-        for column in roster_contract["files"][filename]["columns"]
+        for column in roster_contract["files"]["player_stats.csv"]["columns"]
     }
     missing_formula_inputs = sorted(_formula_input_fields(formula) - evaluation_inputs)
     if missing_formula_inputs:
@@ -192,20 +187,9 @@ def _read_typed_tables(
 
 
 def _joined_frame(tables: Mapping[str, pd.DataFrame]) -> pd.DataFrame:
-    keys = ["playerSeasonId", "playerId", "season"]
-    seasons = tables["player_seasons.csv"]
-    joined = seasons.merge(
+    stats = tables["player_stats.csv"]
+    joined = stats.merge(
         tables["players.csv"], on="playerId", how="left", validate="many_to_one", sort=False
-    )
-    joined = joined.merge(
-        tables["player_stats.csv"], on=keys, how="left", validate="one_to_one", sort=False
-    )
-    joined = joined.merge(
-        tables["player_advanced_stats.csv"],
-        on=keys,
-        how="left",
-        validate="one_to_one",
-        sort=False,
     )
     return joined.sort_values(["season", "playerSeasonId"], kind="stable").reset_index(drop=True)
 
@@ -242,10 +226,7 @@ def load_reference_package(
     _validate_formula_compatibility(formula, package_version)
 
     try:
-        loaded = load_reference_package_tables(
-            directory,
-            allowed_versions=SUPPORTED_REFERENCE_CONTRACT_VERSIONS,
-        )
+        loaded = load_reference_package_tables(directory)
     except ReferencePackageIntegrityError as error:
         raise ReferencePackageError(str(error)) from error
     if loaded.package_version != package_version:
@@ -253,7 +234,7 @@ def load_reference_package(
 
     tables = _read_typed_tables(loaded.tables, loaded.contract)
     players = tables["players.csv"]
-    seasons = tables["player_seasons.csv"]
+    stats = tables["player_stats.csv"]
     source_ids = tables["player_source_ids.csv"]
     forbidden_player_ids = set(_non_null_strings(players["playerId"], casefold=True))
     forbidden_player_ids.update(
@@ -266,7 +247,7 @@ def load_reference_package(
         frame=_joined_frame(tables),
         forbidden_names=_forbidden_names(players),
         forbidden_player_ids=frozenset(forbidden_player_ids),
-        forbidden_team_ids=_non_null_strings(seasons["teamId"], casefold=True),
+        forbidden_team_ids=_non_null_strings(stats["teamId"], casefold=True),
     )
 
 

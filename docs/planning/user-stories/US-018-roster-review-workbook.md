@@ -12,7 +12,7 @@ canonical integration source.
 
 ## Acceptance criteria
 
-- Generate `roster-review.xlsx` only from an already validated canonical roster package.
+- Generate `roster-review.xlsx` only from an already validated version 1 roster-profile package.
 - Keep the workbook outside the canonical package directory and outside manifest file-set and hash
   coverage. It must not change the source package or participate in its content hash.
 - Provide `Players`, `Box Stats`, `Advanced Metrics`, `Attributes`, and `Validation Summary`
