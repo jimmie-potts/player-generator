@@ -346,3 +346,43 @@ changes one; do not rewrite history without recording the replacement.
 - **Reason:** Response and cohort bounds protect the API's validated latency and payload contract.
   Allowing alternate configuration to exceed them makes one API version expose different limits,
   while reusing the pin setting for preview selection conflates independent endpoint concepts.
+
+## D-031: Season-ending-year convention
+
+- **Status:** accepted
+- **Decision:** Interpret every integer `season` in the reference and roster player-data contracts
+  as the calendar year in which that basketball season ends. For example, `2025` identifies the
+  2024-25 season and `2026` identifies the 2025-26 season. A roster row's season is the sampled
+  statistical basis for that generated player; it is not a package-wide league-starting season and
+  may differ between players in one roster package.
+- **Reason:** A single integer is deterministic and already used throughout reference selection,
+  roster generation, formula evaluation, and package validation. Defining its direction removes the
+  ambiguity that would otherwise make cross-project conversion to NBA-GM's `YYYY-YY` season keys
+  error-prone.
+
+## D-032: Consolidated NBA-GM MVP roster handoff
+
+- **Status:** accepted
+- **Decision:** Target NBA-GM's MVP build-time handoff as one manifest-backed, player-only package
+  containing `players.csv`, a consolidated `player_stats.csv`, and `player_attributes.csv`.
+  Consolidate every currently published roster traditional, rate, possession, and advanced metric
+  into the one statistics row for each player. Keep attributes at player grain as separately
+  versioned formula output. Preserve exact player-key equality across all CSVs. Retain a contract
+  identifier for reproducibility, but require no compatibility wrapper, migration path, or dual
+  publication before the first NBA-GM integration. Any generated review workbook remains outside
+  the canonical package and is values-only and nonauthoritative.
+- **Scope boundary:** The reference package retains separate `player_seasons.csv`,
+  `player_stats.csv`, and `player_advanced_stats.csv` tables. NBA-GM consumes the current roster
+  statistics as MVP simulation inputs and owns league context, positions, assignments, contracts,
+  detailed ratings, tendencies, and other simulation-specific transformations. ESPN-derived
+  simulation statistics, deeper metrics, and personality traits or descriptions require later
+  stories and do not add placeholders to the MVP contract.
+- **Current-interface note:** D-022 and the implemented roster version 1 contract remain the
+  current interface until US-017 completes. At that point this decision supersedes only D-022's
+  two-stat-file boundary; its one generated statistical season per roster player and player-grain
+  attribute rules remain in force. D-005's normalized reference split and D-006's player-only domain
+  boundary also remain in force.
+- **Reason:** The two roster stat files are mandatory, have the same lifecycle and exact key set,
+  and are always generated and validated together. One consolidated statistics table removes a
+  compulsory consumer join without weakening semantic validation, while a shared schema and
+  synthetic fixture let player-generator and NBA-GM implement the handoff independently.
