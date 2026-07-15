@@ -100,6 +100,23 @@ def test_shared_statistics_catalog_owns_the_final_common_payload() -> None:
     ]
 
 
+def test_roster_v1_keeps_age_and_package_scoped_player_ids() -> None:
+    contract = load_player_data_contract()
+    roster = contract["profiles"]["roster"]
+    roster_player_fields = roster["currentColumnOrder"]["players.csv"]
+    age = next(
+        column
+        for column in roster["extensionColumns"]["players.csv"]
+        if column["name"] == "age"
+    )
+
+    assert age["type"] == "integer"
+    assert (age["minimum"], age["maximum"], age["decision"]) == (18, 45, "D-038")
+    assert "birthDate" not in roster_player_fields
+    assert roster["fieldConstraints"][0]["value"] == r"^player_[0-9a-f]{16}$"
+    assert "manifest.contentHash" in roster["keyRationales"]["players.csv"]
+
+
 def test_current_profiles_match_exact_declared_alignment_ledger() -> None:
     validate_player_data_profile_parity()
 

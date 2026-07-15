@@ -389,7 +389,8 @@ changes one; do not rewrite history without recording the replacement.
 ## D-033: Reference and roster player-file parity
 
 - **Status:** accepted; amended by [D-034](#d-034-player-data-contract-version-1-baseline) and
-  [D-035](#d-035-current-version-1-package-inventory)
+  [D-035](#d-035-current-version-1-package-inventory), and clarified by
+  [D-038](#d-038-version-1-age-and-package-scoped-player-identity)
 - **Decision:** Maintain the corresponding reference and roster `players.csv`, `player_stats.csv`,
   and `player_attributes.csv` surfaces as two profiles of one player-data contract. Shared columns
   must retain the same name, relative order, scalar representation, semantic meaning, unit or scale,
@@ -492,3 +493,29 @@ changes one; do not rewrite history without recording the replacement.
   small samples. No stable domain formula supplies a defensible replacement ceiling. Retaining the
   observations is lossless and keeps reference calibration data authoritative; silent filtering or
   clamping would change the source population and formula cohorts.
+
+## D-038: Version 1 age and package-scoped player identity
+
+- **Status:** accepted
+- **Accepted:** 2026-07-15
+- **Decision:** Keep optional integer `age` as the version 1 roster player's basic age snapshot and
+  do not add `birthDate` to the roster profile. NBA-GM should preserve an unknown birth date when its
+  model permits it. If an NBA-GM-owned boundary requires a non-null date, NBA-GM may apply one
+  configured global default; the value remains a consumer default, is never derived from `age`, and
+  must not be represented as observed player data.
+- **Identifier rule:** Keep the existing deterministic `player_[0-9a-f]{16}` value as an opaque key
+  unique within one roster package. NBA-GM preserves that `playerId` verbatim and scopes persistence
+  uniqueness to its save. When source-package provenance or cross-package distinction is needed,
+  `(manifest.contentHash, playerId)` is the stable import identity. Separate packages may therefore
+  reuse a `playerId` without collision; no rewritten ID, global UUID namespace, crosswalk, or new
+  manifest namespace is required.
+- **Future teams and coaches:** `teamId` and `coachId` will be stable opaque nonempty strings unique
+  within their NBA-GM-owned league context and joined by exact string equality. Their population and
+  any concrete generation convention remain future work under US-014.
+- **Delivery:** US-016 records these semantics in the version 1 family contract and NBA-GM handoff.
+  US-017 preserves the existing roster IDs and manifest content identity while aligning publication;
+  it does not introduce a separate namespace mechanism.
+- **Reason:** NBA-GM stores entities under a save boundary and the roster manifest already identifies
+  the exact package bytes. Reusing those two existing scopes is deterministic and collision-safe for
+  the handoff without adding identity machinery. Keeping age as the source fact also avoids inventing
+  a precision the producer does not possess.

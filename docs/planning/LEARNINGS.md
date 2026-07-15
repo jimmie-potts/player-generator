@@ -372,6 +372,12 @@ its completion notes.
 - Validate proposed shared bounds against the private reference corpus using aggregate-only checks.
   Generated data may occupy a deliberately narrow operating range, but that range must not become a
   shared schema limit that rejects legitimate calibration rows.
+- Prefer an existing package and persistence boundary over a new global identity system. A
+  package-local player key can pass through unchanged inside a save while `(contentHash, playerId)`
+  supplies source traceability across packages.
+- Keep consumer defaults visibly separate from producer facts. A global fallback can satisfy a
+  downstream non-null constraint, but it must not be derived from coarser data or round-trip as an
+  observed value.
 
 ## Entry format
 

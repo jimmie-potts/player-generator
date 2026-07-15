@@ -79,10 +79,10 @@ Those seven statistics are shared fields, not roster extensions. `possessions` i
 roster-only statistics extension. The expanded reference and roster schemas remain authoritative
 for currently runnable packages until the declared work is applied; the ledger prevents that
 temporary state from being mistaken for an accepted contract difference. US-016 remains
-`in_progress` while its fixtures and remaining contract decisions are completed, and no gap may be
-added without an explicit rationale and follow-up story. Canonical serializer adoption, manifest
-alignment, package namespace, and age/effective-date behavior remain separately tracked work rather
-than unlisted schema gaps.
+`in_progress` while its fixtures and remaining contract work are completed, and no gap may be added
+without an explicit rationale and follow-up story. Canonical serializer adoption and manifest
+alignment remain separately tracked work rather than unlisted schema gaps. D-038 settles roster age,
+birth-date fallback, and package-scoped player identity without changing either profile's columns.
 
 ## Version 1 profile inventories
 
@@ -131,16 +131,20 @@ the two profiles to agree wherever they represent the same player-data concept.
 
 ### `players.csv`
 
-The shared definition governs `playerId`, display and component names, height, and weight. Reference
-identity and roster identity use separate namespaces even though the key has the same name.
+The shared definition governs `playerId`, display and component names, height, and weight. Each
+profile owns its IDs, and every `playerId` is an opaque key scoped to one package. The roster profile
+retains the existing `player_[0-9a-f]{16}` format; NBA-GM preserves it verbatim within a save instead
+of remapping it.
 
 Height and weight are bounded numbers so reference data can preserve fractional precision while
 generated whole-unit roster values remain valid without rounding or conversion.
 
-Reference-only player fields may include birth date, origin, college, and draft facts because they
-belong to reference identity and provenance. Roster-only `age` is a generated snapshot owned by
-player-generator. Age is not converted into an invented birth date, and NBA-GM owns any birth-date
-rule needed by its league model.
+Reference-only player fields may include a known source birth date, origin, college, and draft facts
+because they belong to reference identity and provenance. Roster-only `age` remains the version 1
+basic age field: an optional generated integer snapshot from 18 through 45 owned by player-generator.
+The roster profile does not contain `birthDate`. NBA-GM keeps birth date unknown where possible; if
+one of its own boundaries requires a value, it may apply one configured global default that is not
+derived from `age` and is not represented as observed data.
 
 The version 1 family freezes the exact ordered columns, types, base null rules, meanings, units,
 classifications, and bounds. Shared definitions cannot be weakened or reinterpreted by a profile
@@ -196,7 +200,7 @@ Reference-only files and content:
 
 Roster-only content:
 
-- generated namespace and player-ID scheme;
+- package-scoped deterministic player-ID scheme;
 - deterministic seed and semantic configuration identity;
 - generator identity;
 - consumed reference-package identity; and
@@ -220,6 +224,11 @@ Reference input, provenance, and audit metadata and roster generation metadata r
 extensions. Creation timestamps are excluded from deterministic content identity. A package is
 written atomically only after contract, relationship, semantic, integrity, and identity-boundary
 validation succeeds.
+
+For NBA-GM, `playerId` is preserved as the entity key within one save. The pair
+`(manifest.contentHash, playerId)` identifies the imported source record when provenance or
+cross-package comparison is needed. That pair is not a new serialized player ID, and version 1 does
+not require a global namespace or cross-project crosswalk.
 
 ## Relationship and conformance requirements
 
@@ -246,6 +255,10 @@ canonical `YYYY-YY` keys and owns positions, teams, assignments, contracts, leag
 simulation ratings, tendencies, and personality behavior. It does not ingest the reference profile
 or its private extensions.
 
+NBA-GM preserves roster `playerId` values inside each save and owns any optional consumer-only global
+birth-date default. A default must remain distinguishable from observed data and must not be inferred
+from `age`.
+
 ESPN-derived simulation statistics, deeper tracking or play-type metrics, personality traits or
 descriptions, teams, and coaches are outside version 1.
 
@@ -261,5 +274,7 @@ coachId,firstName,lastName,displayName,teamId,role,birthDate,offensiveSystem,def
 teamId,city,nickname,displayName,abbreviation,conference,division,arenaName,marketSize,prestige,primaryColor,secondaryColor
 ```
 
-Coach ratings and preferences use 0–100. Dates use ISO 8601. Team membership is represented by
-`teamId`, not an embedded roster array. These future contracts are design targets only.
+Coach ratings and preferences use 0–100. Dates use ISO 8601. `teamId` and `coachId` are stable opaque
+nonempty strings unique within their NBA-GM-owned league context; relationships use exact string
+equality. Team membership is represented by `teamId`, not an embedded roster array. These future
+contracts are design targets only, and their population rules are intentionally deferred.

@@ -43,19 +43,22 @@ can proceed independently without the two player-generator profiles drifting.
 - Preserve the possession basis and statistical identities in D-018, D-019, and D-021.
 - Define the manifest's exact file inventory, contract identifiers, generator and ID-scheme
   identity, row counts, hashes, formula metadata, reference-package hash, seed, configuration hash,
-  and aggregate content hash. Define a deterministic package namespace or equivalent ID input so
-  materially different same-seed packages do not silently reuse player IDs.
-- Resolve and document the `age` and effective-date interpretation at the handoff. NBA-GM-owned
-  fields such as `birthDate`, position, league assignment, contracts, and simulation-specific
-  ratings must have an explicit owner and must not be silently fabricated by this contract.
+  and aggregate content hash. Keep the existing package-scoped `player_[0-9a-f]{16}` IDs, require
+  NBA-GM to preserve them within a save, and use `(manifest.contentHash, playerId)` when imported
+  source identity must distinguish materially different packages.
+- Keep optional integer `age` as the version 1 basic age snapshot and omit `birthDate` from the roster
+  profile. NBA-GM may use one configured global birth-date default only when its own non-null boundary
+  requires it; the default is not derived from age or represented as observed data. NBA-GM-owned
+  fields such as position, league assignment, contracts, and simulation-specific ratings must have
+  an explicit owner and must not be silently fabricated by this contract.
 - Resolve the shared statistics payload so both profiles represent shared counts, `games`,
   `minutes`, percentages, and rates consistently. Keep the roster's explicit `possessions` total as
   a declared extension and reference season context in `player_stats.csv` so each governed value
   has one authoritative representation.
 - Define a common manifest envelope for contract family, version, profile, file row counts and
   hashes, formula identity, and aggregate content identity while keeping package identity separate.
-  Declare reference provenance and audit metadata and roster generator, namespace, ID-scheme, seed,
-  configuration, and reference-package identity as profile extensions.
+  Declare reference provenance and audit metadata and roster generator, package-scoped ID scheme,
+  seed, configuration, and reference-package identity as profile extensions.
 - Publish a fully synthetic, redistributable golden package with known hashes and at least one
   expected joined player record for cross-repository conformance.
 - Publish paired synthetic reference- and roster-profile fixtures that exercise every shared field
@@ -104,9 +107,8 @@ can proceed independently without the two player-generator profiles drifting.
   match the catalog's closed temporary gap ledger exactly. The ledger keeps seven missing reference
   derived fields, one order discrepancy, and current type/bound discrepancies visible without
   misclassifying them as profile extensions or starting US-017 publication changes. Paired fixtures,
-  common manifest conformance, namespace resolution, and age effective-date resolution remain
-  before US-016 completion. US-017 owns removing the pinned runtime-schema gaps while adopting the
-  aligned publication contract.
+  common manifest conformance and paired fixture work remain before US-016 completion. US-017 owns
+  removing the pinned runtime-schema gaps while adopting the aligned publication contract.
 - **2026-07-15:** Accepted D-036 so shared height and weight use bounded numbers rather than forcing
   fractional reference measurements through a lossy integer conversion. Pinned the exact current
   value and full order for every temporary schema gap, froze an exponent-free cross-language numeric
@@ -117,6 +119,11 @@ can proceed independently without the two player-generator profiles drifting.
   domains and allowed negative `playerImpactEstimate` values so later schema alignment does not
   filter or clamp valid calibration observations. Narrower current roster bounds remain exact pinned
   US-017 gaps rather than profile-specific redefinitions.
+- **2026-07-15:** Accepted D-038 without changing the emitted roster shape. `age` remains the basic
+  optional integer snapshot and roster `birthDate` remains absent. NBA-GM preserves the existing
+  player ID inside a save and uses the manifest content hash alongside it only for source-package
+  traceability. Future team and coach IDs remain simple opaque league-context keys; no global
+  namespace, remapping layer, UUID migration, or crosswalk was introduced.
 
 ## Completion notes
 

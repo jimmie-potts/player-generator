@@ -20,7 +20,7 @@
   "sharedFiles": {
     "players.csv": {
       "columns": [
-        {"name": "playerId", "type": "string", "required": true, "nullable": false, "meaning": "Stable internal player key within one profile namespace.", "unit": "identifier", "classification": "key"},
+        {"name": "playerId", "type": "string", "required": true, "nullable": false, "meaning": "Stable opaque player key within one profile package.", "unit": "identifier", "classification": "key"},
         {"name": "displayName", "type": "string", "required": true, "nullable": false, "meaning": "Player name intended for display.", "unit": "text", "classification": "identity"},
         {"name": "firstName", "type": "string", "required": false, "nullable": true, "meaning": "Player given name when available.", "unit": "text", "classification": "identity"},
         {"name": "lastName", "type": "string", "required": false, "nullable": true, "meaning": "Player family name when available.", "unit": "text", "classification": "identity"},
@@ -235,11 +235,11 @@
         {"file": "player_attributes.csv", "fields": ["insideScoring", "threePointShooting", "freeThrowShooting", "scoringVolume", "playmaking", "ballSecurity", "offensiveRebounding", "defensiveRebounding", "perimeterDefense", "interiorDefense", "stamina", "durability", "overall", "impactPercentile", "talentTier"], "required": true, "nullable": false, "rationale": "Every generated roster player is formula-eligible and receives complete attributes.", "decision": "D-033"}
       ],
       "fieldConstraints": [
-        {"files": ["players.csv", "player_stats.csv", "player_attributes.csv"], "field": "playerId", "property": "pattern", "value": "^player_[0-9a-f]{16}$", "rationale": "Roster IDs use the deterministic 16-hex player namespace.", "decision": "D-033"}
+        {"files": ["players.csv", "player_stats.csv", "player_attributes.csv"], "field": "playerId", "property": "pattern", "value": "^player_[0-9a-f]{16}$", "rationale": "Roster IDs retain the deterministic package-scoped 16-hex format and pass through unchanged within an NBA-GM save.", "decision": "D-038"}
       ],
       "extensionColumns": {
         "players.csv": [
-          {"name": "age", "type": "integer", "required": false, "nullable": true, "minimum": 18, "maximum": 45, "meaning": "Generated age snapshot at roster creation.", "unit": "years", "classification": "rosterGeneration", "rationale": "Player-generator owns generated snapshot age; NBA-GM owns any birth-date or effective-date transformation.", "decision": "D-033"}
+          {"name": "age", "type": "integer", "required": false, "nullable": true, "minimum": 18, "maximum": 45, "meaning": "Generated age snapshot at roster creation.", "unit": "years", "classification": "rosterGeneration", "rationale": "Age is the version 1 basic field; roster birthDate is absent and any fallback date is an NBA-GM-owned consumer default that is not derived from age.", "decision": "D-038"}
         ],
         "player_stats.csv": [
           {"name": "possessions", "type": "number", "required": true, "nullable": false, "meaning": "Estimated possession total used as the denominator for per-100 roster rates.", "unit": "possessions", "classification": "rosterGeneration", "rationale": "Roster generation needs an explicit possession basis; reference publishes the rates but not this total.", "decision": "D-035"}
@@ -253,7 +253,7 @@
         "player_attributes.csv": [["playerId"]]
       },
       "keyRationales": {
-        "players.csv": "playerId is the unique generated-player identity within one roster package.",
+        "players.csv": "playerId is the unique generated-player identity within one roster package and passes through unchanged within an NBA-GM save; manifest.contentHash supplies cross-package source scope.",
         "player_stats.csv": "One statistics row and one statistical-basis season are permitted per generated player.",
         "player_attributes.csv": "Attributes remain player grain and use the same playerId set as the other roster files."
       },
