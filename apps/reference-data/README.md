@@ -24,8 +24,12 @@ Registered files are referenced in place and must remain unchanged. Before and a
 `publish` verifies each file's SHA-256 hash and row count against the registry; missing or changed
 inputs fail publication with guidance to restore the file or rebuild its local registration.
 
-Its application configuration boundary is `config/default.yaml`; formula weights, eligibility,
-anchors, schedules, and tier ranges live only in the packaged attribute formula. Raw, registered, and
+Its application configuration boundary is `config/default.yaml`. The `reference` block (`seasons`,
+`comparison_season`, and `season_weights`) is consumed only by the standalone legacy `build`
+command. Normalized `publish` does not filter or weight canonical cohorts with that block; it
+publishes every canonical player-season supplied by the registered inputs. Publication uses the
+configured registry and package paths plus the `normalization` rules. Formula weights, eligibility,
+anchors, schedules, and tier ranges live only in the selected formula document. Raw, registered, and
 processed named data remain local and untracked. The remote download and wide CSV outputs remain
 standalone legacy behavior and are not consumed by the normalized roster generator.
 The canonical model already produces validated relational tables and audit records in memory.

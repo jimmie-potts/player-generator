@@ -50,6 +50,18 @@ permissions, or another external dependency prevents publication, preserve the v
 record and report the exact blocker, and retry once it clears. Do not revert a completed story to
 `in_progress` solely because the remote handoff is temporarily unavailable.
 
+## Pull-request review feedback
+
+Treat each review thread as a traceable unit of follow-up work:
+
+1. Confirm that the feedback is still applicable and identify the behavior or documentation it
+   requires.
+2. Implement and validate the fix, then push the resulting commit before changing the thread state.
+3. When the pushed change fully addresses the feedback, reply in the thread with a brief summary of
+   the fix and relevant validation, then resolve the thread.
+4. Leave partially addressed, conflicting, or ambiguous feedback open and state the remaining work
+   or decision instead of closing it prematurely.
+
 ## Definition of done
 
 - Acceptance criteria are demonstrably satisfied.

@@ -202,6 +202,5 @@ The primary current build input is `llimllib/nba_data`'s `data/playerstats.parqu
 repository when the snapshot was selected. ESPN player-detail files can be registered locally and
 reconciled through the canonical model without exposing their source IDs to roster data.
 
-Review [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md),
-[Data boundaries](docs/DATA_BOUNDARIES.md), and the
+Review the [data boundaries](docs/DATA_BOUNDARIES.md) and the
 [source manifest](reference_data/source_manifest.json) before using third-party data.

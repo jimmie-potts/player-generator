@@ -334,3 +334,15 @@ changes one; do not rewrite history without recording the replacement.
   ceiling uses the preview contract's existing response bound. Keeping the full cohort authoritative
   prevents ratings and ranks from changing merely because the designer switches which rows are
   visible.
+
+## D-030: Formula preview version 1 bounds are contract maxima
+
+- **Status:** accepted
+- **Decision:** Treat 25 baseline players, 25 request pins, 25 selected preview players, 20 search
+  results, and 1,000 cohort rows as hard maxima of the version 1 HTTP contract. Local configuration
+  may lower but cannot raise those limits. Configure selected preview players separately from request
+  pins; existing configuration that omits the selected-player setting inherits its pin limit so the
+  alignment does not broaden its prior preview behavior.
+- **Reason:** Response and cohort bounds protect the API's validated latency and payload contract.
+  Allowing alternate configuration to exceed them makes one API version expose different limits,
+  while reusing the pin setting for preview selection conflates independent endpoint concepts.

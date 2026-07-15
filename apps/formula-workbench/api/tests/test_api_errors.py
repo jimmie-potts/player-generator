@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import copy
 import hashlib
+from dataclasses import replace
 from importlib.resources import files
 from typing import Any
 
 import httpx2
 import pytest
+from formula_preview_api import PreviewService, PreviewSettings, create_app
 
 from conftest import SyntheticPackage, file_hashes
 
@@ -368,6 +370,42 @@ async def test_duplicate_and_excessive_player_selections_fail_atomically(
         code="invalid_request",
         field_codes={"too_many"},
     )
+
+
+async def test_pin_and_selected_player_limits_are_independent(
+    settings: PreviewSettings,
+    request_payload: Any,
+) -> None:
+    independent_settings = replace(
+        settings,
+        max_pinned_players=1,
+        max_selected_players=2,
+    )
+    service = PreviewService(independent_settings)
+    transport = httpx2.ASGITransport(
+        app=create_app(independent_settings, service=service)
+    )
+    async with httpx2.AsyncClient(transport=transport, base_url="http://test") as client:
+        pins = await client.get(
+            "/api/v1/players",
+            params=[
+                ("pinnedPlayerId", "player-star"),
+                ("pinnedPlayerId", "player-starter"),
+            ],
+        )
+        preview = await client.post(
+            "/api/v1/previews",
+            json=request_payload(["player-star", "player-starter"], {}),
+        )
+
+    _assert_error_without_results(
+        pins,
+        status=422,
+        code="invalid_request",
+        field_codes={"too_many"},
+    )
+    assert preview.status_code == 200
+    assert len(preview.json()["players"]) == 2
 
 
 async def test_request_model_rejects_missing_context_and_unknown_fields(
