@@ -1,6 +1,6 @@
 # 2026-07-14: Implementation alignment
 
-- **Status:** in_progress
+- **Status:** complete
 - **Scope:** Resolve the bounded-API and documentation discrepancies found after EPIC-06 without
   starting EPIC-07 or US-014.
 - **Dependencies:** EPIC-01 through EPIC-06 and US-015
@@ -42,10 +42,34 @@
 
 ## Validation
 
-Pending implementation. Run the complete Python and frontend suites, Ruff, the production
-workbench build, manifest integrity verification, and diff checks before completion.
+- `.venv/bin/python -m pytest` passed all 386 tests, including configuration regressions for exact,
+  reduced, inherited, independently configured, and excessive version 1 limits.
+- `.venv/bin/python -m ruff check .` passed.
+- `TMPDIR=/tmp npm run workbench:test` passed all 85 frontend tests. `TMPDIR` avoids the Codex desktop
+  WSL session's unavailable inherited Windows temporary directory; it does not change application
+  behavior.
+- `npm run workbench:build`, `sha256sum -c FILE_MANIFEST.sha256`, and staged and unstaged
+  `git diff --check` passed.
 
 ## Completion notes
 
-Pending. Record delivered behavior, validation results, commit or pull request, deviations,
-follow-ups, decisions, and learnings before changing status to `complete`.
+- **Completed:** 2026-07-14 in implementation commit `16d0e13` and ready-for-review
+  [PR #12](https://github.com/jimmie-potts/player-generator/pull/12).
+- **Delivered:** `PreviewSettings` now enforces the published version 1 ceilings for baseline, pin,
+  selected-player, search, and cohort limits for YAML, replacements, and direct construction. The
+  service uses the new `max_selected_players` setting independently of `max_pinned_players`, while
+  older YAML that omits the new field inherits its pin limit. The Pydantic request model and settings
+  use one selected-player maximum constant.
+- **Documentation:** [D-030](../DECISIONS.md#d-030-formula-preview-version-1-bounds-are-contract-maxima)
+  records the invariant; the API README documents configurable narrowing and legacy inheritance;
+  and the reference-data configuration and README explicitly identify the legacy-only season and
+  weighting block. `THIRD_PARTY_NOTICES.md` and its inbound links were removed at the user's
+  direction while current data-rights rules and source metadata remain in their authoritative files.
+- **Scope:** No endpoint payload, calculation, default limit, package contract, reference row, or
+  roster behavior changed. EPIC-07 and US-014 remain `ready` and unstarted.
+- **Follow-ups:** Runtime and dependency identity in deterministic reproduction remains a separate
+  decision. US-014 is the next dependency-ready roadmap unit after this maintenance pull request.
+- **Learnings:** Contract limits belong at settings construction rather than only in defaults;
+  semantically distinct limits require separate names even when their values match; and mixed
+  current/legacy configuration needs command ownership stated beside the fields. These findings are
+  recorded in [LEARNINGS.md](../LEARNINGS.md#2026-07-14--implementation-alignment).
