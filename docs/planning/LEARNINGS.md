@@ -385,6 +385,21 @@ its completion notes.
 - Treat structured sentinel values as typed protocol tokens. Equality is insufficient when the host
   language considers booleans and numbers equal, and numeric enum values must survive the exact
   IEEE-754 normalization used by CSV serialization.
+- Use recursive type-sensitive equality for JSON protocol values and test uniqueness after canonical
+  serialization. Raw JSON values such as `true` and `1`, including values nested in arrays and
+  objects, may compare equal despite being distinct authored tokens; numeric enum members such as
+  `1` and `1.0` may also serialize identically.
+- Require every authored `number` bound to round-trip through the same IEEE-754 normalization as row
+  values. Exact integer comparison does not make a floating-point bound exact.
+- Compare integer values and bounds as integers. Converting both sides to IEEE-754 can make adjacent
+  integers alias even when the authored bound itself is exactly representable.
+- A temporary gap may not weaken the scalar type of a key or relationship field. Validate protected
+  invariants after all declared gaps are composed, including same-field relationship endpoints.
+- Treat missing profile-level metadata as observable drift. If current publishers have not adopted a
+  final CSV rule, pin its absence explicitly instead of making parity conditional on presence or
+  copying a future declaration into a current schema.
+- Render malformed contract values defensively in validation diagnostics. Even an error message can
+  leak a raw conversion exception when Python formats an oversized integer.
 - A closed contract declaration must materialize coherently: every extension belongs in its current
   header, and a foreign-key source must be non-nullable unless runtime validation explicitly supports
   optional relationships.

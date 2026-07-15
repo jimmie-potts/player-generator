@@ -135,9 +135,9 @@
         {"name": "sourceType", "type": "string", "required": true, "nullable": false},
         {"name": "originalFilename", "type": "string", "required": true, "nullable": false},
         {"name": "sha256", "type": "sha256", "required": true, "nullable": false},
-        {"name": "adapterVersion", "type": "integer", "required": true, "nullable": false},
+        {"name": "adapterVersion", "type": "integer", "required": true, "nullable": false, "minimum": 1},
         {"name": "upstreamVersion", "type": "string", "required": false, "nullable": true},
-        {"name": "rowCount", "type": "integer", "required": true, "nullable": false},
+        {"name": "rowCount", "type": "integer", "required": true, "nullable": false, "minimum": 0},
         {"name": "processedAt", "type": "datetime", "required": true, "nullable": false},
         {"name": "licenseStatus", "type": "string", "required": true, "nullable": false}
       ],

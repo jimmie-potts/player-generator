@@ -134,6 +134,17 @@ can proceed independently without the two player-generator profiles drifting.
   enum members that cannot round-trip through the contract's IEEE-754 CSV normalization. Focused
   regressions cover numeric lookalike markers, shared-enum/profile-pattern conflicts, and the exact
   representability boundary.
+- **2026-07-15:** Latest review added nonnegative shared minutes and reference source-row-count
+  bounds, exact integer-bound comparison without float aliasing, protected key and relationship
+  types across temporary gaps, and exact absent-value ledger entries for every final CSV convention
+  not yet declared by the current profile schemas. The patch deliberately leaves canonical
+  publisher adoption and both current minutes-schema gaps to US-017.
+- **2026-07-15:** The pre-push adversarial pass closed five adjacent gaps: CSV booleans now compare
+  type-strictly, `number` bounds round-trip through IEEE-754, enum members remain unique after CSV
+  serialization, adapter versions are positive, and oversized integer inputs fail with contract
+  errors rather than raw conversion exceptions. A final recursive comparison pass also rejects
+  boolean and numeric lookalikes inside profile structures and safely renders oversized malformed
+  metadata in validation diagnostics.
 
 ## Completion notes
 

@@ -25,10 +25,11 @@ def contract_files(
     contract_version: int,
 ) -> Mapping[str, Any]:
     """Return validated file definitions from an ordered CSV contract."""
-    if contract.get("contractVersion") != contract_version:
+    actual_version = contract.get("contractVersion")
+    if type(actual_version) is not type(contract_version) or actual_version != contract_version:
         raise ContractValidationError(
             f"Unsupported {contract_name.lower()} contract version: "
-            f"{contract.get('contractVersion')!r}"
+            f"{_safe_repr(actual_version)}"
         )
     file_contracts = contract.get("files")
     if not isinstance(file_contracts, Mapping) or not file_contracts:
@@ -76,33 +77,55 @@ def _type_error(context: str, expected: str) -> ContractValidationError:
     return ContractValidationError(f"{context} must be {expected}")
 
 
+def _safe_repr(value: object) -> str:
+    try:
+        return repr(value)
+    except (OverflowError, ValueError):
+        return f"<{type(value).__name__} outside supported representation>"
+
+
 def _integer(value: object, context: str) -> int:
     if isinstance(value, bool):
         raise _type_error(context, "an integer")
     if isinstance(value, Integral):
-        return int(value)
+        normalized = int(value)
+        try:
+            str(normalized)
+        except ValueError:
+            raise _type_error(
+                context, "an integer within the supported decimal length"
+            ) from None
+        return normalized
     if isinstance(value, Real):
-        number = float(value)
+        try:
+            number = float(value)
+        except (OverflowError, TypeError, ValueError):
+            raise _type_error(context, "an integer") from None
         if math.isfinite(number) and number.is_integer():
             return int(number)
         raise _type_error(context, "an integer")
     if isinstance(value, str) and _INTEGER_PATTERN.fullmatch(value):
-        return int(value)
+        try:
+            return int(value)
+        except ValueError:
+            raise _type_error(
+                context, "an integer within the supported decimal length"
+            ) from None
     raise _type_error(context, "an integer")
 
 
 def _number(value: object, context: str) -> float:
     if isinstance(value, bool):
         raise _type_error(context, "a finite number")
-    if isinstance(value, Real):
-        number = float(value)
-    elif isinstance(value, str):
-        try:
+    try:
+        if isinstance(value, Real):
             number = float(value)
-        except ValueError as error:
-            raise _type_error(context, "a finite number") from error
-    else:
-        raise _type_error(context, "a finite number")
+        elif isinstance(value, str):
+            number = float(value)
+        else:
+            raise _type_error(context, "a finite number")
+    except (OverflowError, TypeError, ValueError):
+        raise _type_error(context, "a finite number") from None
     if not math.isfinite(number):
         raise _type_error(context, "a finite number")
     return number
@@ -173,7 +196,8 @@ def _validate_value(
         normalized = value
     else:
         raise ContractValidationError(
-            f"{contract_name} contract field {context} uses unsupported type {field_type!r}"
+            f"{contract_name} contract field {context} uses unsupported type "
+            f"{_safe_repr(field_type)}"
         )
 
     enum = column.get("enum")
@@ -184,7 +208,7 @@ def _validate_value(
             )
         if normalized not in enum:
             raise ContractValidationError(
-                f"{context} must be one of {', '.join(repr(item) for item in enum)}"
+                f"{context} must be one of {', '.join(_safe_repr(item) for item in enum)}"
             )
 
     pattern = column.get("pattern")
@@ -202,12 +226,35 @@ def _validate_value(
     ):
         bound = column.get(bound_name)
         if bound is not None:
-            if isinstance(bound, bool) or not isinstance(bound, Real):
-                raise ContractValidationError(
-                    f"{contract_name} contract field {context} has an invalid {bound_name}"
+            invalid_bound = ContractValidationError(
+                f"{contract_name} contract field {context} has an invalid {bound_name}"
+            )
+            if field_type == "integer":
+                if isinstance(bound, bool) or not isinstance(bound, Real):
+                    raise invalid_bound
+                try:
+                    normalized_bound: Real = _integer(bound, context)
+                except ContractValidationError:
+                    raise invalid_bound from None
+                satisfies_bound = comparison(normalized, normalized_bound)
+            elif field_type == "number":
+                if isinstance(bound, bool) or not isinstance(bound, Real):
+                    raise invalid_bound
+                try:
+                    normalized_bound = _number(bound, context)
+                except ContractValidationError:
+                    raise invalid_bound from None
+                if normalized_bound != bound:
+                    raise invalid_bound
+                satisfies_bound = isinstance(normalized, Real) and comparison(
+                    float(normalized), normalized_bound
                 )
-            if not isinstance(normalized, Real) or not comparison(float(normalized), float(bound)):
-                raise ContractValidationError(f"{context} must be {phrase} {bound}")
+            else:
+                raise invalid_bound
+            if not satisfies_bound:
+                raise ContractValidationError(
+                    f"{context} must be {phrase} {bound}"
+                )
 
     return normalized
 
@@ -224,7 +271,12 @@ def serialize_csv_value(
         return ""
     field_type = column.get("type")
     if field_type == "integer":
-        return str(normalized)
+        try:
+            return str(normalized)
+        except ValueError:
+            raise _type_error(
+                context, "an integer within the supported decimal length"
+            ) from None
     if field_type == "number":
         number = float(normalized)
         if number == 0:

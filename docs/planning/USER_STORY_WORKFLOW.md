@@ -35,6 +35,24 @@ section, replace the placeholder with:
 Update the parent epic status after its last story is complete. Documentation and contract changes
 are part of the story, not optional cleanup.
 
+## Pre-review adversarial contract pass
+
+Before publishing a story that adds or changes a contract family, profile, schema, or alignment
+ledger, perform a separate mutation-oriented review:
+
+1. Test missing, extra, malformed, and wrong-typed values for every new declaration and sentinel.
+2. Validate effective definitions after all profile constraints, overrides, and temporary gaps are
+   composed, not only each declaration in isolation.
+3. Exercise numeric boundaries on both sides of minimums and maximums, including exact-integer and
+   IEEE-754 normalization boundaries where applicable.
+4. Attempt to weaken key, relationship, requiredness, ordering, and inventory invariants through
+   every override or gap mechanism.
+5. Compare the family, both flat profiles, runtime validators, publishers, fixtures, and current-state
+   documentation. Represent planned differences as exact gaps rather than copying future claims into
+   current interfaces.
+6. Have a reviewer that did not author the patch inspect the final unpushed diff and its mutation
+   matrix before handoff.
+
 ## Pull-request handoff
 
 A completed story, epic, or other logical unit is ready for publication without a separate user

@@ -35,6 +35,7 @@ _CSV_RULES = {
     "numericSerialization": "ieee754-shortest-roundtrip-expanded-v1",
     "deterministicOrdering": True,
 }
+_PROFILE_CSV_RULE_PROPERTIES = (*_CSV_RULES, "numericSerializationDescription")
 _STRUCTURAL_PROPERTIES = (
     "type",
     "required",
@@ -48,13 +49,7 @@ _PROFILE_SCHEMA_PROPERTIES = {
     "title",
     "description",
     "contractVersion",
-    "encoding",
-    "lineEnding",
-    "headerStyle",
-    "nullEncoding",
-    "numericSerialization",
-    "numericSerializationDescription",
-    "deterministicOrdering",
+    *_PROFILE_CSV_RULE_PROPERTIES,
     "files",
     "relationships",
 }
@@ -96,6 +91,39 @@ def _is_absence_marker(value: object) -> bool:
         and set(value) == {"absent"}
         and value["absent"] is True
     )
+
+
+def _same_json_value(left: object, right: object) -> bool:
+    if left is _MISSING or right is _MISSING:
+        return left is right
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, Mapping):
+        if len(left) != len(right):
+            return False
+        right_items = list(right.items())
+        for left_key, left_value in left.items():
+            matches = [
+                right_value
+                for right_key, right_value in right_items
+                if type(left_key) is type(right_key) and left_key == right_key
+            ]
+            if len(matches) != 1 or not _same_json_value(left_value, matches[0]):
+                return False
+        return True
+    if isinstance(left, list):
+        return len(left) == len(right) and all(
+            _same_json_value(left_item, right_item)
+            for left_item, right_item in zip(left, right, strict=True)
+        )
+    return left == right
+
+
+def _safe_repr(value: object) -> str:
+    try:
+        return repr(value)
+    except (OverflowError, ValueError):
+        return f"<{type(value).__name__} outside supported representation>"
 
 
 def _mapping(value: object, context: str) -> Mapping[str, Any]:
@@ -159,7 +187,7 @@ def _validate_enum_member(value: object, field_type: str, context: str) -> None:
         valid = isinstance(value, str) and _SHA256_PATTERN.fullmatch(value) is not None
     if not valid:
         raise ContractValidationError(
-            f"{context} enum value {value!r} does not match field type {field_type}"
+            f"{context} enum value {_safe_repr(value)} does not match field type {field_type}"
         )
 
 
@@ -184,22 +212,40 @@ def _validate_bound(
     field_type: str,
     context: str,
 ) -> Real:
-    if (
-        value is None
-        or isinstance(value, bool)
-        or not isinstance(value, Real)
-        or not math.isfinite(float(value))
-    ):
-        raise ContractValidationError(
-            f"{context} {property_name} must be finite numeric when present"
-        )
     if field_type not in {"integer", "number"}:
         raise ContractValidationError(
             f"{context} cannot bound non-numeric type {field_type}"
         )
-    if field_type == "integer" and not float(value).is_integer():
+    if value is None or isinstance(value, bool) or not isinstance(value, Real):
+        raise ContractValidationError(
+            f"{context} {property_name} must be finite numeric when present"
+        )
+    if field_type == "integer" and isinstance(value, Integral):
+        try:
+            str(value)
+        except ValueError:
+            raise ContractValidationError(
+                f"{context} {property_name} exceeds the supported integer length"
+            ) from None
+        return value
+    try:
+        normalized = float(value)
+    except (OverflowError, TypeError, ValueError):
+        raise ContractValidationError(
+            f"{context} {property_name} must be finite numeric when present"
+        ) from None
+    if not math.isfinite(normalized):
+        raise ContractValidationError(
+            f"{context} {property_name} must be finite numeric when present"
+        )
+    if field_type == "integer" and not normalized.is_integer():
         raise ContractValidationError(
             f"{context} {property_name} must be an integer bound"
+        )
+    if field_type == "number" and normalized != value:
+        raise ContractValidationError(
+            f"{context} {property_name} does not round-trip through "
+            "IEEE-754 normalization"
         )
     return value
 
@@ -239,7 +285,7 @@ def _validate_column_definition(
     field_type = column.get("type")
     if not isinstance(field_type, str) or field_type not in _SUPPORTED_TYPES:
         raise ContractValidationError(
-            f"{context} {name} uses unsupported type {field_type!r}"
+            f"{context} {name} uses unsupported type {_safe_repr(field_type)}"
         )
     allowed_properties = {"name", *_STRUCTURAL_PROPERTIES}
     if semantic_metadata:
@@ -279,22 +325,30 @@ def _validate_column_definition(
         )
         runtime_column = dict(column)
         runtime_column.pop("enum")
+        serialized_values: list[str] = []
         for enum_value in enum_values:
+            rendered_value = _safe_repr(enum_value)
             serialized = serialize_csv_value(
                 enum_value,
                 runtime_column,
-                context=f"{context} {name} enum value {enum_value!r}",
+                context=f"{context} {name} enum value {rendered_value}",
             )
             if field_type == "number" and float(serialized) != enum_value:
                 raise ContractValidationError(
-                    f"{context} {name} enum value {enum_value!r} does not round-trip "
+                    f"{context} {name} enum value {rendered_value} does not round-trip "
                     "through IEEE-754 normalization"
                 )
             if field_type in {"date", "datetime"} and serialized != enum_value:
                 raise ContractValidationError(
-                    f"{context} {name} enum value {enum_value!r} must use canonical "
+                    f"{context} {name} enum value {rendered_value} must use canonical "
                     f"{field_type} form {serialized!r}"
                 )
+            serialized_values.append(serialized)
+        if len(serialized_values) != len(set(serialized_values)):
+            raise ContractValidationError(
+                f"{context} {name} enum values must remain unique after canonical "
+                "CSV serialization"
+            )
     if semantic_metadata:
         for property_name in ("meaning", "unit", "classification"):
             _text(
@@ -535,7 +589,7 @@ def _validate_profile_definition(
     profile_name: str,
     profile: Mapping[str, Any],
     shared_columns: Mapping[str, Mapping[str, Mapping[str, Any]]],
-) -> None:
+) -> set[tuple[str, str]]:
     context = f"Player data profile {profile_name}"
     unexpected_profile_properties = set(profile) - _PROFILE_PROPERTIES
     if unexpected_profile_properties:
@@ -861,6 +915,12 @@ def _validate_profile_definition(
         _text(constraint.get("rationale"), f"{context} field constraint {index} rationale")
         _text(constraint.get("decision"), f"{context} field constraint {index} decision")
 
+    return {
+        (file_name, field_name)
+        for file_name, field_name in protected_fields
+        if file_name in shared_columns and field_name in shared_columns[file_name]
+    }
+
 
 def _shared_column_maps(
     contract: Mapping[str, Any],
@@ -950,7 +1010,9 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
         raise ContractValidationError(
             f"Player data contract must declare family {PLAYER_DATA_CONTRACT_FAMILY!r}"
         )
-    if contract.get("contractVersion") != PLAYER_DATA_CONTRACT_VERSION:
+    if not _same_json_value(
+        contract.get("contractVersion", _MISSING), PLAYER_DATA_CONTRACT_VERSION
+    ):
         raise ContractValidationError(
             f"Player data contract must declare version {PLAYER_DATA_CONTRACT_VERSION}"
         )
@@ -960,7 +1022,7 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
             "Player data csv conventions have unexpected or missing rules"
         )
     for property_name, expected in _CSV_RULES.items():
-        if csv_rules.get(property_name) != expected:
+        if not _same_json_value(csv_rules.get(property_name, _MISSING), expected):
             raise ContractValidationError(
                 f"Player data csv {property_name} must be {expected!r}"
             )
@@ -975,8 +1037,9 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
         raise ContractValidationError(
             "Player data profiles must define reference and roster in that order"
         )
+    protected_fields_by_profile: dict[str, set[tuple[str, str]]] = {}
     for profile_name in _PROFILE_NAMES:
-        _validate_profile_definition(
+        protected_fields_by_profile[profile_name] = _validate_profile_definition(
             profile_name,
             _mapping(profiles[profile_name], f"Player data profile {profile_name}"),
             shared_columns,
@@ -984,13 +1047,16 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
 
     declared_gaps: list[Mapping[str, Any]] = []
     seen_gap_coordinates: set[tuple[str, str, str, str]] = set()
+    seen_csv_gap_coordinates: set[tuple[str, str]] = set()
     for index, raw_gap in enumerate(
         _sequence(contract.get("declaredAlignmentGaps"), "Player data declaredAlignmentGaps"),
         start=1,
     ):
         gap = _mapping(raw_gap, f"Player data alignment gap {index}")
         kind = gap.get("kind")
-        required_keys = {"kind", "profile", "file", "rationale", "followUp"}
+        required_keys = {"kind", "profile", "rationale", "followUp"}
+        if kind != "profileCsvRules":
+            required_keys.add("file")
         if kind in {"missingSharedColumns", "sharedDefinition"}:
             required_keys.add("fields")
         if kind == "sharedOrder":
@@ -998,22 +1064,69 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
         if kind == "sharedDefinition":
             required_keys.add("properties")
             required_keys.add("currentValues")
-        if kind not in {"missingSharedColumns", "sharedOrder", "sharedDefinition"}:
+        if kind == "profileCsvRules":
+            required_keys.add("properties")
+            required_keys.add("currentValues")
+        if kind not in {
+            "missingSharedColumns",
+            "sharedOrder",
+            "sharedDefinition",
+            "profileCsvRules",
+        }:
             raise ContractValidationError(
-                f"Player data alignment gap {index} has unsupported kind {kind!r}"
+                f"Player data alignment gap {index} has unsupported kind {_safe_repr(kind)}"
             )
         if set(gap) != required_keys:
             raise ContractValidationError(
                 f"Player data alignment gap {index} has invalid fields for {kind}"
             )
         profile_name = gap.get("profile")
-        file_name = gap.get("file")
-        if profile_name not in _PROFILE_NAMES or file_name not in shared_columns:
+        if profile_name not in _PROFILE_NAMES:
             raise ContractValidationError(
-                f"Player data alignment gap {index} references an unknown profile or file"
+                f"Player data alignment gap {index} references an unknown profile"
             )
         _text(gap.get("rationale"), f"Player data alignment gap {index} rationale")
         _text(gap.get("followUp"), f"Player data alignment gap {index} followUp")
+        if kind == "profileCsvRules":
+            properties = _text_list(
+                gap["properties"], f"Player data alignment gap {index} properties"
+            )
+            if not properties or any(
+                property_name not in _PROFILE_CSV_RULE_PROPERTIES
+                for property_name in properties
+            ):
+                raise ContractValidationError(
+                    f"Player data alignment gap {index} references unknown CSV rules"
+                )
+            current_values = _mapping(
+                gap["currentValues"],
+                f"Player data alignment gap {index} currentValues",
+            )
+            if set(current_values) != set(properties):
+                raise ContractValidationError(
+                    f"Player data alignment gap {index} currentValues must match properties"
+                )
+            for property_name, value in current_values.items():
+                if isinstance(value, Mapping) and not _is_absence_marker(value):
+                    raise ContractValidationError(
+                        f"Player data alignment gap {index} current value for "
+                        f"{property_name} has an invalid absence marker"
+                    )
+                coordinate = (str(profile_name), property_name)
+                if coordinate in seen_csv_gap_coordinates:
+                    raise ContractValidationError(
+                        f"Player data alignment gap {index} repeats current CSV rule "
+                        f"for {profile_name}.{property_name}"
+                    )
+                seen_csv_gap_coordinates.add(coordinate)
+            declared_gaps.append(gap)
+            continue
+
+        file_name = gap.get("file")
+        if file_name not in shared_columns:
+            raise ContractValidationError(
+                f"Player data alignment gap {index} references an unknown file"
+            )
         if "fields" in gap:
             for field in _text_list(gap["fields"], f"Player data alignment gap {index} fields"):
                 if field not in shared_columns[str(file_name)]:
@@ -1079,6 +1192,16 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
             _mapping(profiles[profile_name], f"Player data profile {profile_name}"),
             current_shared_columns[profile_name],
         )
+        for file_name, field_name in sorted(protected_fields_by_profile[profile_name]):
+            current_type = current_shared_columns[profile_name][file_name][field_name][
+                "type"
+            ]
+            target_type = shared_columns[file_name][field_name]["type"]
+            if current_type != target_type:
+                raise ContractValidationError(
+                    f"Player data profile {profile_name} may not change the type of key or "
+                    f"relationship field {file_name}.{field_name}"
+                )
 
     seen_gap_codes: set[str] = set()
     for index, gap in enumerate(declared_gaps, start=1):
@@ -1153,11 +1276,33 @@ def _structural_column(column: Mapping[str, Any]) -> dict[str, object]:
 def _value_token(value: object) -> str:
     if value is _MISSING:
         return "<absent>"
-    return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    try:
+        return json.dumps(
+            value,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    except (TypeError, ValueError):
+        raise ContractValidationError(
+            "Contract value cannot be represented as canonical JSON"
+        ) from None
 
 
 def _declared_current_value(value: object) -> object:
     return _MISSING if _is_absence_marker(value) else value
+
+
+def _csv_issue_code(
+    profile_name: str,
+    property_name: str,
+    current_value: object,
+    target_value: object,
+) -> str:
+    return (
+        f"csv:{profile_name}:{property_name}:"
+        f"current={_value_token(current_value)}:target={_value_token(target_value)}"
+    )
 
 
 def _definition_issue_code(
@@ -1188,6 +1333,18 @@ def _order_issue_code(
 
 def _codes_for_gap(contract: Mapping[str, Any], gap: Mapping[str, Any]) -> set[str]:
     profile_name = str(gap["profile"])
+    if gap["kind"] == "profileCsvRules":
+        current_values = _mapping(gap["currentValues"], "alignment gap currentValues")
+        csv_rules = _mapping(contract["csv"], "csv")
+        return {
+            _csv_issue_code(
+                profile_name,
+                str(property_name),
+                _declared_current_value(current_values[property_name]),
+                csv_rules[property_name],
+            )
+            for property_name in gap["properties"]
+        }
     file_name = str(gap["file"])
     prefix = f"{profile_name}:{file_name}"
     if gap["kind"] == "missingSharedColumns":
@@ -1263,24 +1420,23 @@ def _collect_profile_issues(
     if not isinstance(file_contracts, Mapping):
         return {f"schema-files:{profile_name}"}
 
-    if profile_contract.get("contractVersion") != family["contractVersion"]:
+    if not _same_json_value(
+        profile_contract.get("contractVersion", _MISSING), family["contractVersion"]
+    ):
         issues.add(f"contract-version:{profile_name}")
     csv_rules = _mapping(family["csv"], "csv")
-    for property_name in ("encoding", "lineEnding"):
-        if profile_contract.get(property_name) != csv_rules[property_name]:
-            issues.add(f"csv:{profile_name}:{property_name}")
-    for property_name in (
-        "headerStyle",
-        "nullEncoding",
-        "numericSerialization",
-        "numericSerializationDescription",
-        "deterministicOrdering",
-    ):
-        if (
-            property_name in profile_contract
-            and profile_contract[property_name] != csv_rules[property_name]
-        ):
-            issues.add(f"csv:{profile_name}:{property_name}")
+    for property_name in _PROFILE_CSV_RULE_PROPERTIES:
+        current_value = profile_contract.get(property_name, _MISSING)
+        target_value = csv_rules[property_name]
+        if not _same_json_value(current_value, target_value):
+            issues.add(
+                _csv_issue_code(
+                    profile_name,
+                    property_name,
+                    current_value,
+                    target_value,
+                )
+            )
     unexpected_schema_properties = set(profile_contract) - _PROFILE_SCHEMA_PROPERTIES
     if unexpected_schema_properties:
         issues.add(
@@ -1329,7 +1485,7 @@ def _collect_profile_issues(
             if file_name in unique_keys
             else _profile_only_unique_keys(profile, file_name)
         )
-        if actual_file.get("uniqueKeys", []) != expected_keys:
+        if not _same_json_value(actual_file.get("uniqueKeys", []), expected_keys):
             issues.add(f"unique-keys:{profile_name}:{file_name}")
         for field_name, actual_column in actual_columns.items():
             unexpected_properties = set(actual_column) - _PROFILE_COLUMN_PROPERTIES
@@ -1355,7 +1511,10 @@ def _collect_profile_issues(
                 if actual_column is None:
                     issues.add(f"missing-profile-field:{profile_name}:{file_name}:{field_name}")
                     continue
-                if _structural_column(actual_column) != _structural_column(expected_column):
+                if not _same_json_value(
+                    _structural_column(actual_column),
+                    _structural_column(expected_column),
+                ):
                     issues.add(
                         f"profile-field-definition:{profile_name}:{file_name}:{field_name}"
                     )
@@ -1388,7 +1547,7 @@ def _collect_profile_issues(
                     expected[property_name] = constraints[constraint_key]
                 actual_value = actual_column.get(property_name, _MISSING)
                 expected_value = expected.get(property_name, _MISSING)
-                if actual_value != expected_value:
+                if not _same_json_value(actual_value, expected_value):
                     issues.add(
                         _definition_issue_code(
                             profile_name,
@@ -1407,7 +1566,10 @@ def _collect_profile_issues(
             expected_extension = extensions.get(field_name)
             if expected_extension is None:
                 issues.add(f"undeclared-extension:{profile_name}:{file_name}:{field_name}")
-            elif _structural_column(actual_column) != _structural_column(expected_extension):
+            elif not _same_json_value(
+                _structural_column(actual_column),
+                _structural_column(expected_extension),
+            ):
                 issues.add(
                     f"extension-definition:{profile_name}:{file_name}:{field_name}"
                 )
@@ -1415,7 +1577,9 @@ def _collect_profile_issues(
             if field_name not in actual_columns:
                 issues.add(f"missing-extension:{profile_name}:{file_name}:{field_name}")
 
-    if profile_contract.get("relationships") != profile["relationships"]:
+    if not _same_json_value(
+        profile_contract.get("relationships", _MISSING), profile["relationships"]
+    ):
         issues.add(f"relationships:{profile_name}")
     return issues
 

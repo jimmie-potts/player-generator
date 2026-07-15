@@ -72,8 +72,11 @@ closed temporary ledger currently records only these unresolved runtime-schema d
   `reboundsPerGame`, `assistsPerGame`, and `turnoversPerGame`;
 - reference still orders its two-point totals after `plusMinusPoints`; and
 - the expanded profile resources have not yet adopted the shared integer count types, bounded
-  precision-preserving physical number representation, four-digit season bounds, and rate,
-  percentage, frequency, and rating bounds.
+  precision-preserving physical number representation, four-digit season bounds, nonnegative
+  minutes bound, and rate, percentage, frequency, and rating bounds; and
+- both expanded profile schemas declare UTF-8 and LF but still omit the remaining version 1 CSV
+  conventions, including canonical numeric serialization. The ledger pins every omitted rule as
+  absent rather than treating its absence as parity.
 
 Those seven statistics are shared fields, not roster extensions. `possessions` is the only
 roster-only statistics extension. The expanded reference and roster schemas remain authoritative
@@ -81,8 +84,9 @@ for currently runnable packages until the declared work is applied; the ledger p
 temporary state from being mistaken for an accepted contract difference. US-016 remains
 `in_progress` while its fixtures and remaining contract work are completed, and no gap may be added
 without an explicit rationale and follow-up story. Canonical serializer adoption and manifest
-alignment remain separately tracked work rather than unlisted schema gaps. D-038 settles roster age,
-birth-date fallback, and package-scoped player identity without changing either profile's columns.
+alignment remain US-017 work; the serializer declarations are exact profile CSV-rule gaps rather
+than unlisted differences. D-038 settles roster age, birth-date fallback, and package-scoped player
+identity without changing either profile's columns.
 
 ## Version 1 profile inventories
 
@@ -157,8 +161,8 @@ Version 1 publishes traditional totals, rate statistics, and advanced metrics in
 Shared count, percentage, frequency, rating, per-game, per-36, and per-100 fields have one governed
 representation and semantic definition across both profiles. The roster profile additionally
 requires an explicit `possessions` total; the reference profile publishes per-100 rates but no
-possession total. The scalar contract rejects negative possession totals, and roster semantic
-validation requires the denominator to be strictly positive.
+possession total. The scalar contract rejects negative minutes and possession totals, and roster
+semantic validation requires both denominators to be strictly positive.
 
 The shared catalog includes all seven derivable percentages and per-game rates that the current
 reference schema still lacks. They remain in the alignment ledger until US-017 populates and
@@ -194,8 +198,8 @@ Reference-only files and content:
 
 - season context and source-only observations declared as `player_stats.csv` profile extensions;
 - `player_source_ids.csv` for source reconciliation;
-- `sources.csv` for source type, filename, hash, adapter version, upstream version, row count,
-  processing timestamp, and license status;
+- `sources.csv` for source type, filename, hash, positive adapter version, upstream version,
+  nonnegative row count, processing timestamp, and license status;
 - `audit.json` for deterministic reconciliation and publication audit details; and
 - reference manifest fields for inputs, provenance, and audit identity.
 
