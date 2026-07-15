@@ -81,6 +81,9 @@ Use the workflow in
   the pull request a concise title and a body covering scope, motivation, impact, and validation.
 - Link the ready pull request from applicable story completion notes. Never include unrelated
   working-tree changes merely to complete a handoff.
+- After a pushed change fully addresses a pull-request review thread, reply in that thread with a
+  brief summary of the fix and relevant validation, then resolve the thread. Leave partially
+  addressed or ambiguous feedback open and state what remains.
 
 ## Data and licensing
 
