@@ -5,6 +5,9 @@ paths:
   source_registry: reference_data/registry/sources.json
   reference_package_dir: reference_data/packages/reference-v2
 
+# Standalone legacy `reference-data build` settings. Normalized `publish` includes every canonical
+# player-season from registered inputs and does not apply this season list, comparison season, or
+# weights.
 reference:
   seasons: [2021, 2022, 2023, 2024, 2025, 2026]
   comparison_season: 2026

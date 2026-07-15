@@ -326,6 +326,25 @@ its completion notes.
   selector an explicit label that delimits the display name and humanizes its tier identifier while
   retaining the same readable tier in the visible interface.
 
+### 2026-07-14 — implementation alignment
+
+- A documented API maximum is not enforced merely because the default configuration uses it. Apply
+  contract ceilings when settings are constructed so alternate YAML, `dataclasses.replace`, and
+  embedded callers cannot expand one API version beyond its validated response and performance
+  bounds.
+- Pins and selected preview players share the same numerical maximum but are different endpoint
+  concepts. Give each its own setting, and provide an explicit inheritance rule for older
+  configuration rather than retaining accidental coupling in service logic.
+- Implement compatibility defaults at the shared settings-construction boundary. A fallback only in
+  a YAML parser leaves exported direct constructors with different behavior and can silently broaden
+  a caller's previously narrower limit.
+- A shared configuration file can safely support current and standalone legacy commands only when
+  each command's settings are labeled. Otherwise an unused season filter can look like current
+  normalized-publication policy.
+- Duplicated third-party prose can retain stale implementation claims after the tracked source
+  manifest and data-boundary documentation have become authoritative. Remove the duplicate rather
+  than preserving contradictory roadmap text.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:
