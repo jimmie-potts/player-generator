@@ -144,6 +144,41 @@ def _text(value: object, context: str) -> str:
     return value
 
 
+def _validate_profile_csv_rule_value(
+    property_name: str,
+    value: object,
+    context: str,
+) -> None:
+    if property_name in {"delimiter", "quoteCharacter"}:
+        if (
+            not isinstance(value, str)
+            or len(value) != 1
+            or not value.isprintable()
+        ):
+            raise ContractValidationError(
+                f"{context} must be exactly one non-control character"
+            )
+        return
+    if property_name == "quoting":
+        if value not in {"minimal", "all", "nonnumeric"}:
+            raise ContractValidationError(
+                f"{context} must be a supported CSV quoting mode"
+            )
+        return
+    if property_name == "doubleQuoteEscaping" and value is not True:
+        raise ContractValidationError(
+            f"{context} must be true while version 1 has no escape-character rule"
+        )
+    if property_name == "nullEncoding":
+        if not isinstance(value, str):
+            raise ContractValidationError(f"{context} must be text")
+        return
+    if isinstance(_CSV_RULES.get(property_name), str) or property_name == (
+        "numericSerializationDescription"
+    ):
+        _text(value, context)
+
+
 def _text_list(value: object, context: str) -> list[str]:
     items = list(_sequence(value, context))
     if any(not isinstance(item, str) or not item for item in items):
@@ -266,7 +301,7 @@ def _validate_pattern(value: object, *, field_type: str, context: str) -> None:
         raise ContractValidationError(f"{context} pattern requires a string field")
     try:
         re.compile(value)
-    except re.error as error:
+    except (re.error, OverflowError) as error:
         raise ContractValidationError(f"{context} pattern is invalid: {error}") from error
 
 
@@ -476,10 +511,10 @@ def _validate_relationship_declarations(
             raise ContractValidationError(f"{context} repeats relationship {name!r}")
         seen_names.add(name)
         kind = relationship.get("kind")
-        if kind == "foreignKey":
+        if kind in ("foreignKey", "valueExists"):
             if set(relationship) != {"name", "kind", "from", "to"}:
                 raise ContractValidationError(
-                    f"{context} relationship {name} has invalid foreign-key fields"
+                    f"{context} relationship {name} has invalid {kind} fields"
                 )
             source_file, source_fields = _relationship_side(
                 relationship.get("from"),
@@ -516,6 +551,13 @@ def _validate_relationship_declarations(
                 raise ContractValidationError(
                     f"{context} relationship {name} source fields must be required and "
                     f"non-nullable: {', '.join(nullable_source_fields)}"
+                )
+            if kind == "foreignKey" and target_fields not in {
+                tuple(unique_key) for unique_key in unique_keys_by_file[target_file]
+            }:
+                raise ContractValidationError(
+                    f"{context} relationship {name} target columns must be a declared "
+                    f"unique key for {target_file}"
                 )
             participating_fields.update(
                 (source_file, field_name) for field_name in source_fields
@@ -580,7 +622,7 @@ def _validate_relationship_declarations(
                 )
         else:
             raise ContractValidationError(
-                f"{context} relationship {name} has unsupported kind {kind!r}"
+                f"{context} relationship {name} has unsupported kind {_safe_repr(kind)}"
             )
     return participating_fields
 
@@ -896,7 +938,7 @@ def _validate_profile_definition(
         )
         try:
             re.compile(pattern)
-        except re.error as error:
+        except (re.error, OverflowError) as error:
             raise ContractValidationError(
                 f"{context} field constraint {index} pattern is invalid: {error}"
             ) from error
@@ -1048,12 +1090,20 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
     declared_gaps: list[Mapping[str, Any]] = []
     seen_gap_coordinates: set[tuple[str, str, str, str]] = set()
     seen_csv_gap_coordinates: set[tuple[str, str]] = set()
+    effective_csv_rules_by_profile: dict[str, dict[str, object]] = {
+        profile_name: dict(csv_rules) for profile_name in _PROFILE_NAMES
+    }
     for index, raw_gap in enumerate(
         _sequence(contract.get("declaredAlignmentGaps"), "Player data declaredAlignmentGaps"),
         start=1,
     ):
         gap = _mapping(raw_gap, f"Player data alignment gap {index}")
         kind = gap.get("kind")
+        if not isinstance(kind, str):
+            raise ContractValidationError(
+                f"Player data alignment gap {index} has unsupported kind "
+                f"{_safe_repr(kind)}"
+            )
         required_keys = {"kind", "profile", "rationale", "followUp"}
         if kind != "profileCsvRules":
             required_keys.add("file")
@@ -1115,6 +1165,10 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
                         raise ContractValidationError(
                             f"{value_context} has an invalid absence marker"
                         )
+                    effective_csv_rules_by_profile[str(profile_name)].pop(
+                        property_name,
+                        None,
+                    )
                 else:
                     target_value = csv_rules[property_name]
                     if type(value) is not type(target_value):
@@ -1122,8 +1176,12 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
                             f"{value_context} must use the same JSON scalar type as "
                             "the family CSV rule"
                         )
-                    if property_name == "numericSerializationDescription":
-                        _text(value, value_context)
+                    _validate_profile_csv_rule_value(
+                        property_name,
+                        value,
+                        value_context,
+                    )
+                    effective_csv_rules_by_profile[str(profile_name)][property_name] = value
                 coordinate = (str(profile_name), property_name)
                 if coordinate in seen_csv_gap_coordinates:
                     raise ContractValidationError(
@@ -1134,7 +1192,9 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
             declared_gaps.append(gap)
             continue
 
-        file_name = gap.get("file")
+        file_name = _text(
+            gap.get("file"), f"Player data alignment gap {index} file"
+        )
         if file_name not in shared_columns:
             raise ContractValidationError(
                 f"Player data alignment gap {index} references an unknown file"
@@ -1195,6 +1255,19 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
                 )
         declared_gaps.append(gap)
 
+    for profile_name, values in effective_csv_rules_by_profile.items():
+        delimiter = values.get("delimiter", _MISSING)
+        quote_character = values.get("quoteCharacter", _MISSING)
+        if (
+            delimiter is not _MISSING
+            and quote_character is not _MISSING
+            and delimiter == quote_character
+        ):
+            raise ContractValidationError(
+                f"Player data profile {profile_name} current delimiter and "
+                "quoteCharacter must be different"
+            )
+
     current_shared_columns = _validate_gap_current_definitions(
         declared_gaps, shared_columns
     )
@@ -1248,7 +1321,9 @@ def load_player_data_contract(
         or not isinstance(version, int)
         or version != PLAYER_DATA_CONTRACT_VERSION
     ):
-        raise ContractValidationError(f"Unsupported player data contract version: {version}")
+        raise ContractValidationError(
+            f"Unsupported player data contract version: {_safe_repr(version)}"
+        )
     contract = _load_resource(_FAMILY_SCHEMA_NAME, label="player data contract version 1")
     validate_player_data_contract_family(contract)
     return contract

@@ -65,6 +65,20 @@ def test_formula_contract_rejects_forward_version() -> None:
         load_formula_contract(version=2)
 
 
+@pytest.mark.parametrize("version", [True, 1.0])
+def test_formula_contract_safely_rejects_non_integer_versions(version: object) -> None:
+    with pytest.raises(ContractValidationError, match="Unsupported formula contract version"):
+        load_formula_contract(version=version)  # type: ignore[arg-type]
+
+
+def test_formula_contract_safely_rejects_oversized_versions() -> None:
+    with pytest.raises(
+        ContractValidationError,
+        match="Unsupported formula contract version: <int outside supported representation>",
+    ):
+        load_formula_contract(version=10**5000)
+
+
 def test_formula_contract_rejects_packaged_resource_version_drift(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

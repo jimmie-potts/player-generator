@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from importlib.resources import files
 from typing import Any, Final
 
-from player_data_contracts.validation import ContractValidationError
+from player_data_contracts.validation import ContractValidationError, safe_repr
 
 FORMULA_CONTRACT_VERSION: Final = 1
 
@@ -29,8 +29,10 @@ def load_formula_contract(
     version: int = FORMULA_CONTRACT_VERSION,
 ) -> dict[str, Any]:
     """Load the machine-readable structural contract for formula documents."""
-    if version != FORMULA_CONTRACT_VERSION:
-        raise ContractValidationError(f"Unsupported formula contract version: {version}")
+    if type(version) is not int or version != FORMULA_CONTRACT_VERSION:
+        raise ContractValidationError(
+            f"Unsupported formula contract version: {safe_repr(version)}"
+        )
 
     resource = files("player_data_contracts").joinpath(_FORMULA_SCHEMA_NAME)
     try:

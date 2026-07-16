@@ -113,6 +113,10 @@ def _valid_tables() -> dict[str, list[dict[str, object]]]:
     }
 
 
+def _empty_tables() -> dict[str, list[dict[str, object]]]:
+    return {file_name: [] for file_name in _headers()}
+
+
 def _write_package(path: Path, tables: dict[str, list[dict[str, object]]]) -> None:
     path.mkdir()
     for file_name, rows in tables.items():
@@ -218,6 +222,23 @@ def test_other_reference_contract_versions_are_rejected(version: object) -> None
         load_reference_contract(version)  # type: ignore[arg-type]
 
 
+def test_oversized_reference_contract_versions_are_safely_rejected() -> None:
+    oversized_version = 10**5000
+    with pytest.raises(
+        ContractValidationError,
+        match="Unsupported reference contract version: <int outside supported representation>",
+    ):
+        load_reference_contract(oversized_version)
+
+    contract = load_reference_contract()
+    contract["contractVersion"] = oversized_version
+    with pytest.raises(
+        ContractValidationError,
+        match="Unsupported reference contract version: <int outside supported representation>",
+    ):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+
 def test_valid_unicode_rows_and_optional_empty_values_are_accepted(tmp_path: Path) -> None:
     tables = _valid_tables()
     validate_reference_tables(tables)
@@ -225,6 +246,41 @@ def test_valid_unicode_rows_and_optional_empty_values_are_accepted(tmp_path: Pat
     package_dir = tmp_path / "reference-package"
     _write_package(package_dir, tables)
     validate_reference_package(package_dir)
+
+
+def test_package_rejects_non_lf_line_endings(tmp_path: Path) -> None:
+    package_dir = tmp_path / "reference-package"
+    _write_package(package_dir, _valid_tables())
+    players_path = package_dir / "players.csv"
+    players_path.write_bytes(players_path.read_bytes().replace(b"\n", b"\r\n"))
+
+    with pytest.raises(ContractValidationError, match=r"players\.csv must use LF"):
+        validate_reference_package(package_dir)
+
+
+def test_package_requires_a_final_lf_line_ending(tmp_path: Path) -> None:
+    package_dir = tmp_path / "reference-package"
+    _write_package(package_dir, _valid_tables())
+    players_path = package_dir / "players.csv"
+    players_path.write_bytes(players_path.read_bytes().removesuffix(b"\n"))
+
+    with pytest.raises(ContractValidationError, match=r"players\.csv must end with an LF"):
+        validate_reference_package(package_dir)
+
+
+def test_package_rejects_unclosed_csv_quotes(tmp_path: Path) -> None:
+    package_dir = tmp_path / "reference-package"
+    _write_package(package_dir, _valid_tables())
+    sources_path = package_dir / "sources.csv"
+    sources_path.write_bytes(
+        sources_path.read_bytes().replace(
+            b",test-fixture\n",
+            b',"test-fixture\n',
+        )
+    )
+
+    with pytest.raises(ContractValidationError, match=r"Unable to parse sources\.csv"):
+        validate_reference_package(package_dir)
 
 
 def test_integrity_loader_returns_v1_manifest_identity_and_typed_rows(
@@ -324,8 +380,16 @@ def test_tables_reject_missing_required_value() -> None:
     [
         ("players.csv", "playerId", 101, "must be non-empty text"),
         ("players.csv", "draftYear", "2020.5", "must be an integer"),
+        ("players.csv", "draftYear", -1, "must be at least 0"),
+        ("players.csv", "draftRound", -1, "must be at least 0"),
+        ("players.csv", "draftNumber", -1, "must be at least 0"),
         ("players.csv", "birthDate", "April 3", "must be an ISO 8601 date"),
+        ("player_stats.csv", "age", -0.1, "must be at least 0"),
+        ("player_stats.csv", "starts", -1, "must be at least 0"),
+        ("player_stats.csv", "wins", -1, "must be at least 0"),
+        ("player_stats.csv", "losses", -1, "must be at least 0"),
         ("player_stats.csv", "points", math.inf, "must be a finite number"),
+        ("player_attributes.csv", "season", 999, "must be at least 1000"),
         ("player_attributes.csv", "insideScoring", 24, "must be at least 25"),
         ("player_attributes.csv", "overall", 100, "must be at most 99"),
         ("player_attributes.csv", "impactPercentile", 1.1, "must be at most 1"),
@@ -362,6 +426,30 @@ def test_tables_reject_duplicate_unique_key() -> None:
         validate_reference_tables(tables)
 
 
+@pytest.mark.parametrize("field", ["starts", "wins", "losses"])
+def test_reference_game_counts_accept_zero(field: str) -> None:
+    tables = _valid_tables()
+    tables["player_stats.csv"][0][field] = 0
+
+    validate_reference_tables(tables)
+
+
+@pytest.mark.parametrize(
+    ("file_name", "field"),
+    [
+        ("players.csv", "draftYear"),
+        ("players.csv", "draftRound"),
+        ("players.csv", "draftNumber"),
+        ("player_stats.csv", "age"),
+    ],
+)
+def test_reference_identity_numbers_accept_zero(file_name: str, field: str) -> None:
+    tables = _valid_tables()
+    tables[file_name][0][field] = 0
+
+    validate_reference_tables(tables)
+
+
 def test_tables_reject_orphan_player_relationship() -> None:
     tables = _valid_tables()
     tables["player_stats.csv"][0]["playerId"] = "player_missing"
@@ -382,6 +470,189 @@ def test_tables_reject_unregistered_source_type_relationship() -> None:
         match=r"relationship playerSourceTypesReferenceSources.*sourceType",
     ):
         validate_reference_tables(tables)
+
+
+def test_source_type_membership_allows_duplicate_target_values() -> None:
+    tables = _valid_tables()
+    additional_source = copy.deepcopy(tables["sources.csv"][0])
+    additional_source["sourceId"] = "nba_playerstats:second"
+    additional_source["originalFilename"] = "second.parquet"
+    tables["sources.csv"].append(additional_source)
+
+    validate_reference_tables(tables)
+
+
+def test_runtime_rejects_foreign_key_to_nonunique_columns_with_empty_tables() -> None:
+    contract = load_reference_contract()
+    relationship = next(
+        item
+        for item in contract["relationships"]
+        if item["name"] == "playerStatsReferencePlayers"
+    )
+    relationship["to"]["columns"] = ["displayName"]
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"target columns must be a declared unique key for players\.csv",
+    ):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+
+@pytest.mark.parametrize(
+    ("unique_keys", "message"),
+    [
+        ([], "invalid uniqueKeys"),
+        ([[]], "invalid unique key"),
+        ([["playerId", "playerId"]], "invalid unique key"),
+        ([["ghostField"]], "references unknown fields: ghostField"),
+        ([["firstName"]], "must be required and non-nullable"),
+        ([["playerId"], ["playerId"]], "repeats unique key"),
+    ],
+)
+def test_runtime_validates_unique_key_declarations_with_empty_tables(
+    unique_keys: list[list[str]],
+    message: str,
+) -> None:
+    contract = load_reference_contract()
+    contract["files"]["players.csv"]["uniqueKeys"] = unique_keys
+
+    with pytest.raises(ContractValidationError, match=message):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+
+def test_runtime_validates_column_declarations_with_empty_tables() -> None:
+    contract = load_reference_contract()
+    first_name = next(
+        column
+        for column in contract["files"]["players.csv"]["columns"]
+        if column["name"] == "firstName"
+    )
+    first_name["type"] = "bogus"
+    with pytest.raises(ContractValidationError, match="uses unsupported type"):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+
+@pytest.mark.parametrize(
+    ("file_name", "field_name", "enum", "message"),
+    [
+        ("players.csv", "draftYear", ["2020"], "does not match field type integer"),
+        ("players.csv", "draftYear", [2020.0], "does not match field type integer"),
+        ("player_stats.csv", "age", ["27"], "does not match field type number"),
+        (
+            "player_stats.csv",
+            "age",
+            [9_007_199_254_740_993],
+            "does not round-trip through IEEE-754",
+        ),
+    ],
+)
+def test_runtime_validates_enum_member_declarations_with_empty_tables(
+    file_name: str,
+    field_name: str,
+    enum: list[object],
+    message: str,
+) -> None:
+    contract = load_reference_contract()
+    column = next(
+        item
+        for item in contract["files"][file_name]["columns"]
+        if item["name"] == field_name
+    )
+    column["enum"] = enum
+
+    with pytest.raises(ContractValidationError, match=message):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+
+def test_runtime_rejects_oversized_regex_declarations_with_empty_tables() -> None:
+    contract = load_reference_contract()
+    first_name = next(
+        column
+        for column in contract["files"]["players.csv"]["columns"]
+        if column["name"] == "firstName"
+    )
+    first_name["pattern"] = "a{999999999999999999999999999999999999}"
+
+    with pytest.raises(ContractValidationError, match="pattern is invalid"):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+
+@pytest.mark.parametrize(
+    ("property_name", "value", "message"),
+    [
+        ("encoding", False, "encoding must be 'UTF-8'"),
+        ("lineEnding", [], "lineEnding must be 'LF'"),
+        ("lineEnding", "CRLF", "lineEnding must be 'LF'"),
+    ],
+)
+def test_runtime_rejects_unsupported_top_level_csv_rules(
+    property_name: str,
+    value: object,
+    message: str,
+) -> None:
+    contract = load_reference_contract()
+    contract[property_name] = value
+
+    with pytest.raises(ContractValidationError, match=message):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+    contract = load_reference_contract()
+    player_id = contract["files"]["player_stats.csv"]["columns"][1]
+    player_id.pop("type")
+    with pytest.raises(ContractValidationError, match="uses unsupported type"):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+    contract = load_reference_contract()
+    first_name = next(
+        column
+        for column in contract["files"]["players.csv"]["columns"]
+        if column["name"] == "firstName"
+    )
+    first_name["required"] = 0
+    with pytest.raises(
+        ContractValidationError,
+        match="required and nullable must be boolean",
+    ):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+    contract = load_reference_contract()
+    source_type = next(
+        column
+        for column in contract["files"]["player_source_ids.csv"]["columns"]
+        if column["name"] == "sourceType"
+    )
+    source_type["type"] = True
+    with pytest.raises(ContractValidationError, match="uses unsupported type"):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+
+def test_runtime_validates_relationship_declarations_with_empty_tables() -> None:
+    contract = load_reference_contract()
+    relationship = contract["relationships"][0]
+    relationship["from"]["columns"] = ["playerId", "playerId"]
+    with pytest.raises(ContractValidationError, match="invalid from fields"):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+    contract = load_reference_contract()
+    relationship = contract["relationships"][0]
+    relationship["from"]["columns"] = ["ghostField"]
+    with pytest.raises(ContractValidationError, match="unknown from fields"):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+    contract = load_reference_contract()
+    contract["relationships"].append(copy.deepcopy(contract["relationships"][0]))
+    with pytest.raises(ContractValidationError, match="repeats relationship"):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+    contract = load_reference_contract()
+    contract["relationships"][0]["kind"] = []
+    with pytest.raises(ContractValidationError, match="unsupported kind"):
+        validate_reference_tables(_empty_tables(), contract=contract)
+
+    contract = load_reference_contract()
+    contract["relationships"][0]["kind"] = 10**5000
+    with pytest.raises(ContractValidationError, match="unsupported kind"):
+        validate_reference_tables(_empty_tables(), contract=contract)
 
 
 def test_tables_require_one_attribute_row_per_statistics_row() -> None:

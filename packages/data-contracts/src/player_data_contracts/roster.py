@@ -14,7 +14,7 @@ from player_data_contracts.csv_contract import (
     validate_csv_package,
     validate_csv_tables,
 )
-from player_data_contracts.validation import ContractValidationError
+from player_data_contracts.validation import ContractValidationError, safe_repr
 
 ROSTER_CONTRACT_VERSION: Final = 1
 
@@ -31,7 +31,9 @@ def load_roster_contract(version: int = ROSTER_CONTRACT_VERSION) -> dict[str, An
         or not isinstance(version, int)
         or version != ROSTER_CONTRACT_VERSION
     ):
-        raise ContractValidationError(f"Unsupported roster contract version: {version}")
+        raise ContractValidationError(
+            f"Unsupported roster contract version: {safe_repr(version)}"
+        )
 
     resource = files("player_data_contracts").joinpath(_ROSTER_SCHEMA_NAME)
     try:

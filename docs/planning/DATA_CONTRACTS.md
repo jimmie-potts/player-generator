@@ -12,7 +12,8 @@ inventory fixed by [D-035](DECISIONS.md#d-035-current-version-1-package-inventor
 physical representation fixed by
 [D-036](DECISIONS.md#d-036-shared-physical-measurement-representation). Shared advanced-metric
 bounds are fixed by [D-037](DECISIONS.md#d-037-lossless-shared-advanced-metric-bounds), under
-EPIC-08.
+EPIC-08. Relationship identity and membership semantics are fixed by
+[D-039](DECISIONS.md#d-039-relationship-identity-and-membership-semantics).
 The machine-readable schemas, publishers, and readers implement the exact version 1 inventories and
 accept no earlier normalized package layout. The shared contract-family resource now owns the target
 common field definitions, semantic metadata, declared extensions, availability overrides, and CSV
@@ -57,6 +58,11 @@ rules. `validate_player_data_profile_parity()` compares both current profile res
 source and fails for a new discrepancy or a declared discrepancy that no longer exists.
 Each declaration pins the exact temporary value or complete shared order; it does not waive an
 entire field or file from further drift checks.
+Package validation rejects carriage returns, requires every CSV to end with LF, and parses quote
+syntax strictly. Concrete temporary dialect values must also be
+usable CSV tokens: delimiters and quote characters are distinct single non-control characters, and
+quoting uses a supported mode. Other textual conventions remain nonempty except for the deliberately
+empty null encoding.
 
 Every integer `season` is the four-digit year in which the basketball season ends. `2025` means the
 2024-25 season. In the roster profile, this is the statistical-basis season for one generated
@@ -87,7 +93,9 @@ without an explicit rationale and follow-up story. Canonical serializer adoption
 alignment remain US-017 work; the serializer declarations are exact profile CSV-rule gaps rather
 than unlisted differences. A concrete CSV-rule gap value must retain the family rule's JSON scalar
 type, and descriptive text must remain non-empty; matching wrong-typed values in the ledger and flat
-schema fail before parity comparison. D-038 settles roster age, birth-date fallback, and
+schema fail before parity comparison. Coordinated mutations are also validated as a composed CSV
+dialect, so matching but unusable delimiter and quote-character values cannot bypass parity.
+D-038 settles roster age, birth-date fallback, and
 package-scoped player identity without changing either profile's columns.
 
 ## Version 1 profile inventories
@@ -146,7 +154,9 @@ Height and weight are bounded numbers so reference data can preserve fractional 
 generated whole-unit roster values remain valid without rounding or conversion.
 
 Reference-only player fields may include a known source birth date, origin, college, and draft facts
-because they belong to reference identity and provenance. Roster-only `age` remains the version 1
+because they belong to reference identity and provenance. Numeric draft facts are nonnegative;
+current source zero values remain valid until a separate normalization decision classifies their
+sentinel meaning. Roster-only `age` remains the version 1
 basic age field: an optional generated integer snapshot from 18 through 45 owned by player-generator.
 The roster profile does not contain `birthDate`. NBA-GM keeps birth date unknown where possible; if
 one of its own boundaries requires a value, it may apply one configured global default that is not
@@ -180,8 +190,9 @@ small-sample reference observations are not discarded merely because generated r
 occupy a narrower range.
 
 The reference row retains its player-season context directly in `player_stats.csv`, including the
-governed season, team context when unambiguous, age, games, starts, wins, losses, and minutes. These
-values have one authoritative representation rather than a second mutable season-context surface.
+governed season, team context when unambiguous, age, games, starts, wins, losses, and minutes.
+Reference age, `starts`, `wins`, and `losses` are nonnegative when present. These values have one
+authoritative representation rather than a second mutable season-context surface.
 
 ### `player_attributes.csv`
 
@@ -193,6 +204,8 @@ The reference profile may contain empty calculated values when formula eligibili
 do not support them. The roster profile requires complete calculated values for every generated
 player. This availability-based nullability difference is an explicit profile override; it does not
 change field meaning, type, scale, or formula identity.
+The reference key-prefix `season` is the same four-digit ending year used by its statistics row and
+is bounded from 1000 through 9999.
 
 ## Profile extensions
 
@@ -239,7 +252,14 @@ not require a global namespace or cross-project crosswalk.
 
 ## Relationship and conformance requirements
 
-- Every foreign key resolves within its package.
+- Every `foreignKey` targets one exact declared unique key, uses matching ordered scalar types, and
+  resolves within its package.
+- A `valueExists` relationship requires each source tuple to occur in its target columns without
+  claiming that those target columns identify one row. Reference source-type registration uses
+  this membership rule because multiple registered inputs may share one `sourceType`.
+- Key and relationship declarations are validated against the schema independently of row presence,
+  so empty tables cannot hide unknown, duplicate, nullable-key, type-incompatible, or non-key
+  targets.
 - Reference statistics and attribute rows use the same `(playerSeasonId, playerId, season)` key set.
 - Roster `players.csv`, `player_stats.csv`, and `player_attributes.csv` use the exact same unique
   `playerId` set.

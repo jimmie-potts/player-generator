@@ -279,6 +279,14 @@ def test_other_roster_contract_versions_are_rejected(version: object) -> None:
         load_roster_contract(version=version)  # type: ignore[arg-type]
 
 
+def test_oversized_roster_contract_versions_are_safely_rejected() -> None:
+    with pytest.raises(
+        ContractValidationError,
+        match="Unsupported roster contract version: <int outside supported representation>",
+    ):
+        load_roster_contract(version=10**5000)
+
+
 def test_packaged_contract_version_drift_is_rejected(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -148,6 +148,15 @@ can proceed independently without the two player-generator profiles drifting.
 - **2026-07-16:** Follow-up review added scalar validation for concrete profile CSV-rule gap values
   and coordinated ledger-plus-profile mutations. Matching malformed values now fail family
   validation instead of being accepted merely because parity observes no drift.
+- **2026-07-16:** PR review established D-039: true foreign keys now target exact declared unique
+  keys, while registered source-type matching is the explicit `valueExists` membership relationship
+  because multiple source records may share one type. Runtime validation now checks column, key, and
+  relationship declarations even for empty tables. The same pass added nonnegative reference
+  age, draft values, `starts`, `wins`, and `losses`, four-digit reference attribute seasons,
+  composed CSV-dialect validation, strict quote parsing, and LF-only, LF-terminated package checks.
+  Zero draft values remain valid pending a separate sentinel-normalization decision. Focused
+  adversarial mutations cover coordinated ledger changes, malformed declaration types, non-key
+  targets, duplicate membership targets, missing memberships, and empty-table bypasses.
 
 ## Completion notes
 

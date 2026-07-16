@@ -409,6 +409,18 @@ its completion notes.
 - Exercise coordinated mutations at agreement boundaries. One-sided drift tests can pass while a
   ledger and flat schema or runtime agree on the same malformed value; validate each layer's
   semantics before comparing them for parity.
+- Distinguish row identity from value membership in relationship declarations. A foreign key must
+  target a declared unique key; a membership rule such as registered `sourceType` uses an explicit
+  `valueExists` relationship when duplicate target values are legitimate.
+- Validate column, key, and relationship declarations independently of row presence. Empty or
+  null-heavy fixtures must not make an unsupported type, malformed key, or ambiguous foreign-key
+  target appear valid.
+- Validate coordinated format changes as one effective dialect, including target-aligned properties
+  that are not in a gap. Also validate serialized bytes: parsed CSV values alone cannot prove LF-only,
+  LF-terminated output.
+- Bounds require source-domain evidence as well as an intuitively nonnegative unit. Current aggregate
+  reference data includes zero draft ordinals, so a positive bound needs an explicit sentinel
+  normalization decision instead of being folded into an unrelated count fix.
 
 ## Entry format
 
