@@ -84,9 +84,12 @@ validate_roster_package(staged_package_dir)
 `load_formula_contract()` exposes the machine-readable formula version 1 definition; the
 attribute-engine adds the semantic checks that depend on the supported metric vocabulary and
 cross-references within a formula document. Reference validation requires exact ordered CSV headers,
-empty optional values, finite numbers, ISO 8601 dates and timezone-aware timestamps, unique keys,
-player relationships, registered source types, and identical aggregate player-season key sets across
-statistics and attributes. `load_roster_contract()` exposes the version 1 roster-profile definition.
+LF-terminated lines without carriage returns, empty optional values, finite numbers, ISO 8601 dates
+and timezone-aware timestamps,
+declared unique keys, player foreign keys, registered source-type membership, and identical aggregate
+player-season key sets across statistics and attributes. Contract declarations are checked even when
+a table has no rows, and a foreign key must target one declared unique key. `load_roster_contract()`
+exposes the version 1 roster-profile definition.
 Roster validation additionally enforces
 shooting decompositions, points and rebound totals, derived per-game/per-36/per-100 rates,
 percentages, net ratings, advanced-stat relationships, and exact player/key sets.

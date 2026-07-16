@@ -519,3 +519,21 @@ changes one; do not rewrite history without recording the replacement.
   the exact package bytes. Reusing those two existing scopes is deterministic and collision-safe for
   the handoff without adding identity machinery. Keeping age as the source fact also avoids inventing
   a precision the producer does not possess.
+
+## D-039: Relationship identity and membership semantics
+
+- **Status:** accepted
+- **Accepted:** 2026-07-16
+- **Decision:** A `foreignKey` must target exactly one declared unique key, in the declared column
+  order. Its source and target have equal arity and scalar types, its source fields are required and
+  non-nullable, and every source tuple resolves. Use `valueExists` for the same typed, required
+  source-to-target membership check when the target columns do not identify one row. Classify
+  `player_source_ids.sourceType -> sources.sourceType` as `valueExists`; multiple registered inputs
+  may legitimately use the same source type while `sourceId` remains the source-row key.
+- **Validation:** Validate unique-key and relationship declarations against contracted columns
+  independently of row presence. Empty tables therefore cannot hide an empty, duplicate, unknown,
+  nullable, or non-key declaration. Keep exact-key-set validation separate because it compares
+  complete key populations rather than one-way references.
+- **Reason:** Treating every membership rule as a foreign key either permits ambiguous row identity
+  or forces a false uniqueness constraint. Naming the two semantics explicitly keeps relational
+  guarantees honest without preventing multiple registered files from sharing one adapter type.

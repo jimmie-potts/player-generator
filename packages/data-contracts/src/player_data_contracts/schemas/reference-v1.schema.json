@@ -16,9 +16,9 @@
         {"name": "weightPounds", "type": "number", "required": false, "nullable": true},
         {"name": "country", "type": "string", "required": false, "nullable": true},
         {"name": "college", "type": "string", "required": false, "nullable": true},
-        {"name": "draftYear", "type": "integer", "required": false, "nullable": true},
-        {"name": "draftRound", "type": "integer", "required": false, "nullable": true},
-        {"name": "draftNumber", "type": "integer", "required": false, "nullable": true}
+        {"name": "draftYear", "type": "integer", "required": false, "nullable": true, "minimum": 0},
+        {"name": "draftRound", "type": "integer", "required": false, "nullable": true, "minimum": 0},
+        {"name": "draftNumber", "type": "integer", "required": false, "nullable": true, "minimum": 0}
       ],
       "uniqueKeys": [["playerId"]]
     },
@@ -29,11 +29,11 @@
         {"name": "season", "type": "integer", "required": true, "nullable": false},
         {"name": "teamId", "type": "string", "required": false, "nullable": true},
         {"name": "teamAbbreviation", "type": "string", "required": false, "nullable": true},
-        {"name": "age", "type": "number", "required": false, "nullable": true},
+        {"name": "age", "type": "number", "required": false, "nullable": true, "minimum": 0},
         {"name": "games", "type": "integer", "required": false, "nullable": true},
-        {"name": "starts", "type": "integer", "required": false, "nullable": true},
-        {"name": "wins", "type": "integer", "required": false, "nullable": true},
-        {"name": "losses", "type": "integer", "required": false, "nullable": true},
+        {"name": "starts", "type": "integer", "required": false, "nullable": true, "minimum": 0},
+        {"name": "wins", "type": "integer", "required": false, "nullable": true, "minimum": 0},
+        {"name": "losses", "type": "integer", "required": false, "nullable": true, "minimum": 0},
         {"name": "minutes", "type": "number", "required": false, "nullable": true},
         {"name": "fieldGoalsMade", "type": "number", "required": false, "nullable": true},
         {"name": "fieldGoalsAttempted", "type": "number", "required": false, "nullable": true},
@@ -98,7 +98,7 @@
       "columns": [
         {"name": "playerSeasonId", "type": "string", "required": true, "nullable": false},
         {"name": "playerId", "type": "string", "required": true, "nullable": false},
-        {"name": "season", "type": "integer", "required": true, "nullable": false},
+        {"name": "season", "type": "integer", "required": true, "nullable": false, "minimum": 1000, "maximum": 9999},
         {"name": "insideScoring", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
         {"name": "threePointShooting", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
         {"name": "freeThrowShooting", "type": "integer", "required": false, "nullable": true, "minimum": 25, "maximum": 99},
@@ -165,7 +165,7 @@
     },
     {
       "name": "playerSourceTypesReferenceSources",
-      "kind": "foreignKey",
+      "kind": "valueExists",
       "from": {"file": "player_source_ids.csv", "columns": ["sourceType"]},
       "to": {"file": "sources.csv", "columns": ["sourceType"]}
     },

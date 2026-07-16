@@ -11,7 +11,7 @@ from player_data_contracts.csv_contract import (
     validate_csv_package,
     validate_csv_tables,
 )
-from player_data_contracts.validation import ContractValidationError
+from player_data_contracts.validation import ContractValidationError, safe_repr
 
 REFERENCE_CONTRACT_VERSION: Final = 1
 
@@ -28,7 +28,9 @@ def load_reference_contract(
         or not isinstance(version, int)
         or version != REFERENCE_CONTRACT_VERSION
     ):
-        raise ContractValidationError(f"Unsupported reference contract version: {version}")
+        raise ContractValidationError(
+            f"Unsupported reference contract version: {safe_repr(version)}"
+        )
 
     resource = files("player_data_contracts").joinpath(_REFERENCE_SCHEMA_NAME)
     try:
@@ -53,9 +55,13 @@ def load_reference_contract(
 def _declared_contract_version(contract: Mapping[str, Any]) -> int:
     version = contract.get("contractVersion")
     if isinstance(version, bool) or not isinstance(version, int):
-        raise ContractValidationError(f"Unsupported reference contract version: {version!r}")
+        raise ContractValidationError(
+            f"Unsupported reference contract version: {safe_repr(version)}"
+        )
     if version != REFERENCE_CONTRACT_VERSION:
-        raise ContractValidationError(f"Unsupported reference contract version: {version}")
+        raise ContractValidationError(
+            f"Unsupported reference contract version: {safe_repr(version)}"
+        )
     return version
 
 

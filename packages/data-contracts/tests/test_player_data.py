@@ -110,9 +110,28 @@ def test_shared_statistics_catalog_owns_the_final_common_payload() -> None:
     assert roster_extensions["player_stats.csv"][0]["minimum"] == 0
 
 
-def test_minutes_and_source_row_counts_are_nonnegative() -> None:
+def test_nonnegative_and_season_bounds_are_materialized() -> None:
     family = load_player_data_contract()
     minutes = _column(family, "player_stats.csv", "minutes")
+    reference_stats_extensions = {
+        column["name"]: column
+        for column in family["profiles"]["reference"]["extensionColumns"][
+            "player_stats.csv"
+        ]
+    }
+    reference_player_extensions = {
+        column["name"]: column
+        for column in family["profiles"]["reference"]["extensionColumns"][
+            "players.csv"
+        ]
+    }
+    reference_attribute_season = next(
+        column
+        for column in family["profiles"]["reference"]["extensionColumns"][
+            "player_attributes.csv"
+        ]
+        if column["name"] == "season"
+    )
     row_count = next(
         column
         for column in family["profiles"]["reference"]["profileOnlyFiles"][
@@ -125,10 +144,50 @@ def test_minutes_and_source_row_counts_are_nonnegative() -> None:
         for column in load_reference_contract()["files"]["sources.csv"]["columns"]
         if column["name"] == "rowCount"
     )
+    reference_contract = load_reference_contract()
+    flat_reference_stats = {
+        column["name"]: column
+        for column in reference_contract["files"]["player_stats.csv"]["columns"]
+    }
+    flat_reference_players = {
+        column["name"]: column
+        for column in reference_contract["files"]["players.csv"]["columns"]
+    }
+    flat_reference_attribute_season = next(
+        column
+        for column in reference_contract["files"]["player_attributes.csv"]["columns"]
+        if column["name"] == "season"
+    )
 
     assert minutes["minimum"] == 0
     assert row_count["minimum"] == 0
     assert reference_row_count["minimum"] == 0
+    for field_name in ("draftYear", "draftRound", "draftNumber"):
+        assert (
+            reference_player_extensions[field_name]["minimum"]
+            == flat_reference_players[field_name]["minimum"]
+            == 0
+        )
+    assert (
+        reference_stats_extensions["age"]["minimum"]
+        == flat_reference_stats["age"]["minimum"]
+        == 0
+    )
+    for field_name in ("starts", "wins", "losses"):
+        family_column = reference_stats_extensions[field_name]
+        flat_column = flat_reference_stats[field_name]
+        assert family_column["minimum"] == flat_column["minimum"] == 0
+        with pytest.raises(ContractValidationError, match="must be at least 0"):
+            serialize_csv_value(-1, family_column)
+        assert serialize_csv_value(0, family_column) == "0"
+    assert (
+        reference_attribute_season["minimum"],
+        reference_attribute_season["maximum"],
+    ) == (1000, 9999)
+    assert (
+        flat_reference_attribute_season["minimum"],
+        flat_reference_attribute_season["maximum"],
+    ) == (1000, 9999)
     assert {
         gap["profile"]
         for gap in family["declaredAlignmentGaps"]
@@ -161,6 +220,22 @@ def test_roster_v1_keeps_age_and_package_scoped_player_ids() -> None:
 
 def test_current_profiles_match_exact_declared_alignment_ledger() -> None:
     validate_player_data_profile_parity()
+
+
+def test_profile_parity_rejects_relationship_kind_drift() -> None:
+    reference = load_reference_contract()
+    relationship = next(
+        item
+        for item in reference["relationships"]
+        if item["name"] == "playerSourceTypesReferenceSources"
+    )
+    relationship["kind"] = "foreignKey"
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"unexpected issues: relationships:reference",
+    ):
+        validate_player_data_profile_parity(reference_contract=reference)
 
 
 def test_profile_parity_rejects_new_shared_definition_drift() -> None:
@@ -564,7 +639,7 @@ def test_family_rejects_availability_overrides_for_relationship_fields() -> None
     roster["relationships"].append(
         {
             "name": "displayNameRelationshipGuard",
-            "kind": "foreignKey",
+            "kind": "valueExists",
             "from": {"file": "players.csv", "columns": ["displayName"]},
             "to": {"file": "players.csv", "columns": ["displayName"]},
         }
@@ -826,6 +901,138 @@ def test_profile_csv_gaps_require_concrete_descriptions_to_be_non_empty() -> Non
 @pytest.mark.parametrize(
     ("property_name", "current_value"),
     [
+        ("delimiter", ""),
+        ("delimiter", "||"),
+        ("delimiter", "\n"),
+        ("delimiter", "\t"),
+        ("delimiter", "\x00"),
+        ("quoteCharacter", ""),
+        ("quoteCharacter", "''"),
+        ("quoteCharacter", "\r"),
+    ],
+)
+def test_profile_csv_gaps_require_single_character_dialect_tokens(
+    property_name: str,
+    current_value: str,
+) -> None:
+    family = load_player_data_contract()
+    gap = next(
+        item
+        for item in family["declaredAlignmentGaps"]
+        if item["kind"] == "profileCsvRules" and item["profile"] == "roster"
+    )
+    gap["currentValues"][property_name] = current_value
+    roster = load_roster_contract()
+    roster[property_name] = current_value
+
+    with pytest.raises(ContractValidationError, match="must be exactly one"):
+        validate_player_data_profile_parity(family=family, roster_contract=roster)
+
+
+def test_profile_csv_gaps_reject_identical_delimiter_and_quote_character() -> None:
+    family = load_player_data_contract()
+    gap = next(
+        item
+        for item in family["declaredAlignmentGaps"]
+        if item["kind"] == "profileCsvRules" and item["profile"] == "roster"
+    )
+    gap["currentValues"]["delimiter"] = ";"
+    gap["currentValues"]["quoteCharacter"] = ";"
+    roster = load_roster_contract()
+    roster["delimiter"] = ";"
+    roster["quoteCharacter"] = ";"
+
+    with pytest.raises(
+        ContractValidationError,
+        match="delimiter and quoteCharacter must be different",
+    ):
+        validate_player_data_profile_parity(family=family, roster_contract=roster)
+
+
+def test_profile_csv_gaps_compose_target_and_split_dialect_values() -> None:
+    family = load_player_data_contract()
+    gap = next(
+        item
+        for item in family["declaredAlignmentGaps"]
+        if item["kind"] == "profileCsvRules" and item["profile"] == "roster"
+    )
+    gap["properties"].remove("delimiter")
+    gap["currentValues"].pop("delimiter")
+    gap["currentValues"]["quoteCharacter"] = ","
+    roster = load_roster_contract()
+    roster["delimiter"] = ","
+    roster["quoteCharacter"] = ","
+
+    with pytest.raises(
+        ContractValidationError,
+        match="delimiter and quoteCharacter must be different",
+    ):
+        validate_player_data_profile_parity(family=family, roster_contract=roster)
+
+    family = load_player_data_contract()
+    gap = next(
+        item
+        for item in family["declaredAlignmentGaps"]
+        if item["kind"] == "profileCsvRules" and item["profile"] == "roster"
+    )
+    gap["currentValues"]["delimiter"] = ";"
+    gap["properties"].remove("quoteCharacter")
+    gap["currentValues"].pop("quoteCharacter")
+    family["declaredAlignmentGaps"].append(
+        {
+            "kind": "profileCsvRules",
+            "profile": "roster",
+            "properties": ["quoteCharacter"],
+            "currentValues": {"quoteCharacter": ";"},
+            "rationale": "Invalid split dialect declaration.",
+            "followUp": "US-017",
+        }
+    )
+    roster = load_roster_contract()
+    roster["delimiter"] = ";"
+    roster["quoteCharacter"] = ";"
+
+    with pytest.raises(
+        ContractValidationError,
+        match="delimiter and quoteCharacter must be different",
+    ):
+        validate_player_data_profile_parity(family=family, roster_contract=roster)
+
+
+@pytest.mark.parametrize("quoting", ["banana", "none"])
+def test_profile_csv_gaps_reject_unsupported_quoting_modes(quoting: str) -> None:
+    family = load_player_data_contract()
+    gap = next(
+        item
+        for item in family["declaredAlignmentGaps"]
+        if item["kind"] == "profileCsvRules" and item["profile"] == "roster"
+    )
+    gap["currentValues"]["quoting"] = quoting
+    roster = load_roster_contract()
+    roster["quoting"] = quoting
+
+    with pytest.raises(ContractValidationError, match="supported CSV quoting mode"):
+        validate_player_data_profile_parity(family=family, roster_contract=roster)
+
+
+def test_profile_csv_gaps_require_double_quote_escaping() -> None:
+    family = load_player_data_contract()
+    gap = next(
+        item
+        for item in family["declaredAlignmentGaps"]
+        if item["kind"] == "profileCsvRules" and item["profile"] == "roster"
+    )
+    gap["currentValues"]["doubleQuoteEscaping"] = False
+    roster = load_roster_contract()
+    roster["doubleQuoteEscaping"] = False
+
+    with pytest.raises(ContractValidationError, match="no escape-character rule"):
+        validate_player_data_profile_parity(family=family, roster_contract=roster)
+
+
+@pytest.mark.parametrize(
+    ("property_name", "current_value"),
+    [
         ("headerRow", False),
         ("delimiter", ";"),
         ("numericSerializationDescription", "Legacy serializer semantics."),
@@ -956,6 +1163,33 @@ def test_family_rejects_invalid_unique_keys_and_relationships() -> None:
     with pytest.raises(ContractValidationError, match="name must be non-empty text"):
         validate_player_data_contract_family(family)
 
+    family = load_player_data_contract()
+    family["profiles"]["roster"]["relationships"][0]["kind"] = []
+    with pytest.raises(ContractValidationError, match="unsupported kind"):
+        validate_player_data_contract_family(family)
+
+    family = load_player_data_contract()
+    family["profiles"]["roster"]["relationships"][0]["kind"] = 10**5000
+    with pytest.raises(ContractValidationError, match="unsupported kind"):
+        validate_player_data_contract_family(family)
+
+
+def test_family_rejects_untyped_alignment_gap_coordinates() -> None:
+    family = load_player_data_contract()
+    family["declaredAlignmentGaps"][0]["kind"] = []
+    with pytest.raises(ContractValidationError, match="unsupported kind"):
+        validate_player_data_contract_family(family)
+
+    family = load_player_data_contract()
+    file_gap = next(
+        gap
+        for gap in family["declaredAlignmentGaps"]
+        if gap["kind"] != "profileCsvRules"
+    )
+    file_gap["file"] = []
+    with pytest.raises(ContractValidationError, match="file must be non-empty text"):
+        validate_player_data_contract_family(family)
+
 
 def test_family_requires_extension_columns_in_current_order() -> None:
     family = load_player_data_contract()
@@ -1017,7 +1251,7 @@ def test_family_requires_foreign_key_sources_to_be_non_nullable() -> None:
                 "file": "player_stats.csv",
                 "columns": ["teamAbbreviation"],
             },
-            "to": {"file": "players.csv", "columns": ["displayName"]},
+            "to": {"file": "players.csv", "columns": ["playerId"]},
         }
     )
 
@@ -1027,6 +1261,61 @@ def test_family_requires_foreign_key_sources_to_be_non_nullable() -> None:
             r"source fields must be required and non-nullable: "
             r"player_stats\.csv\.teamAbbreviation"
         ),
+    ):
+        validate_player_data_contract_family(family)
+
+
+def test_family_requires_foreign_keys_to_target_declared_unique_keys() -> None:
+    family = load_player_data_contract()
+    relationship = next(
+        item
+        for item in family["profiles"]["reference"]["relationships"]
+        if item["name"] == "playerStatsReferencePlayers"
+    )
+    relationship["to"]["columns"] = ["displayName"]
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"target columns must be a declared unique key for players\.csv",
+    ):
+        validate_player_data_contract_family(family)
+
+
+def test_family_treats_nonunique_source_type_matching_as_value_membership() -> None:
+    family = load_player_data_contract()
+    relationship = next(
+        item
+        for item in family["profiles"]["reference"]["relationships"]
+        if item["name"] == "playerSourceTypesReferenceSources"
+    )
+
+    assert relationship["kind"] == "valueExists"
+    assert family["profiles"]["reference"]["profileOnlyFiles"]["sources.csv"][
+        "uniqueKeys"
+    ] == [["sourceId"]]
+    validate_player_data_contract_family(family)
+
+
+def test_family_requires_composite_foreign_key_target_order_to_match_a_key() -> None:
+    family = load_player_data_contract()
+    family["profiles"]["reference"]["relationships"].append(
+        {
+            "name": "reorderedPlayerSeasonForeignKey",
+            "kind": "foreignKey",
+            "from": {
+                "file": "player_stats.csv",
+                "columns": ["season", "playerId"],
+            },
+            "to": {
+                "file": "player_stats.csv",
+                "columns": ["season", "playerId"],
+            },
+        }
+    )
+
+    with pytest.raises(
+        ContractValidationError,
+        match=r"target columns must be a declared unique key for player_stats\.csv",
     ):
         validate_player_data_contract_family(family)
 
@@ -1041,6 +1330,8 @@ def test_family_requires_exact_key_set_types_to_match() -> None:
         if column["name"] == "season"
     )
     season["type"] = "string"
+    season.pop("minimum")
+    season.pop("maximum")
 
     with pytest.raises(ContractValidationError, match="must have matching scalar types"):
         validate_player_data_contract_family(family)
@@ -1080,6 +1371,21 @@ def test_family_rejects_incoherent_columns_constraints_and_csv_rules() -> None:
     family = load_player_data_contract()
     family["csv"]["headerStyle"] = "snake_case"
     with pytest.raises(ContractValidationError, match="headerStyle must be 'camelCase'"):
+        validate_player_data_contract_family(family)
+
+
+def test_family_rejects_oversized_regex_declarations() -> None:
+    oversized_pattern = "a{999999999999999999999999999999999999}"
+    family = load_player_data_contract()
+    _column(family, "players.csv", "displayName")["pattern"] = oversized_pattern
+    with pytest.raises(ContractValidationError, match="pattern is invalid"):
+        validate_player_data_contract_family(family)
+
+    family = load_player_data_contract()
+    family["profiles"]["roster"]["fieldConstraints"][0][
+        "value"
+    ] = oversized_pattern
+    with pytest.raises(ContractValidationError, match="pattern is invalid"):
         validate_player_data_contract_family(family)
 
 
@@ -1396,7 +1702,7 @@ def test_family_preserves_relationship_only_field_types_across_declared_gaps() -
     family["profiles"]["roster"]["relationships"].append(
         {
             "name": "displayNameRelationshipGuard",
-            "kind": "foreignKey",
+            "kind": "valueExists",
             "from": {"file": "players.csv", "columns": ["displayName"]},
             "to": {"file": "players.csv", "columns": ["displayName"]},
         }
@@ -1520,3 +1826,11 @@ def test_canonical_numeric_serialization_is_shared_across_scalar_inputs() -> Non
 def test_rejects_unsupported_player_data_contract_versions(version: object) -> None:
     with pytest.raises(ContractValidationError, match="Unsupported player data contract version"):
         load_player_data_contract(version)  # type: ignore[arg-type]
+
+
+def test_safely_rejects_oversized_player_data_contract_versions() -> None:
+    with pytest.raises(
+        ContractValidationError,
+        match="Unsupported player data contract version: <int outside supported representation>",
+    ):
+        load_player_data_contract(10**5000)
