@@ -357,6 +357,58 @@ its completion notes.
   removing their semantics.
 - Exact package inventories should reject undeclared files. A single accepted version 1 format is
   clearer than preserving unused internal package history as an apparent public contract.
+- When a final shared contract and current publishers cannot move in the same story, record the
+  difference as a closed machine-readable alignment ledger. Treating missing shared fields as
+  profile extensions would make temporary implementation drift look like permanent architecture.
+- Drift validation should fail both when an undeclared discrepancy appears and when a declared gap
+  disappears. The latter forces the same change that fixes an implementation to remove its stale
+  exception and keeps planning status honest.
+- A temporary exception must pin its exact current value or full order, not only the location of a
+  mismatch. Otherwise a second incompatible change at the already-waived location can pass as the
+  original known gap.
+- Choose the lossless common scalar when profile data differs in precision. A shared numeric
+  physical measurement accepts generated integers while avoiding a fabricated rounding rule for
+  fractional reference values.
+- Validate proposed shared bounds against the private reference corpus using aggregate-only checks.
+  Generated data may occupy a deliberately narrow operating range, but that range must not become a
+  shared schema limit that rejects legitimate calibration rows.
+- Prefer an existing package and persistence boundary over a new global identity system. A
+  package-local player key can pass through unchanged inside a save while `(contentHash, playerId)`
+  supplies source traceability across packages.
+- Keep consumer defaults visibly separate from producer facts. A global fallback can satisfy a
+  downstream non-null constraint, but it must not be derived from coarser data or round-trip as an
+  observed value.
+- Validate combined constraints, not only each property in isolation. Enum members must survive the
+  same bounds, patterns, and canonical temporal normalization used for runtime CSV values.
+- Revalidate the effective profile column after applying a profile constraint. Independently valid
+  shared enums and profile patterns can still compose into a contract with no valid value.
+- Treat structured sentinel values as typed protocol tokens. Equality is insufficient when the host
+  language considers booleans and numbers equal, and numeric enum values must survive the exact
+  IEEE-754 normalization used by CSV serialization.
+- Use recursive type-sensitive equality for JSON protocol values and test uniqueness after canonical
+  serialization. Raw JSON values such as `true` and `1`, including values nested in arrays and
+  objects, may compare equal despite being distinct authored tokens; numeric enum members such as
+  `1` and `1.0` may also serialize identically.
+- Require every authored `number` bound to round-trip through the same IEEE-754 normalization as row
+  values. Exact integer comparison does not make a floating-point bound exact.
+- Compare integer values and bounds as integers. Converting both sides to IEEE-754 can make adjacent
+  integers alias even when the authored bound itself is exactly representable.
+- A temporary gap may not weaken the scalar type of a key or relationship field. Validate protected
+  invariants after all declared gaps are composed, including same-field relationship endpoints.
+- Treat missing profile-level metadata as observable drift. If current publishers have not adopted a
+  final CSV rule, pin its absence explicitly instead of making parity conditional on presence or
+  copying a future declaration into a current schema.
+- Render malformed contract values defensively in validation diagnostics. Even an error message can
+  leak a raw conversion exception when Python formats an oversized integer.
+- A closed contract declaration must materialize coherently: every extension belongs in its current
+  header, and a foreign-key source must be non-nullable unless runtime validation explicitly supports
+  optional relationships.
+
+### 2026-07-16 — US-016
+
+- Exercise coordinated mutations at agreement boundaries. One-sided drift tests can pass while a
+  ledger and flat schema or runtime agree on the same malformed value; validate each layer's
+  semantics before comparing them for parity.
 
 ## Entry format
 

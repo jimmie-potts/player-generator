@@ -8,11 +8,18 @@ one contract family with two publication profiles:
 
 The baseline format is established by
 [D-034](DECISIONS.md#d-034-player-data-contract-version-1-baseline), with its exact current
-inventory fixed by [D-035](DECISIONS.md#d-035-current-version-1-package-inventory), under EPIC-08.
+inventory fixed by [D-035](DECISIONS.md#d-035-current-version-1-package-inventory) and its shared
+physical representation fixed by
+[D-036](DECISIONS.md#d-036-shared-physical-measurement-representation). Shared advanced-metric
+bounds are fixed by [D-037](DECISIONS.md#d-037-lossless-shared-advanced-metric-bounds), under
+EPIC-08.
 The machine-readable schemas, publishers, and readers implement the exact version 1 inventories and
-accept no earlier normalized package layout. US-016 still owns common shared-field definitions,
-declared extension metadata, paired synthetic fixtures, and cross-profile drift tests; US-017 tracks
-the remaining publication validation and completion evidence.
+accept no earlier normalized package layout. The shared contract-family resource now owns the target
+common field definitions, semantic metadata, declared extensions, availability overrides, and CSV
+rules. Its alignment ledger records the remaining differences in the current runtime profile
+schemas. US-016 owns the catalog, declarations, paired synthetic fixtures, and final contract
+decisions; US-017 owns removing the runtime-schema gaps while applying the aligned profile to
+publication behavior.
 
 ## Contract identity
 
@@ -34,20 +41,54 @@ All contracted CSVs use:
 - camelCase headers in an exact governed order;
 - UTF-8 encoding;
 - one header row;
+- comma delimiters with minimal double-quote escaping;
 - LF line endings;
 - an empty cell for a permitted null;
-- locale-independent finite-number serialization; and
+- canonical finite-number serialization using the shortest round-trip significand expanded to plain
+  base-10 notation without an exponent, with no insignificant fractional zeros, no decimal point
+  for integral values, and `0` for negative zero; and
 - stable deterministic row ordering.
 
 Unavailable optional values remain empty. They are never inferred or fabricated without an approved
 rule. Version 1 requires shared fields to use the same name, relative order, scalar representation,
 meaning, null encoding, unit or scale, bounds or enum, primitive or derived classification, and CSV
-formatting in both profiles. US-016 remains in progress until the schemas derive those definitions
-from one source and cross-profile tests enforce them.
+formatting in both profiles. `schemas/player-data-v1.contract.json` is the authored source for those
+rules. `validate_player_data_profile_parity()` compares both current profile resources with that
+source and fails for a new discrepancy or a declared discrepancy that no longer exists.
+Each declaration pins the exact temporary value or complete shared order; it does not waive an
+entire field or file from further drift checks.
 
 Every integer `season` is the four-digit year in which the basketball season ends. `2025` means the
 2024-25 season. In the roster profile, this is the statistical-basis season for one generated
 player; it does not set NBA-GM's league season and may differ between players in the same package.
+
+## Current alignment state
+
+The family resource separates the final shared definition from the current publication state. Its
+closed temporary ledger currently records only these unresolved runtime-schema differences:
+
+- reference `player_stats.csv` does not yet emit the seven shared derived fields
+  `fieldGoalPercentage`, `threePointPercentage`, `freeThrowPercentage`, `pointsPerGame`,
+  `reboundsPerGame`, `assistsPerGame`, and `turnoversPerGame`;
+- reference still orders its two-point totals after `plusMinusPoints`; and
+- the expanded profile resources have not yet adopted the shared integer count types, bounded
+  precision-preserving physical number representation, four-digit season bounds, nonnegative
+  minutes bound, and rate, percentage, frequency, and rating bounds; and
+- both expanded profile schemas declare UTF-8 and LF but still omit the remaining version 1 CSV
+  conventions, including canonical numeric serialization. The ledger pins every omitted rule as
+  absent rather than treating its absence as parity.
+
+Those seven statistics are shared fields, not roster extensions. `possessions` is the only
+roster-only statistics extension. The expanded reference and roster schemas remain authoritative
+for currently runnable packages until the declared work is applied; the ledger prevents that
+temporary state from being mistaken for an accepted contract difference. US-016 remains
+`in_progress` while its fixtures and remaining contract work are completed, and no gap may be added
+without an explicit rationale and follow-up story. Canonical serializer adoption and manifest
+alignment remain US-017 work; the serializer declarations are exact profile CSV-rule gaps rather
+than unlisted differences. A concrete CSV-rule gap value must retain the family rule's JSON scalar
+type, and descriptive text must remain non-empty; matching wrong-typed values in the ledger and flat
+schema fail before parity comparison. D-038 settles roster age, birth-date fallback, and
+package-scoped player identity without changing either profile's columns.
 
 ## Version 1 profile inventories
 
@@ -87,25 +128,34 @@ canonical data.
 The shared content in these files must derive from one definition. Profile-specific key prefixes
 are declared extensions and do not alter the shared field definitions that follow them. New
 player-content fields default to both profiles. A field present in only one profile requires a dated
-decision and an explicit extension declaration. The schema refactor and parity tests that enforce
-this requirement are pending in US-016.
+decision and an explicit extension declaration. The family validator now enforces that closed
+extension set and permits only declared required/null availability overrides. The remaining
+materialized-schema differences are the temporary gaps listed above, not profile extensions.
 
 Parity does not require equal row values, IDs, grains, or complete package inventories. It requires
 the two profiles to agree wherever they represent the same player-data concept.
 
 ### `players.csv`
 
-The shared definition governs `playerId`, display and component names, height, and weight. Reference
-identity and roster identity use separate namespaces even though the key has the same name.
+The shared definition governs `playerId`, display and component names, height, and weight. Each
+profile owns its IDs, and every `playerId` is an opaque key scoped to one package. The roster profile
+retains the existing `player_[0-9a-f]{16}` format; NBA-GM preserves it verbatim within a save instead
+of remapping it.
 
-Reference-only player fields may include birth date, origin, college, and draft facts because they
-belong to reference identity and provenance. Roster-only `age` is a generated snapshot owned by
-player-generator. Age is not converted into an invented birth date, and NBA-GM owns any birth-date
-rule needed by its league model.
+Height and weight are bounded numbers so reference data can preserve fractional precision while
+generated whole-unit roster values remain valid without rounding or conversion.
 
-The version 1 schemas freeze the exact ordered columns, types, null rules, units, and bounds. Shared
-definitions cannot be weakened or reinterpreted by a profile extension; US-016 tracks their final
-cross-profile validation.
+Reference-only player fields may include a known source birth date, origin, college, and draft facts
+because they belong to reference identity and provenance. Roster-only `age` remains the version 1
+basic age field: an optional generated integer snapshot from 18 through 45 owned by player-generator.
+The roster profile does not contain `birthDate`. NBA-GM keeps birth date unknown where possible; if
+one of its own boundaries requires a value, it may apply one configured global default that is not
+derived from `age` and is not represented as observed data.
+
+The version 1 family freezes the exact ordered columns, types, base null rules, meanings, units,
+classifications, and bounds. Shared definitions cannot be weakened or reinterpreted by a profile
+extension. Reference physical-field alignment remains explicitly tracked rather than silently
+accepted as a second definition.
 
 ### `player_stats.csv`
 
@@ -113,12 +163,21 @@ Version 1 publishes traditional totals, rate statistics, and advanced metrics in
 Shared count, percentage, frequency, rating, per-game, per-36, and per-100 fields have one governed
 representation and semantic definition across both profiles. The roster profile additionally
 requires an explicit `possessions` total; the reference profile publishes per-100 rates but no
-possession total.
+possession total. The scalar contract rejects negative minutes and possession totals, and roster
+semantic validation requires both denominators to be strictly positive.
+
+The shared catalog includes all seven derivable percentages and per-game rates that the current
+reference schema still lacks. They remain in the alignment ledger until US-017 populates and
+publishes them; they are never treated as roster-only content.
 
 The reference key prefix is `playerSeasonId,playerId,season`. The roster key prefix is
 `playerId,season`, and each roster player has exactly one statistics row. Makes, attempts, points,
 rebound totals, percentages, and rate fields retain their declared arithmetic relationships.
 Effective field-goal and true-shooting rates permit the mathematically valid range 0–1.5.
+Offensive and defensive ratings are nonnegative with no artificial upper ceiling. Net ratings and
+the dimensionless `playerImpactEstimate` index are unbounded finite values so valid negative and
+small-sample reference observations are not discarded merely because generated roster values
+occupy a narrower range.
 
 The reference row retains its player-season context directly in `player_stats.csv`, including the
 governed season, team context when unambiguous, age, games, starts, wins, losses, and minutes. These
@@ -141,14 +200,14 @@ Reference-only files and content:
 
 - season context and source-only observations declared as `player_stats.csv` profile extensions;
 - `player_source_ids.csv` for source reconciliation;
-- `sources.csv` for source type, filename, hash, adapter version, upstream version, row count,
-  processing timestamp, and license status;
+- `sources.csv` for source type, filename, hash, positive adapter version, upstream version,
+  nonnegative row count, processing timestamp, and license status;
 - `audit.json` for deterministic reconciliation and publication audit details; and
 - reference manifest fields for inputs, provenance, and audit identity.
 
 Roster-only content:
 
-- generated namespace and player-ID scheme;
+- package-scoped deterministic player-ID scheme;
 - deterministic seed and semantic configuration identity;
 - generator identity;
 - consumed reference-package identity; and
@@ -173,6 +232,11 @@ extensions. Creation timestamps are excluded from deterministic content identity
 written atomically only after contract, relationship, semantic, integrity, and identity-boundary
 validation succeeds.
 
+For NBA-GM, `playerId` is preserved as the entity key within one save. The pair
+`(manifest.contentHash, playerId)` identifies the imported source record when provenance or
+cross-package comparison is needed. That pair is not a new serialized player ID, and version 1 does
+not require a global namespace or cross-project crosswalk.
+
 ## Relationship and conformance requirements
 
 - Every foreign key resolves within its package.
@@ -180,10 +244,11 @@ validation succeeds.
 - Roster `players.csv`, `player_stats.csv`, and `player_attributes.csv` use the exact same unique
   `playerId` set.
 - Each roster player has exactly one statistical-basis season and one attribute row.
-- Cross-profile contract tests compare shared ordered fields, types, base null rules and declared
-  overrides, units, bounds, semantic metadata, derivation classifications, and serialization.
-- A one-sided shared-field change, undeclared extension, order change, type change, or formatting
-  difference fails validation.
+- Cross-profile contract tests compare both expanded schemas to the one shared field catalog,
+  including ordered fields, types, base null rules and declared overrides, units, bounds, semantic
+  metadata, derivation classifications, and serialization rules.
+- A one-sided shared-field change, undeclared extension, order change, type change, or constraint
+  change fails unless it exactly matches a declared temporary gap. A stale gap also fails.
 - Paired synthetic fixtures exercise every shared field and prove that common values serialize
   identically. The roster fixture is self-contained so NBA-GM tests do not require a
   player-generator checkout.
@@ -196,6 +261,10 @@ NBA-GM validates and consumes only the roster profile. It converts statistical-b
 canonical `YYYY-YY` keys and owns positions, teams, assignments, contracts, league dates, detailed
 simulation ratings, tendencies, and personality behavior. It does not ingest the reference profile
 or its private extensions.
+
+NBA-GM preserves roster `playerId` values inside each save and owns any optional consumer-only global
+birth-date default. A default must remain distinguishable from observed data and must not be inferred
+from `age`.
 
 ESPN-derived simulation statistics, deeper tracking or play-type metrics, personality traits or
 descriptions, teams, and coaches are outside version 1.
@@ -212,5 +281,7 @@ coachId,firstName,lastName,displayName,teamId,role,birthDate,offensiveSystem,def
 teamId,city,nickname,displayName,abbreviation,conference,division,arenaName,marketSize,prestige,primaryColor,secondaryColor
 ```
 
-Coach ratings and preferences use 0–100. Dates use ISO 8601. Team membership is represented by
-`teamId`, not an embedded roster array. These future contracts are design targets only.
+Coach ratings and preferences use 0–100. Dates use ISO 8601. `teamId` and `coachId` are stable opaque
+nonempty strings unique within their NBA-GM-owned league context; relationships use exact string
+equality. Team membership is represented by `teamId`, not an embedded roster array. These future
+contracts are design targets only, and their population rules are intentionally deferred.

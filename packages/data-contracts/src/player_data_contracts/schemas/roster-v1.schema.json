@@ -23,7 +23,7 @@
         {"name": "season", "type": "integer", "required": true, "nullable": false, "minimum": 1},
         {"name": "games", "type": "integer", "required": true, "nullable": false, "minimum": 1},
         {"name": "minutes", "type": "number", "required": true, "nullable": false},
-        {"name": "possessions", "type": "number", "required": true, "nullable": false},
+        {"name": "possessions", "type": "number", "required": true, "nullable": false, "minimum": 0},
         {"name": "fieldGoalsMade", "type": "integer", "required": true, "nullable": false, "minimum": 0},
         {"name": "fieldGoalsAttempted", "type": "integer", "required": true, "nullable": false, "minimum": 0},
         {"name": "twoPointersMade", "type": "integer", "required": true, "nullable": false, "minimum": 0},

@@ -1,8 +1,8 @@
 # NBA-GM MVP player data contract version 1
 
 This document is the portable version 1 handoff for the NBA-GM agent. It records the agreed baseline
-and proposes NBA-GM review and implementation stories. NBA-GM should reconcile the proposed IDs and
-dependencies with its own roadmap before starting them.
+and proposes NBA-GM review and implementation stories. NBA-GM should apply the accepted age and ID
+rules below and reconcile the proposed story dependencies with its own roadmap before starting them.
 
 [DATA_CONTRACTS.md](DATA_CONTRACTS.md) is the normative version 1 baseline. The player-generator
 schemas, publishers, and readers use its two profiles; US-016 and US-017 are recording final
@@ -31,11 +31,13 @@ player_attributes.csv
 
 NBA-GM consumes only the roster profile. Within player-generator, the corresponding reference
 `players.csv`, `player_stats.csv`, and `player_attributes.csv` files are required to derive shared
-fields and formatting from the same contract definitions; US-016 still owns that schema refactor
-and its parity tests. Both version 1 profiles publish advanced metrics in `player_stats.csv`, while
-reference season context remains a reference-only extension. Reference-only source IDs, provenance,
-reconciliation, and audit data remain behind the reference boundary and are not added to the NBA-GM
-handoff.
+fields and formatting from the same authored family resource. The parity validator now rejects any
+profile difference outside its closed temporary alignment ledger. US-016 remains in progress for
+paired fixtures and final contract evidence; US-017 resolves the pinned profile-schema field,
+order, type, and bound gaps as publication adopts the shared definitions. Both version 1 profiles
+publish advanced metrics in `player_stats.csv`, while reference season context remains a
+reference-only extension. Reference-only source IDs, provenance, reconciliation, and audit data
+remain behind the reference boundary and are not added to the NBA-GM handoff.
 
 ## Ownership baseline
 
@@ -47,27 +49,37 @@ handoff.
 | Integer statistical season-ending year | player-generator |
 | Package integrity and deterministic conformance fixture | player-generator |
 | Conversion from `2025` to NBA-GM season key `2024-25` | NBA-GM adapter |
-| NBA-GM ID namespace or remapping policy | Joint contract decision; NBA-GM integration |
-| Birth date, positions, teams, assignments, and roster status | NBA-GM |
+| Preserve roster `playerId` within a save; use package content hash for source scope | NBA-GM adapter and persistence |
+| Optional consumer-only global birth-date default, positions, teams, assignments, and roster status | NBA-GM |
 | Contracts, picks, staff, rules, starting season, and league dates | NBA-GM |
 | Simulation-specific ratings and tendencies | NBA-GM rating transformation |
 | Structured personality defaults required by the MVP | NBA-GM |
 | ESPN-derived simulation statistics, deeper metrics, and personality descriptions | Deferred |
 
-Age must not be silently converted into an invented exact birth date. Likewise, player-generator
-attributes on the configured 25-99 scale are model outputs, not automatic equivalents of NBA-GM's
-broader ratings merely because their numeric ranges overlap.
+`age` is the version 1 basic age field. The roster contains no `birthDate`. NBA-GM should keep the
+date unknown where possible; if one of its boundaries requires a non-null value, it may use one
+configured global default. That default is consumer-supplied, never derived from `age`, and never
+treated as an observed fact. Likewise, player-generator attributes on the configured 25-99 scale are
+model outputs, not automatic equivalents of NBA-GM's broader ratings merely because their numeric
+ranges overlap.
+
+Roster IDs remain deliberately simple. NBA-GM preserves the existing `player_[0-9a-f]{16}` value as
+its player key within one save. The tuple `(manifest.contentHash, playerId)` identifies the source
+record when package provenance matters. No ID remapping, global UUID namespace, or crosswalk is part
+of version 1. Future `teamId` and `coachId` values are stable opaque strings unique within their
+NBA-GM-owned league context and use exact string joins.
 
 ## Cross-project contract artifacts
 
 The US-016 handoff provides NBA-GM with:
 
-- the exact machine-readable schemas and accepted version 1 contract identity;
+- the authored machine-readable family catalog, exact roster schema, and accepted version 1
+  contract identity;
 - ordered headers, types, null rules, ranges, units, and primitive or derived classifications;
 - one fully synthetic golden package with pinned file and content hashes;
 - an expected joined player record;
-- explicit decisions for package namespace, player-ID handling, age/effective-date interpretation,
-  and the disposition of every version 1 field.
+- the accepted package-scoped player-ID handling and age/birth-date fallback rules, plus the
+  disposition of every version 1 field.
 
 NBA-GM should keep the synthetic fixture self-contained so its tests do not require a
 player-generator checkout. The paired reference fixture and cross-profile parity tests remain
@@ -132,8 +144,9 @@ projects can implement against the same semantics in parallel.
   frequency, percentage, and advanced metrics.
 - Compare the semantic role and scale of every player-generator attribute with NBA-GM's rating
   model; do not accept a numeric-only mapping.
-- Resolve ownership for IDs, age and birth date, positions, assignments, teams, contracts,
-  tendencies, personality defaults, and league context.
+- Confirm the accepted pass-through player-ID scope and `age`/consumer-default birth-date rules, and
+  resolve ownership for positions, assignments, teams, contracts, tendencies, personality defaults,
+  and league context.
 - Record that the player-only package is an input to league assembly, not a complete
   `LeagueImportDto`.
 - Record accepted choices in NBA-GM architecture, import, rating-generator, epic, and decision
@@ -216,6 +229,8 @@ invalid or tampered input cannot reach domain or save-creation code.
 - Validate encoding, exact ordered headers, scalar types, required and null rules, enums, bounds,
   and finite numbers.
 - Require unique IDs and the exact same player set across players, statistics, and attributes.
+- Preserve each roster `playerId` verbatim in the normalized result; use the manifest content hash
+  separately when source-package identity is needed rather than rewriting the player key.
 - Require exactly one statistics and one attribute row per MVP player.
 - Normalize the statistics season through the one converter from NGM-PG-002.
 - Return stable issues with severity, code, file, row, column, message, and a useful fix when
@@ -274,8 +289,11 @@ it can create a playable, traceable save without assigning responsibilities to t
   NBA-GM-owned teams, positions, assignments, roster statuses, contracts, staff, picks, rules, and
   league dates.
 - Keep the CSV adapter from inventing missing context.
-- Follow the accepted age-to-birth-date and ID namespace rules; never fabricate an exact birth date
-  from age alone without an approved deterministic policy.
+- Preserve imported `age`. Keep `birthDate` unknown when supported or apply the one documented
+  NBA-GM global default when a non-null consumer boundary requires it; never derive a date from age
+  or represent the default as observed data.
+- Preserve `playerId` inside the save. Use `(package content hash, playerId)` only for imported-source
+  traceability, not as a rewritten domain ID.
 - Return typed blocking issues for missing required context before save creation.
 - Produce the complete normalized league DTO and use the existing atomic save-creation boundary.
 - Retain the imported basic statistics in save-owned observation or history records rather than

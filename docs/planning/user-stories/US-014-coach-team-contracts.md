@@ -14,8 +14,10 @@ work has stable integration targets.
 - Define and version machine-readable contracts for `coaches.csv` and `teams.csv` using the headers
   in [DATA_CONTRACTS.md](../DATA_CONTRACTS.md).
 - Document required and optional fields, types, uniqueness, enums, nullability, and relationships.
-- Use stable `coachId` and `teamId` values; reference team membership through `teamId` rather than
-  embedded roster arrays.
+- Use stable opaque nonempty `coachId` and `teamId` values that are unique within their NBA-GM-owned
+  league context and joined by exact string equality; do not require a global namespace, UUIDs, or a
+  cross-project crosswalk. Reference team membership through `teamId` rather than embedded roster
+  arrays.
 - Use ISO 8601 dates and 0–100 coach ratings or preference scales.
 - Define supported coach roles and the meaning of system, pace, rotation, market, and prestige
   fields without inventing population rules.

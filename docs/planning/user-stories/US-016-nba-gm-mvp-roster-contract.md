@@ -43,19 +43,22 @@ can proceed independently without the two player-generator profiles drifting.
 - Preserve the possession basis and statistical identities in D-018, D-019, and D-021.
 - Define the manifest's exact file inventory, contract identifiers, generator and ID-scheme
   identity, row counts, hashes, formula metadata, reference-package hash, seed, configuration hash,
-  and aggregate content hash. Define a deterministic package namespace or equivalent ID input so
-  materially different same-seed packages do not silently reuse player IDs.
-- Resolve and document the `age` and effective-date interpretation at the handoff. NBA-GM-owned
-  fields such as `birthDate`, position, league assignment, contracts, and simulation-specific
-  ratings must have an explicit owner and must not be silently fabricated by this contract.
+  and aggregate content hash. Keep the existing package-scoped `player_[0-9a-f]{16}` IDs, require
+  NBA-GM to preserve them within a save, and use `(manifest.contentHash, playerId)` when imported
+  source identity must distinguish materially different packages.
+- Keep optional integer `age` as the version 1 basic age snapshot and omit `birthDate` from the roster
+  profile. NBA-GM may use one configured global birth-date default only when its own non-null boundary
+  requires it; the default is not derived from age or represented as observed data. NBA-GM-owned
+  fields such as position, league assignment, contracts, and simulation-specific ratings must have
+  an explicit owner and must not be silently fabricated by this contract.
 - Resolve the shared statistics payload so both profiles represent shared counts, `games`,
   `minutes`, percentages, and rates consistently. Keep the roster's explicit `possessions` total as
   a declared extension and reference season context in `player_stats.csv` so each governed value
   has one authoritative representation.
 - Define a common manifest envelope for contract family, version, profile, file row counts and
   hashes, formula identity, and aggregate content identity while keeping package identity separate.
-  Declare reference provenance and audit metadata and roster generator, namespace, ID-scheme, seed,
-  configuration, and reference-package identity as profile extensions.
+  Declare reference provenance and audit metadata and roster generator, package-scoped ID scheme,
+  seed, configuration, and reference-package identity as profile extensions.
 - Publish a fully synthetic, redistributable golden package with known hashes and at least one
   expected joined player record for cross-repository conformance.
 - Publish paired synthetic reference- and roster-profile fixtures that exercise every shared field
@@ -98,6 +101,53 @@ can proceed independently without the two player-generator profiles drifting.
   profiles. Reference season context and advanced metrics are columns in `player_stats.csv`; the
   reference profile contains five CSVs plus audit and manifest, and the roster profile contains three
   CSVs plus manifest. Runtime and conformance validation remain active before completion.
+- **2026-07-15:** Added the authored `player-data-v1.contract.json` family catalog for shared ordered
+  fields, scalar targets, meanings, units, classifications, CSV rules, profile-only extensions, and
+  availability overrides. Added parity validation that requires the current flat profile schemas to
+  match the catalog's closed temporary gap ledger exactly. The ledger keeps seven missing reference
+  derived fields, one order discrepancy, and current type/bound discrepancies visible without
+  misclassifying them as profile extensions or starting US-017 publication changes. Paired fixtures,
+  common manifest conformance and paired fixture work remain before US-016 completion. US-017 owns
+  removing the pinned runtime-schema gaps while adopting the aligned publication contract.
+- **2026-07-15:** Accepted D-036 so shared height and weight use bounded numbers rather than forcing
+  fractional reference measurements through a lossy integer conversion. Pinned the exact current
+  value and full order for every temporary schema gap, froze an exponent-free cross-language numeric
+  serialization rule, and added machine-readable derivations for the possession, assist-ratio,
+  turnover, and shooting-efficiency identities in D-018, D-019, and D-021.
+- **2026-07-15:** Accepted D-037 after checking the target bounds against the current ignored
+  reference corpus without publishing source rows. Widened shared offensive/defensive and net-rating
+  domains and allowed negative `playerImpactEstimate` values so later schema alignment does not
+  filter or clamp valid calibration observations. Narrower current roster bounds remain exact pinned
+  US-017 gaps rather than profile-specific redefinitions.
+- **2026-07-15:** Accepted D-038 without changing the emitted roster shape. `age` remains the basic
+  optional integer snapshot and roster `birthDate` remains absent. NBA-GM preserves the existing
+  player ID inside a save and uses the manifest content hash alongside it only for source-package
+  traceability. Future team and coach IDs remain simple opaque league-context keys; no global
+  namespace, remapping layer, UUID migration, or crosswalk was introduced.
+- **2026-07-15:** PR review hardened the authored family against five impossible or incomplete
+  declarations: enum members now satisfy their active bounds and patterns and use runtime-canonical
+  temporal forms; every extension must appear in its current header; foreign-key sources must be
+  required and non-nullable; and roster `possessions` is structurally nonnegative while retaining its
+  stricter positive-denominator semantic rule. Focused mutation tests cover every review case.
+- **2026-07-15:** Follow-up review made absence markers strict boolean protocol tokens, revalidated
+  each effective shared column after applying a profile pattern constraint, and rejected `number`
+  enum members that cannot round-trip through the contract's IEEE-754 CSV normalization. Focused
+  regressions cover numeric lookalike markers, shared-enum/profile-pattern conflicts, and the exact
+  representability boundary.
+- **2026-07-15:** Latest review added nonnegative shared minutes and reference source-row-count
+  bounds, exact integer-bound comparison without float aliasing, protected key and relationship
+  types across temporary gaps, and exact absent-value ledger entries for every final CSV convention
+  not yet declared by the current profile schemas. The patch deliberately leaves canonical
+  publisher adoption and both current minutes-schema gaps to US-017.
+- **2026-07-15:** The pre-push adversarial pass closed five adjacent gaps: CSV booleans now compare
+  type-strictly, `number` bounds round-trip through IEEE-754, enum members remain unique after CSV
+  serialization, adapter versions are positive, and oversized integer inputs fail with contract
+  errors rather than raw conversion exceptions. A final recursive comparison pass also rejects
+  boolean and numeric lookalikes inside profile structures and safely renders oversized malformed
+  metadata in validation diagnostics.
+- **2026-07-16:** Follow-up review added scalar validation for concrete profile CSV-rule gap values
+  and coordinated ledger-plus-profile mutations. Matching malformed values now fail family
+  validation instead of being accepted merely because parity observes no drift.
 
 ## Completion notes
 

@@ -331,6 +331,8 @@ def test_tables_reject_missing_required_value() -> None:
         ("player_attributes.csv", "impactPercentile", 1.1, "must be at most 1"),
         ("player_attributes.csv", "talentTier", "bench", "must be one of"),
         ("sources.csv", "sha256", "not-a-hash", "must be a lowercase"),
+        ("sources.csv", "adapterVersion", 0, "must be at least 1"),
+        ("sources.csv", "rowCount", -1, "must be at least 0"),
         (
             "sources.csv",
             "processedAt",

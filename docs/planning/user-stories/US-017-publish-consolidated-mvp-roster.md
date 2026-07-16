@@ -31,9 +31,11 @@ to evolve together.
 - Preserve controlled mutation and every governed statistical consistency check.
 - Emit `season` as the statistical season-ending year and preserve the distinction from NBA-GM
   league context.
-- Implement the manifest, deterministic package namespace, generator identity, and player-ID rules
-  completed by US-016. Update exact-file validation, row counts, hashes, contract identifiers, and
-  aggregate content hashing for the consolidated package.
+- Preserve the existing deterministic `player_[0-9a-f]{16}` IDs as package-scoped keys and implement
+  the manifest and generator identity rules completed by US-016. Keep aggregate content identity
+  separate so consumers can pair it with `playerId` for source traceability without rewriting player
+  keys. Update exact-file validation, row counts, hashes, and contract identifiers for the
+  consolidated package.
 - Implement the common manifest envelope and declared profile extensions from US-016 in both
   publishers. Update the roster generator and preview API reference-package readers, contract
   validators, packaged schemas, fixtures, and documentation in the same change so no supported
