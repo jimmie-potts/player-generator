@@ -145,6 +145,9 @@ can proceed independently without the two player-generator profiles drifting.
   errors rather than raw conversion exceptions. A final recursive comparison pass also rejects
   boolean and numeric lookalikes inside profile structures and safely renders oversized malformed
   metadata in validation diagnostics.
+- **2026-07-16:** Follow-up review added scalar validation for concrete profile CSV-rule gap values
+  and coordinated ledger-plus-profile mutations. Matching malformed values now fail family
+  validation instead of being accepted merely because parity observes no drift.
 
 ## Completion notes
 

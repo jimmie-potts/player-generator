@@ -50,7 +50,10 @@ ledger, perform a separate mutation-oriented review:
 5. Compare the family, both flat profiles, runtime validators, publishers, fixtures, and current-state
    documentation. Represent planned differences as exact gaps rather than copying future claims into
    current interfaces.
-6. Have a reviewer that did not author the patch inspect the final unpushed diff and its mutation
+6. Mutate coupled representations together, not only one side at a time. A ledger entry and the flat
+   schema or runtime value it pins must reject the same malformed value even when parity sees them as
+   equal.
+7. Have a reviewer that did not author the patch inspect the final unpushed diff and its mutation
    matrix before handoff.
 
 ## Pull-request handoff

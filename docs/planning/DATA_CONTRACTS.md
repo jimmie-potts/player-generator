@@ -85,8 +85,10 @@ temporary state from being mistaken for an accepted contract difference. US-016 
 `in_progress` while its fixtures and remaining contract work are completed, and no gap may be added
 without an explicit rationale and follow-up story. Canonical serializer adoption and manifest
 alignment remain US-017 work; the serializer declarations are exact profile CSV-rule gaps rather
-than unlisted differences. D-038 settles roster age, birth-date fallback, and package-scoped player
-identity without changing either profile's columns.
+than unlisted differences. A concrete CSV-rule gap value must retain the family rule's JSON scalar
+type, and descriptive text must remain non-empty; matching wrong-typed values in the ledger and flat
+schema fail before parity comparison. D-038 settles roster age, birth-date fallback, and
+package-scoped player identity without changing either profile's columns.
 
 ## Version 1 profile inventories
 

@@ -778,6 +778,100 @@ def test_family_closes_profile_csv_rule_gap_declarations() -> None:
 
 
 @pytest.mark.parametrize(
+    ("property_name", "current_value"),
+    [
+        ("headerRow", 1),
+        ("headerRow", 1.0),
+        ("deterministicOrdering", 0),
+        ("delimiter", True),
+        ("numericSerializationDescription", None),
+    ],
+)
+def test_profile_csv_gaps_reject_coordinated_wrong_typed_current_values(
+    property_name: str,
+    current_value: object,
+) -> None:
+    family = load_player_data_contract()
+    gap = next(
+        item
+        for item in family["declaredAlignmentGaps"]
+        if item["kind"] == "profileCsvRules" and item["profile"] == "roster"
+    )
+    gap["currentValues"][property_name] = current_value
+    roster = load_roster_contract()
+    roster[property_name] = current_value
+
+    with pytest.raises(
+        ContractValidationError,
+        match=rf"current value for {property_name} must use the same JSON scalar type",
+    ):
+        validate_player_data_profile_parity(family=family, roster_contract=roster)
+
+
+def test_profile_csv_gaps_require_concrete_descriptions_to_be_non_empty() -> None:
+    family = load_player_data_contract()
+    gap = next(
+        item
+        for item in family["declaredAlignmentGaps"]
+        if item["kind"] == "profileCsvRules" and item["profile"] == "roster"
+    )
+    gap["currentValues"]["numericSerializationDescription"] = ""
+    roster = load_roster_contract()
+    roster["numericSerializationDescription"] = ""
+
+    with pytest.raises(ContractValidationError, match="must be non-empty text"):
+        validate_player_data_profile_parity(family=family, roster_contract=roster)
+
+
+@pytest.mark.parametrize(
+    ("property_name", "current_value"),
+    [
+        ("headerRow", False),
+        ("delimiter", ";"),
+        ("numericSerializationDescription", "Legacy serializer semantics."),
+    ],
+)
+def test_profile_csv_gaps_allow_well_typed_concrete_current_drift(
+    property_name: str,
+    current_value: object,
+) -> None:
+    family = load_player_data_contract()
+    gap = next(
+        item
+        for item in family["declaredAlignmentGaps"]
+        if item["kind"] == "profileCsvRules" and item["profile"] == "roster"
+    )
+    gap["currentValues"][property_name] = current_value
+    roster = load_roster_contract()
+    roster[property_name] = current_value
+
+    validate_player_data_contract_family(family)
+    validate_player_data_profile_parity(family=family, roster_contract=roster)
+
+
+def test_profile_csv_gaps_pin_exact_concrete_current_values() -> None:
+    family = load_player_data_contract()
+    gap = next(
+        item
+        for item in family["declaredAlignmentGaps"]
+        if item["kind"] == "profileCsvRules" and item["profile"] == "roster"
+    )
+    gap["currentValues"]["delimiter"] = ";"
+    roster = load_roster_contract()
+    roster["delimiter"] = "|"
+
+    with pytest.raises(ContractValidationError) as error:
+        validate_player_data_profile_parity(family=family, roster_contract=roster)
+
+    message = str(error.value)
+    assert 'unexpected issues: csv:roster:delimiter:current="|":target=","' in message
+    stale_issue = (
+        'declared gaps no longer observed: csv:roster:delimiter:current=";":target=","'
+    )
+    assert stale_issue in message
+
+
+@pytest.mark.parametrize(
     "property_name",
     ["doubleQuoteEscaping", "headerRow", "deterministicOrdering"],
 )

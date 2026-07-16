@@ -1107,11 +1107,23 @@ def validate_player_data_contract_family(contract: Mapping[str, Any]) -> None:
                     f"Player data alignment gap {index} currentValues must match properties"
                 )
             for property_name, value in current_values.items():
-                if isinstance(value, Mapping) and not _is_absence_marker(value):
-                    raise ContractValidationError(
-                        f"Player data alignment gap {index} current value for "
-                        f"{property_name} has an invalid absence marker"
-                    )
+                value_context = (
+                    f"Player data alignment gap {index} current value for {property_name}"
+                )
+                if isinstance(value, Mapping):
+                    if not _is_absence_marker(value):
+                        raise ContractValidationError(
+                            f"{value_context} has an invalid absence marker"
+                        )
+                else:
+                    target_value = csv_rules[property_name]
+                    if type(value) is not type(target_value):
+                        raise ContractValidationError(
+                            f"{value_context} must use the same JSON scalar type as "
+                            "the family CSV rule"
+                        )
+                    if property_name == "numericSerializationDescription":
+                        _text(value, value_context)
                 coordinate = (str(profile_name), property_name)
                 if coordinate in seen_csv_gap_coordinates:
                     raise ContractValidationError(

@@ -404,6 +404,12 @@ its completion notes.
   header, and a foreign-key source must be non-nullable unless runtime validation explicitly supports
   optional relationships.
 
+### 2026-07-16 — US-016
+
+- Exercise coordinated mutations at agreement boundaries. One-sided drift tests can pass while a
+  ledger and flat schema or runtime agree on the same malformed value; validate each layer's
+  semantics before comparing them for parity.
+
 ## Entry format
 
 Add new entries under a dated heading and identify the story that produced the learning:
